@@ -1,0 +1,209 @@
+package com.cemcakmak.hydrotracker.presentation.onboarding
+
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+
+@Composable
+fun WelcomeStep(
+    onNext: () -> Unit,
+    onSkip: () -> Unit,
+    isVisible: Boolean
+) {
+    val logoScale by animateFloatAsState(
+        targetValue = if (isVisible) 1f else 0f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
+        label = "logo_scale"
+    )
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        // App icon with spring animation
+        Card(
+            modifier = Modifier
+                .size(100.dp)
+                .scale(logoScale),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.primary
+            )
+        ) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "💧",
+                    style = MaterialTheme.typography.displayLarge
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        // Welcome content
+        AnimatedVisibility(
+            visible = isVisible,
+            enter = slideInVertically(
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessLow
+                ),
+                initialOffsetY = { it / 2 }
+            ) + fadeIn(animationSpec = tween(800, delayMillis = 400))
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "Welcome to HydroTracker",
+                    style = MaterialTheme.typography.headlineLarge,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text(
+                    text = "Let's set up your personalized water intake goal based on your lifestyle and preferences.",
+                    style = MaterialTheme.typography.bodyLarge,
+                    textAlign = TextAlign.Center,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(48.dp))
+
+        // Features
+        Column(modifier = Modifier.fillMaxWidth()) {
+            FeatureItem(
+                emoji = "🎯",
+                title = "Personalized Goals",
+                description = "Based on scientific research and your profile",
+                isVisible = isVisible,
+                delay = 600
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            FeatureItem(
+                emoji = "⏰",
+                title = "Smart Reminders",
+                description = "Gentle nudges during your active hours",
+                isVisible = isVisible,
+                delay = 800
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            FeatureItem(
+                emoji = "📊",
+                title = "Progress Tracking",
+                description = "Detailed insights and history",
+                isVisible = isVisible,
+                delay = 1000
+            )
+        }
+
+        Spacer(modifier = Modifier.height(48.dp))
+
+        // Action buttons
+        AnimatedVisibility(
+            visible = isVisible,
+            enter = slideInVertically(
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessMedium
+                ),
+                initialOffsetY = { it }
+            ) + fadeIn(animationSpec = tween(600, delayMillis = 1200))
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Button(
+                    onClick = onNext,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp)
+                ) {
+                    Text(
+                        text = "Get Started",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                TextButton(onClick = onSkip) {
+                    Text("Skip Setup")
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun FeatureItem(
+    emoji: String,
+    title: String,
+    description: String,
+    isVisible: Boolean = true,
+    delay: Int = 0
+) {
+    AnimatedVisibility(
+        visible = isVisible,
+        enter = slideInHorizontally(
+            animationSpec = spring(
+                dampingRatio = Spring.DampingRatioMediumBouncy,
+                stiffness = Spring.StiffnessMedium
+            ),
+            initialOffsetX = { -it }
+        ) + fadeIn(animationSpec = tween(600, delayMillis = delay))
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = emoji,
+                style = MaterialTheme.typography.headlineMedium
+            )
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+
+                Text(
+                    text = description,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}

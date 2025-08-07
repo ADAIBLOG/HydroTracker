@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Material 3 Dynamic Colors Progress for Android 12+ -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    
+    <!-- Track (background) -->
+    <item android:id="@android:id/background">
+        <shape android:shape="rectangle">
+            <corners android:radius="2dp" />
+            <solid android:color="@android:color/system_accent3_200" />
+        </shape>
+    </item>
+    
+    <!-- Progress (foreground) -->
+    <item android:id="@android:id/progress">
+        <clip>
+            <shape android:shape="rectangle">
+                <corners android:radius="2dp" />
+                <solid android:color="@android:color/system_accent1_600" />
+            </shape>
+        </clip>
+    </item>
+    
+</layer-list>

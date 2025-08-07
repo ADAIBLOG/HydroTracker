@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">HydroTracker</string>
+    
+    <!-- Widget Strings -->
+    <string name="widget_progress_description">Shows your daily hydration progress</string>
+    <string name="widget_progress_title">HydroTracker Progress</string>
+    <string name="widget_tap_to_open">Tap to open HydroTracker</string>
+    <string name="widget_updated_at">Updated %1$s</string>
+    <string name="widget_loading">Loading...</string>
+</resources>

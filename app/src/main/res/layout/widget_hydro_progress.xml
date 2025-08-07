@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_container"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="horizontal"
+    android:padding="12dp"
+    android:background="@drawable/widget_background_m3"
+    android:gravity="center_vertical">
+
+    <!-- App Icon and Title -->
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:layout_marginEnd="16dp">
+
+        <!-- App Icon -->
+        <ImageView
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@mipmap/ic_launcher_round"
+            android:layout_marginBottom="2dp" />
+
+        <!-- App Name -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="💧"
+            android:textSize="12sp"
+            android:gravity="center" />
+
+    </LinearLayout>
+
+    <!-- Progress Section -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:layout_marginEnd="12dp">
+
+        <!-- Progress Text Row -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="4dp">
+
+            <!-- Current Progress -->
+            <TextView
+                android:id="@+id/widget_progress_text"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="1,200ml / 2,700ml"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:gravity="start" />
+
+            <!-- Percentage -->
+            <TextView
+                android:id="@+id/widget_progress_percent"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="44%"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:gravity="end" />
+
+        </LinearLayout>
+
+        <!-- Material 3 Linear Progress Indicator -->
+        <ProgressBar
+            android:id="@+id/widget_progress_bar"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="match_parent"
+            android:layout_height="4dp"
+            android:progressDrawable="@drawable/widget_progress_m3"
+            android:max="100"
+            android:progress="44"
+            android:layout_marginBottom="2dp" />
+
+        <!-- Last Updated -->
+        <TextView
+            android:id="@+id/widget_last_updated"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Updated 14:30"
+            android:textSize="10sp"
+            android:gravity="start"
+            android:alpha="0.7" />
+
+    </LinearLayout>
+
+</LinearLayout>

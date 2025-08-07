@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Fallback Progress Colors for Android versions below 12 -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    
+    <!-- Track (background) -->
+    <item android:id="@android:id/background">
+        <shape android:shape="rectangle">
+            <corners android:radius="2dp" />
+            <solid android:color="#FFE3F2FD" />
+        </shape>
+    </item>
+    
+    <!-- Progress (foreground) -->
+    <item android:id="@android:id/progress">
+        <clip>
+            <shape android:shape="rectangle">
+                <corners android:radius="2dp" />
+                <solid android:color="@color/hydro_primary" />
+            </shape>
+        </clip>
+    </item>
+    
+</layer-list>
