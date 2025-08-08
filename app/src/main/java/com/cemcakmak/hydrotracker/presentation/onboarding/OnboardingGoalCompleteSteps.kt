@@ -1,14 +1,39 @@
+// OnboardingGoalCompleteSteps.kt
 package com.cemcakmak.hydrotracker.presentation.onboarding
 
-import androidx.compose.animation.core.*
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.AccessTime
+import androidx.compose.material.icons.rounded.Celebration
+import androidx.compose.material.icons.rounded.FitnessCenter
+import androidx.compose.material.icons.rounded.WaterDrop
 import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.cemcakmak.hydrotracker.data.models.*
 import com.cemcakmak.hydrotracker.utils.WaterCalculator
@@ -24,40 +49,40 @@ fun GoalStep(
         description = description
     ) {
         Column(
-            verticalArrangement = Arrangement.spacedBy(20.dp),
-            modifier = Modifier.fillMaxWidth()
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 4.dp)
         ) {
-            // Daily Goal Card
+            ExpressiveHeaderStrip()
+
             GoalInfoCard(
-                icon = "💧",
+                icon = Icons.Rounded.WaterDrop,
                 title = "Daily Water Goal",
                 value = WaterCalculator.formatWaterAmount(userProfile.dailyWaterGoal),
-                highlightColor = MaterialTheme.colorScheme.primary
+                accent = MaterialTheme.colorScheme.primary,
+                container = MaterialTheme.colorScheme.surface,
+                iconContainer = MaterialTheme.colorScheme.primaryContainer
             )
 
-            // Reminder Interval Card
             GoalInfoCard(
-                icon = "⏰",
+                icon = Icons.Rounded.AccessTime,
                 title = "Reminder Interval",
                 value = "${userProfile.reminderInterval} minutes",
-                highlightColor = MaterialTheme.colorScheme.tertiary
+                accent = MaterialTheme.colorScheme.tertiary,
+                container = MaterialTheme.colorScheme.surface,
+                iconContainer = MaterialTheme.colorScheme.tertiaryContainer
             )
 
-            // Activity Level Card
             GoalInfoCard(
-                icon = when (userProfile.activityLevel) {
-                    ActivityLevel.SEDENTARY -> "🪑"
-                    ActivityLevel.LIGHT -> "🚶"
-                    ActivityLevel.MODERATE -> "🏃"
-                    ActivityLevel.ACTIVE -> "🏋️"
-                    ActivityLevel.VERY_ACTIVE -> "🏃‍♂️"
-                },
+                icon = Icons.Rounded.FitnessCenter,
                 title = "Activity Level",
                 value = userProfile.activityLevel.getDisplayName(),
-                highlightColor = MaterialTheme.colorScheme.secondary
+                accent = MaterialTheme.colorScheme.secondary,
+                container = MaterialTheme.colorScheme.surface,
+                iconContainer = MaterialTheme.colorScheme.secondaryContainer
             )
 
-            // Explanation Card
             ElevatedCard(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.elevatedCardColors(
@@ -67,17 +92,19 @@ fun GoalStep(
             ) {
                 Column(modifier = Modifier.padding(20.dp)) {
                     Text(
-                        text = "📋 How we calculated this",
+                        text = "How we personalized this",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(Modifier.height(8.dp))
                     Text(
-                        text = "Your goal is based on scientific research considering your gender, age, activity level, and daily schedule. The reminder frequency is optimized for your waking hours.",
+                        text = "Your goal considers your profile and schedule. These factors influence total intake and notification cadence.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         lineHeight = MaterialTheme.typography.bodyMedium.lineHeight
                     )
+                    Spacer(Modifier.height(12.dp))
+                    ReasonChipsRow(userProfile = userProfile)
                 }
             }
         }
@@ -85,38 +112,119 @@ fun GoalStep(
 }
 
 @Composable
+private fun ExpressiveHeaderStrip() {
+    val c = MaterialTheme.colorScheme
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(10.dp)
+            .clip(MaterialTheme.shapes.large)
+            .background(
+                Brush.horizontalGradient(
+                    listOf(
+                        c.primary.copy(alpha = 0.45f),
+                        c.secondary.copy(alpha = 0.45f),
+                        c.tertiary.copy(alpha = 0.45f)
+                    )
+                )
+            )
+            .semantics { contentDescription = "expressive header accent" }
+    )
+}
+
+@Composable
+private fun ReasonChipsRow(userProfile: UserProfile) {
+    val c = MaterialTheme.colorScheme
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        AssistChip(
+            onClick = {},
+            label = { Text(userProfile.gender.displayName()) },
+            colors = AssistChipDefaults.assistChipColors(
+                labelColor = c.onSurfaceVariant,
+                containerColor = c.surface
+            ),
+            border = BorderStroke(1.dp, c.outlineVariant)
+        )
+        AssistChip(
+            onClick = {},
+            label = { Text(userProfile.ageGroup.displayName()) },
+            colors = AssistChipDefaults.assistChipColors(
+                labelColor = c.onSurfaceVariant,
+                containerColor = c.surface
+            ),
+            border = BorderStroke(1.dp, c.outlineVariant)
+        )
+        AssistChip(
+            onClick = {},
+            label = { Text("Wake: ${userProfile.wakeUpTime}") },
+            colors = AssistChipDefaults.assistChipColors(
+                labelColor = c.onSurfaceVariant,
+                containerColor = c.surface
+            ),
+            border = BorderStroke(1.dp, c.outlineVariant)
+        )
+        AssistChip(
+            onClick = {},
+            label = { Text("Sleep: ${userProfile.sleepTime}") },
+            colors = AssistChipDefaults.assistChipColors(
+                labelColor = c.onSurfaceVariant,
+                containerColor = c.surface
+            ),
+            border = BorderStroke(1.dp, c.outlineVariant)
+        )
+    }
+}
+
+@Composable
 private fun GoalInfoCard(
-    icon: String,
+    icon: ImageVector,
     title: String,
     value: String,
-    highlightColor: androidx.compose.ui.graphics.Color
+    accent: Color,
+    container: Color,
+    iconContainer: Color
 ) {
     ElevatedCard(
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.elevatedCardElevation(defaultElevation = 4.dp),
-        colors = CardDefaults.elevatedCardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        )
+        colors = CardDefaults.elevatedCardColors(containerColor = container)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(20.dp),
+                .padding(18.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = icon,
-                style = MaterialTheme.typography.headlineMedium,
-                modifier = Modifier.padding(end = 16.dp)
-            )
-            Column {
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .background(iconContainer),
+                contentAlignment = Alignment.Center
+            ) {
+                val tint =
+                    when (iconContainer) {
+                        MaterialTheme.colorScheme.primaryContainer -> MaterialTheme.colorScheme.onPrimaryContainer
+                        MaterialTheme.colorScheme.secondaryContainer -> MaterialTheme.colorScheme.onSecondaryContainer
+                        MaterialTheme.colorScheme.tertiaryContainer -> MaterialTheme.colorScheme.onTertiaryContainer
+                        else -> MaterialTheme.colorScheme.onSurface
+                    }
+                Icon(imageVector = icon, contentDescription = null, tint = tint)
+            }
+            Spacer(Modifier.width(16.dp))
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = value,
                     style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = highlightColor
+                    fontWeight = FontWeight.ExtraBold,
+                    color = accent
                 )
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(Modifier.height(2.dp))
                 Text(
                     text = title,
                     style = MaterialTheme.typography.bodyMedium,
@@ -132,14 +240,27 @@ fun CompleteStep(
     userProfile: UserProfile,
     onComplete: () -> Unit
 ) {
-    val celebrationAnimation by rememberInfiniteTransition().animateFloat(
-        initialValue = 0.9f,
-        targetValue = 1.1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1000, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
+    val angle by rememberInfiniteTransition(label = "rot")
+        .animateFloat(
+            initialValue = 0f,
+            targetValue = 360f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 5000, easing = LinearEasing),
+                repeatMode = RepeatMode.Restart
+            ),
+            label = "angle"
         )
-    )
+
+    val angleReverse by rememberInfiniteTransition(label = "rot")
+        .animateFloat(
+            initialValue = 0f,
+            targetValue = -360f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 5000, easing = LinearEasing),
+                repeatMode = RepeatMode.Restart
+            ),
+            label = "angle"
+        )
 
     Column(
         modifier = Modifier
@@ -148,43 +269,46 @@ fun CompleteStep(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        // Celebration Icon
         Surface(
             modifier = Modifier
-                .size(120.dp)
-                .scale(celebrationAnimation),
-            shape = MaterialTheme.shapes.extraLarge,
-            color = MaterialTheme.colorScheme.primaryContainer
+                .size(132.dp)
+                .rotate(angle),
+            shape = MaterialShapes.Cookie12Sided.toShape(),
+            color = MaterialTheme.colorScheme.primaryContainer,
+            tonalElevation = 3.dp
         ) {
             Box(contentAlignment = Alignment.Center) {
-                Text(
-                    text = "🎉",
-                    style = MaterialTheme.typography.displayLarge
+                Icon(
+                    modifier = Modifier
+                        .size(54.dp)
+                        .rotate(angleReverse),
+                    imageVector = Icons.Rounded.Celebration,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer
                 )
             }
         }
 
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(Modifier.height(28.dp))
 
         Text(
             text = "You're all set!",
             style = MaterialTheme.typography.displaySmall,
-            fontWeight = FontWeight.Bold,
+            fontWeight = FontWeight.Black,
             textAlign = TextAlign.Center
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(Modifier.height(10.dp))
 
         Text(
-            text = "Your personalized hydration plan is ready. Let's start your journey to better health!",
+            text = "Your personalized hydration plan is ready.",
             style = MaterialTheme.typography.bodyLarge,
             textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
-        Spacer(modifier = Modifier.height(40.dp))
+        Spacer(Modifier.height(28.dp))
 
-        // Daily Goal Summary Card
         ElevatedCard(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.elevatedCardColors(
@@ -202,29 +326,124 @@ fun CompleteStep(
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(Modifier.height(6.dp))
                 Text(
                     text = WaterCalculator.formatWaterAmount(userProfile.dailyWaterGoal),
                     style = MaterialTheme.typography.displayMedium,
                     fontWeight = FontWeight.ExtraBold,
                     color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
+                Spacer(Modifier.height(10.dp))
+                AnimatedVisibility(visible = true) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        SmallRecapChip(
+                            label = "${userProfile.reminderInterval} min",
+                            container = MaterialTheme.colorScheme.surface,
+                            border = MaterialTheme.colorScheme.outlineVariant
+                        )
+                        SmallRecapChip(
+                            label = userProfile.activityLevel.getDisplayName(),
+                            container = MaterialTheme.colorScheme.surface,
+                            border = MaterialTheme.colorScheme.outlineVariant
+                        )
+                    }
+                }
             }
         }
 
-        Spacer(modifier = Modifier.height(48.dp))
+        Spacer(Modifier.height(28.dp))
 
         Button(
             onClick = onComplete,
+            shapes = ButtonDefaults.shapes(),
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp)
         ) {
+            Icon(imageVector = Icons.Rounded.WaterDrop, contentDescription = null)
+            Spacer(Modifier.width(8.dp))
             Text(
-                text = "Start Hydrating! 💪",
+                text = "Start hydrating",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold
             )
         }
     }
+}
+
+@Composable
+private fun SmallRecapChip(
+    label: String,
+    container: Color,
+    border: Color
+) {
+    Surface(
+        color = container,
+        shape = MaterialTheme.shapes.large,
+        border = BorderStroke(1.dp, border)
+    ) {
+        Text(
+            text = label,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+            style = MaterialTheme.typography.labelLarge
+        )
+    }
+}
+
+/* ------------ Helpers ------------ */
+
+private fun Gender.displayName(): String = when (this) {
+    Gender.MALE -> "Male"
+    Gender.FEMALE -> "Female"
+    else -> name.replace('_', ' ').lowercase().replaceFirstChar { it.uppercase() }
+}
+
+private fun AgeGroup.displayName(): String = when (this) {
+    AgeGroup.YOUNG_ADULT_18_30 -> "18–30"
+    AgeGroup.ADULT_31_50 -> "31–50"
+    else -> name.replace('_', ' ').lowercase().replaceFirstChar { it.uppercase() }
+}
+
+/* ---------------------------------- Previews ---------------------------------- */
+
+@Preview
+@Composable
+fun GoalStepPreview() {
+    val userProfile = UserProfile(
+        gender = Gender.FEMALE,
+        ageGroup = AgeGroup.ADULT_31_50,
+        activityLevel = ActivityLevel.MODERATE,
+        wakeUpTime = "07:00",
+        sleepTime = "23:00",
+        dailyWaterGoal = 2500.0,
+        reminderInterval = 60
+    )
+    GoalStep(
+        userProfile = userProfile,
+        title = "Your Personalized Goal",
+        description = "Based on your info, here’s your recommended daily water intake."
+    )
+}
+
+@Preview
+@Composable
+fun CompleteStepPreview() {
+    val userProfile = UserProfile(
+        gender = Gender.MALE,
+        ageGroup = AgeGroup.YOUNG_ADULT_18_30,
+        activityLevel = ActivityLevel.ACTIVE,
+        wakeUpTime = "06:00",
+        sleepTime = "22:00",
+        dailyWaterGoal = 3000.0,
+        reminderInterval = 45
+    )
+    CompleteStep(
+        userProfile = userProfile,
+        onComplete = {}
+    )
 }

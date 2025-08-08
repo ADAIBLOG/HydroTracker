@@ -92,7 +92,8 @@ fun OnboardingScreen(
                         if (canGoBack) {
                             IconButton(
                                 onClick = { viewModel.previousStep() },
-                                enabled = !isAnimating
+                                enabled = !isAnimating,
+                                shapes = IconButtonDefaults.shapes(),
                             ) {
                                 Icon(
                                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
@@ -222,7 +223,6 @@ fun OnboardingScreen(
                     TextButton(
                         onClick = {
                             viewModel.skipOnboarding()
-                            // Skip will trigger isCompleted, which will trigger navigation via LaunchedEffect
                         },
                         enabled = !isAnimating
                     ) {
@@ -231,6 +231,7 @@ fun OnboardingScreen(
 
                     // Next button
                     Button(
+                        shapes = ButtonDefaults.shapes(),
                         onClick = { viewModel.nextStep() },
                         enabled = canGoNext && !isAnimating,
                         modifier = Modifier.width(120.dp)
@@ -246,10 +247,12 @@ fun OnboardingScreen(
     }
 }
 
-@Preview(showBackground = true)
+@Preview
 @Composable
 fun OnboardingScreenPreview() {
     HydroTrackerTheme {
-        OnboardingScreen()
+        OnboardingScreen(
+            onNavigateToHome = {}
+        )
     }
 }

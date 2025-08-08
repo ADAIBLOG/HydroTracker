@@ -4,7 +4,6 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bedtime
 import androidx.compose.material.icons.filled.WbSunny
@@ -12,24 +11,22 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.delay
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlin.math.cos
 import kotlin.math.sin
 
-/**
- * Material 3 Schedule Step with custom analog clock card design.
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ScheduleStep(
@@ -53,7 +50,7 @@ fun ScheduleStep(
         // Title & Subtitle
         Text(
             text = title,
-            style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
+            style = MaterialTheme.typography.headlineLarge,
             color = MaterialTheme.colorScheme.onSurface,
             textAlign = TextAlign.Center
         )
@@ -68,7 +65,7 @@ fun ScheduleStep(
         TimeSelectionCard(
             label = "Wake-Up Time",
             time = wakeUpTime,
-            icon = Icons.Default.WbSunny
+            icon = Icons.Default.WbSunny,
         ) { showWakeUpPicker = true }
 
         // Sleep Card
@@ -116,6 +113,21 @@ fun ScheduleStep(
     }
 }
 
+@Preview
+@Composable
+fun ScheduleStepPreview() {
+    ScheduleStep(
+        wakeUpTime = "07:00",
+        sleepTime = "23:00",
+        onWakeUpTimeChanged = {},
+        onSleepTimeChanged = {},
+        title = "Set Your Schedule",
+        description = "Tell us when you typically wake up and go to sleep."
+    )
+}
+
+
+
 @Composable
 fun TimeSelectionCard(
     label: String,
@@ -127,12 +139,14 @@ fun TimeSelectionCard(
         modifier = Modifier
             .fillMaxWidth()
             .height(80.dp)
-            .clickable { onClick() },
-        shape = RoundedCornerShape(50),
+            .clickable { onClick() }
+            .clip(MaterialTheme.shapes.extraLargeIncreased),
+        shape = MaterialTheme.shapes.extraLargeIncreased,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
+            containerColor = MaterialTheme.colorScheme.surfaceContainer
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
+        border = CardDefaults.outlinedCardBorder(),
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
     ) {
         Row(
             modifier = Modifier
@@ -148,13 +162,12 @@ fun TimeSelectionCard(
             Column(
                 modifier = Modifier
                     .weight(1f)
-                    .padding(horizontal = 12.dp),
+                    .padding(horizontal = 20.dp),
                 verticalArrangement = Arrangement.Center
             ) {
                 Text(
                     text = label,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.titleMediumEmphasized,
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
@@ -174,6 +187,18 @@ fun TimeSelectionCard(
         }
     }
 }
+
+@Preview
+@Composable
+fun TimeSelectionCardPreview() {
+    TimeSelectionCard(
+        label = "Wake-Up Time",
+        time = "07:00",
+        icon = Icons.Default.WbSunny,
+        onClick = {}
+    )
+}
+
 
 @Composable
 fun AnalogClock(time: String, size: Dp) {
@@ -230,6 +255,13 @@ fun AnalogClock(time: String, size: Dp) {
     }
 }
 
+@Preview
+@Composable
+fun AnalogClockPreview() {
+    AnalogClock(time = "10:30", size = 100.dp)
+}
+
+
 @Composable
 private fun DayDurationPreview(wakeUpTime: String, sleepTime: String) {
     val awakeHours = calculateAwakeHours(wakeUpTime, sleepTime)
@@ -256,6 +288,13 @@ private fun DayDurationPreview(wakeUpTime: String, sleepTime: String) {
     }
 }
 
+@Preview
+@Composable
+fun DayDurationPreviewPreview() {
+    DayDurationPreview(wakeUpTime = "07:00", sleepTime = "23:00")
+}
+
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ExpressiveTimePickerDialog(
@@ -279,7 +318,7 @@ private fun ExpressiveTimePickerDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        shape = MaterialTheme.shapes.extraLarge,
+        shape = MaterialTheme.shapes.extraLargeIncreased,
         containerColor = MaterialTheme.colorScheme.surface,
         tonalElevation = 12.dp,
         title = {
@@ -333,7 +372,8 @@ private fun ExpressiveTimePickerDialog(
         confirmButton = {
             Button(
                 onClick = { onConfirm(timePickerState.hour, timePickerState.minute) },
-                colors = ButtonDefaults.buttonColors(containerColor = accentColor)
+                colors = ButtonDefaults.buttonColors(containerColor = accentColor),
+                shapes = ButtonDefaults.shapes(),
             ) {
                 Text(text = "Set Time", fontWeight = FontWeight.SemiBold)
             }
@@ -341,6 +381,21 @@ private fun ExpressiveTimePickerDialog(
         dismissButton = {
             TextButton(onClick = onDismiss) { Text("Cancel") }
         }
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Preview
+@Composable
+fun ExpressiveTimePickerDialogPreview() {
+    ExpressiveTimePickerDialog(
+        title = "Wake Up Time",
+        subtitle = "Choose your wake-up time",
+        icon = Icons.Default.WbSunny,
+        accentColor = MaterialTheme.colorScheme.primary,
+        onDismiss = {},
+        onConfirm = { _, _ -> },
+        initialTime = "07:00"
     )
 }
 

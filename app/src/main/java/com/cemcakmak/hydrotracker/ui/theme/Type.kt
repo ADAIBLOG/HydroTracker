@@ -1,125 +1,142 @@
 package com.cemcakmak.hydrotracker.ui.theme
 
 import androidx.compose.material3.Typography
+import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.unit.sp
+import com.cemcakmak.hydrotracker.R
 
-// Material 3 Expressive Typography System - 15 Token System
+// RobotoFlex as primary font (system will auto-fallback if needed)
+@OptIn(ExperimentalTextApi::class)
+val RobotoFlex = FontFamily(
+    Font(
+        resId = R.font.roboto_flex_variable,
+        variationSettings = FontVariation.Settings(
+            FontVariation.Setting("wght", 400f),
+            FontVariation.Setting("wdth", 100f),
+            FontVariation.Setting("opsz", 32f)
+        )
+    )
+)
+
+// Emphasized variant for hero titles / onboarding
+@OptIn(ExperimentalTextApi::class)
+val RobotoFlexEmphasized = FontFamily(
+    Font(
+        resId = R.font.roboto_flex_variable,
+        variationSettings = FontVariation.Settings(
+            FontVariation.Setting("wght", 700f),
+            FontVariation.Setting("wdth", 115f),
+            FontVariation.Setting("SOFT", 20f),
+            FontVariation.Setting("opsz", 72f)
+        )
+    )
+)
+
 val HydroTypography = Typography(
-    // Display styles - For hero text and large emphasis
     displayLarge = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Normal,
+        fontFamily = RobotoFlex,
         fontSize = 57.sp,
         lineHeight = 64.sp,
-        letterSpacing = (-0.25).sp,
+        letterSpacing = (-0.25).sp
     ),
     displayMedium = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Normal,
+        fontFamily = RobotoFlex,
         fontSize = 45.sp,
         lineHeight = 52.sp,
-        letterSpacing = 0.sp,
+        letterSpacing = 0.sp
     ),
     displaySmall = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Normal,
+        fontFamily = RobotoFlex,
         fontSize = 36.sp,
         lineHeight = 44.sp,
-        letterSpacing = 0.sp,
+        letterSpacing = 0.sp
     ),
 
-    // Headline styles - For section headers and important content
+    // Custom: Emphasized style for onboarding banners, hero headers
+    displayLargeEmphasized = TextStyle(
+        fontFamily = RobotoFlexEmphasized,
+        fontSize = 36.sp,
+        lineHeight = 44.sp,
+        letterSpacing = (-0.25).sp
+    ),
+
     headlineLarge = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.SemiBold,
+        fontFamily = RobotoFlex,
         fontSize = 32.sp,
         lineHeight = 40.sp,
-        letterSpacing = 0.sp,
+        letterSpacing = 0.sp
     ),
     headlineMedium = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.SemiBold,
+        fontFamily = RobotoFlex,
         fontSize = 28.sp,
         lineHeight = 36.sp,
-        letterSpacing = 0.sp,
+        letterSpacing = 0.sp
     ),
     headlineSmall = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.SemiBold,
+        fontFamily = RobotoFlex,
         fontSize = 24.sp,
         lineHeight = 32.sp,
-        letterSpacing = 0.sp,
+        letterSpacing = 0.sp
     ),
 
-    // Title styles - For card headers and screen titles
     titleLarge = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.SemiBold,
+        fontFamily = RobotoFlex,
         fontSize = 22.sp,
         lineHeight = 28.sp,
-        letterSpacing = 0.sp,
+        letterSpacing = 0.sp
     ),
     titleMedium = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.SemiBold,
+        fontFamily = RobotoFlex,
         fontSize = 16.sp,
         lineHeight = 24.sp,
-        letterSpacing = 0.15.sp,
+        letterSpacing = 0.15.sp
     ),
     titleSmall = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Medium,
+        fontFamily = RobotoFlex,
         fontSize = 14.sp,
         lineHeight = 20.sp,
-        letterSpacing = 0.1.sp,
+        letterSpacing = 0.1.sp
     ),
 
-    // Body styles - For main content and reading text
     bodyLarge = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Normal,
+        fontFamily = RobotoFlex,
         fontSize = 16.sp,
         lineHeight = 24.sp,
-        letterSpacing = 0.15.sp,
+        letterSpacing = 0.15.sp
     ),
     bodyMedium = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Normal,
+        fontFamily = RobotoFlex,
         fontSize = 14.sp,
         lineHeight = 20.sp,
-        letterSpacing = 0.25.sp,
+        letterSpacing = 0.25.sp
     ),
     bodySmall = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Normal,
+        fontFamily = RobotoFlex,
         fontSize = 12.sp,
         lineHeight = 16.sp,
-        letterSpacing = 0.4.sp,
+        letterSpacing = 0.4.sp
     ),
 
-    // Label styles - For buttons, captions, and small text
     labelLarge = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.SemiBold,
+        fontFamily = RobotoFlex,
         fontSize = 14.sp,
         lineHeight = 20.sp,
-        letterSpacing = 0.1.sp,
+        letterSpacing = 0.1.sp
     ),
     labelMedium = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.SemiBold,
+        fontFamily = RobotoFlex,
         fontSize = 12.sp,
         lineHeight = 16.sp,
-        letterSpacing = 0.5.sp,
+        letterSpacing = 0.5.sp
     ),
     labelSmall = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.SemiBold,
+        fontFamily = RobotoFlex,
         fontSize = 11.sp,
         lineHeight = 16.sp,
-        letterSpacing = 0.5.sp,
+        letterSpacing = 0.5.sp
     )
 )

@@ -3,6 +3,8 @@ package com.cemcakmak.hydrotracker.presentation.onboarding
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.WaterDrop
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -10,7 +12,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.cemcakmak.hydrotracker.ui.theme.HydroTypography
 
 @Composable
 fun WelcomeStep(
@@ -36,8 +41,9 @@ fun WelcomeStep(
     ) {
         // App icon with spring animation
         Card(
+            shape = MaterialShapes.Cookie12Sided.toShape(),
             modifier = Modifier
-                .size(100.dp)
+                .size(120.dp)
                 .scale(logoScale),
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.primary
@@ -47,9 +53,11 @@ fun WelcomeStep(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = "💧",
-                    style = MaterialTheme.typography.displayLarge
+                Icon(
+                    imageVector = Icons.Filled.WaterDrop,
+                    contentDescription = "Water drop",
+                    tint = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier.size(64.dp)
                 )
             }
         }
@@ -72,8 +80,10 @@ fun WelcomeStep(
             ) {
                 Text(
                     text = "Welcome to HydroTracker",
-                    style = MaterialTheme.typography.headlineLarge,
-                    fontWeight = FontWeight.Bold,
+                    style = HydroTypography.displayLargeEmphasized,
+                    fontSize = 32.sp,
+                    lineHeight = 40.sp,
+                    color = MaterialTheme.colorScheme.onSurface,
                     textAlign = TextAlign.Center
                 )
 
@@ -138,6 +148,7 @@ fun WelcomeStep(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Button(
+                    shapes = ButtonDefaults.shapes(),
                     onClick = onNext,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -145,20 +156,47 @@ fun WelcomeStep(
                 ) {
                     Text(
                         text = "Get Started",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold
+                        style = MaterialTheme.typography.labelLargeEmphasized,
+                        fontSize = 18.sp
                     )
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
 
                 TextButton(onClick = onSkip) {
-                    Text("Skip Setup")
+                    Text(
+                        text = "Skip Setup",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontSize = 16.sp
+                    )
                 }
             }
         }
     }
 }
+
+@Preview
+@Composable
+fun WelcomeStepPreview() {
+    WelcomeStep(
+        onNext = {},
+        onSkip = {},
+        isVisible = true
+    )
+}
+
+@Preview
+@Composable
+fun FeatureItemPreview() {
+    FeatureItem(
+        emoji = "🎯",
+        title = "Personalized Goals",
+        description = "Based on scientific research and your profile",
+        isVisible = true,
+        delay = 600
+    )
+}
+
 
 @Composable
 private fun FeatureItem(

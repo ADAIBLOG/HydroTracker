@@ -3,6 +3,7 @@ package com.cemcakmak.hydrotracker.presentation.onboarding
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.tooling.preview.Preview
 import com.cemcakmak.hydrotracker.data.models.*
 
 @Composable
@@ -17,7 +18,7 @@ fun GenderStep(
         description = description
     ) {
         Column(
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             Gender.entries.forEach { gender ->
                 SelectionCard(
@@ -37,6 +38,21 @@ fun GenderStep(
 }
 
 @Composable
+@Preview
+fun GenderStepPreview() {
+    var selectedGender by remember { mutableStateOf(Gender.MALE) }
+    GenderStep(
+        selectedGender = selectedGender,
+        onGenderSelected = { gender ->
+            selectedGender = gender
+        },
+        title = "Select Your Gender",
+        description = "This helps us tailor your hydration recommendations."
+    )
+}
+
+
+@Composable
 fun AgeStep(
     selectedAgeGroup: AgeGroup,
     onAgeGroupSelected: (AgeGroup) -> Unit,
@@ -48,7 +64,7 @@ fun AgeStep(
         description = description
     ) {
         Column(
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             AgeGroup.entries.forEach { ageGroup ->
                 SelectionCard(
@@ -69,6 +85,20 @@ fun AgeStep(
 }
 
 @Composable
+@Preview
+fun AgeStepPreview() {
+    var selectedAgeGroup by remember { mutableStateOf(AgeGroup.YOUNG_ADULT_18_30) }
+    AgeStep(
+        selectedAgeGroup = selectedAgeGroup,
+        onAgeGroupSelected = { ageGroup ->
+            selectedAgeGroup = ageGroup
+        },
+        title = "Select Your Age Group",
+        description = "Your age influences your hydration needs."
+    )
+}
+
+@Composable
 fun ActivityStep(
     selectedActivityLevel: ActivityLevel,
     onActivityLevelSelected: (ActivityLevel) -> Unit,
@@ -80,7 +110,7 @@ fun ActivityStep(
         description = description
     ) {
         Column(
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             ActivityLevel.entries.forEach { activityLevel ->
                 SelectionCard(
@@ -99,4 +129,18 @@ fun ActivityStep(
             }
         }
     }
+}
+
+@Composable
+@Preview
+fun ActivityStepPreview() {
+    var selectedActivityLevel by remember { mutableStateOf(ActivityLevel.MODERATE) }
+    ActivityStep(
+        selectedActivityLevel = selectedActivityLevel,
+        onActivityLevelSelected = { activityLevel ->
+            selectedActivityLevel = activityLevel
+        },
+        title = "Select Your Activity Level",
+        description = "Your activity level affects how much water you need."
+    )
 }

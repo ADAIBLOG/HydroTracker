@@ -10,6 +10,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
@@ -25,7 +26,6 @@ import androidx.compose.ui.unit.dp
 fun OnboardingStepLayout(
     title: String,
     description: String,
-    modifier: Modifier = Modifier,
     content: @Composable () -> Unit
 ) {
     Column(
@@ -97,6 +97,7 @@ fun SelectionCard(
         modifier = modifier
             .fillMaxWidth()
             .scale(animatedScale)
+            .clip(MaterialTheme.shapes.extraLargeIncreased)
             .selectable(
                 selected = isSelected,
                 onClick = onClick,
@@ -104,20 +105,20 @@ fun SelectionCard(
             ),
         colors = CardDefaults.cardColors(
             containerColor = if (isSelected) {
-                MaterialTheme.colorScheme.primaryContainer
+                MaterialTheme.colorScheme.surfaceContainerHighest
             } else {
-                MaterialTheme.colorScheme.surface
+                MaterialTheme.colorScheme.surfaceContainer
             }
             ),
         border = if (isSelected) {
-            BorderStroke(2.dp, MaterialTheme.colorScheme.primary) // Visible border when selected
+            BorderStroke(2.dp, MaterialTheme.colorScheme.outlineVariant) // Visible border when selected
         } else {
             BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant) // Subtle border when not selected
         },
         elevation = CardDefaults.cardElevation(
-            defaultElevation = if (isSelected) 8.dp else 1.dp
+            defaultElevation = if (isSelected) 6.dp else 0.dp
         ),
-        shape = MaterialTheme.shapes.large
+        shape = MaterialTheme.shapes.extraLargeIncreased
     ) {
         Row(
             modifier = Modifier
@@ -126,18 +127,20 @@ fun SelectionCard(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Icon section following Material Design 3 Icon Guidelines
-            // https://m3.material.io/styles/icons/applying-icons
             if (icon != null) {
                 Surface(
                     modifier = Modifier.size(56.dp),
-                    shape = MaterialTheme.shapes.medium,
+                    shape = MaterialShapes.Circle.toShape(),
                     color = if (isSelected) {
-                        MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                        MaterialTheme.colorScheme.surfaceContainerHighest
                     } else {
-                        MaterialTheme.colorScheme.surface
+                        MaterialTheme.colorScheme.surfaceContainer
                     },
-                    tonalElevation = 4.dp
+                    border = if (isSelected) {
+                        BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
+                    } else {
+                        null
+                    }
                 ) {
                     Box(
                         contentAlignment = Alignment.Center
@@ -150,261 +153,34 @@ fun SelectionCard(
                 }
             }
 
-            // Content section following Material Design 3 Typography
-            // https://m3.material.io/styles/typography/type-scale-tokens
             Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 Text(
                     text = title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = if (isSelected) {
-                        MaterialTheme.colorScheme.onPrimaryContainer
-                    } else {
-                        MaterialTheme.colorScheme.onSurface
-                    }
+                    style = MaterialTheme.typography.titleMediumEmphasized,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
 
                 Text(
                     text = description,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = if (isSelected) {
-                        MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    }
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
             }
 
-            // Selection indicator following Material Design 3 Radio Button Guidelines
-            // https://m3.material.io/components/radio-button/overview
             RadioButton(
                 selected = isSelected,
-                onClick = null, // onClick is handled by the card's selectable modifier
+                onClick = null,
                 colors = RadioButtonDefaults.colors(
                     selectedColor = if (isSelected) {
                         MaterialTheme.colorScheme.primary
                     } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant
+                        MaterialTheme.colorScheme.surfaceContainer
                     }
                 )
             )
-        }
-    }
-}
-
-/**
- * Material 3 Expressive Feature Highlight Card
- * Following Material Design 3 Card and Content Guidelines
- * https://m3.material.io/foundations/content-design/style-guide/ux-writing-best-practices
- */
-@Composable
-fun FeatureCard(
-    icon: String,
-    title: String,
-    description: String,
-    modifier: Modifier = Modifier
-) {
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        ),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = 2.dp
-        ),
-        shape = MaterialTheme.shapes.medium
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(20.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            // Icon container following Material Design 3 Surface Guidelines
-            // https://m3.material.io/styles/elevation/applying-elevation
-            Surface(
-                modifier = Modifier.size(48.dp),
-                shape = MaterialTheme.shapes.medium,
-                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
-                tonalElevation = 4.dp
-            ) {
-                Box(
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = icon,
-                        style = MaterialTheme.typography.headlineSmall
-                    )
-                }
-            }
-
-            // Content following Material Design 3 Typography hierarchy
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-
-                Text(
-                    text = description,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-    }
-}
-
-/**
- * Material 3 Expressive Goal Display Card
- * Following Material Design 3 Card and Color Guidelines
- * https://m3.material.io/components/cards/guidelines
- * https://m3.material.io/styles/color/roles
- */
-@Composable
-fun GoalDisplayCard(
-    goalValue: String,
-    goalLabel: String,
-    modifier: Modifier = Modifier,
-    supportingText: String? = null
-) {
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer
-        ),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = 8.dp
-        ),
-        shape = MaterialTheme.shapes.large
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(32.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            // Water drop icon container
-            Surface(
-                modifier = Modifier.size(80.dp),
-                shape = MaterialTheme.shapes.extraLarge,
-                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
-                tonalElevation = 4.dp
-            ) {
-                Box(
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "💧",
-                        style = MaterialTheme.typography.displayMedium
-                    )
-                }
-            }
-
-            // Goal value following Material Design 3 Typography scale
-            Text(
-                text = goalValue,
-                style = MaterialTheme.typography.displayLarge,
-                fontWeight = FontWeight.ExtraBold,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                textAlign = TextAlign.Center
-            )
-
-            // Goal label
-            Text(
-                text = goalLabel,
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                textAlign = TextAlign.Center
-            )
-
-            // Supporting text if provided
-            supportingText?.let { text ->
-                Text(
-                    text = text,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
-                    textAlign = TextAlign.Center
-                )
-            }
-        }
-    }
-}
-
-/**
- * Material 3 Expressive Info Card with Icon
- * Following Material Design 3 Surface and Content Guidelines
- * https://m3.material.io/foundations/content-design/alt-text
- */
-@Composable
-fun InfoCard(
-    icon: String,
-    title: String,
-    content: String,
-    modifier: Modifier = Modifier
-) {
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        ),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = 2.dp
-        ),
-        shape = MaterialTheme.shapes.medium
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(24.dp),
-            verticalAlignment = Alignment.Top,
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            // Icon container
-            Surface(
-                modifier = Modifier.size(40.dp),
-                shape = MaterialTheme.shapes.medium,
-                color = MaterialTheme.colorScheme.surface,
-                tonalElevation = 4.dp
-            ) {
-                Box(
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = icon,
-                        style = MaterialTheme.typography.titleLarge
-                    )
-                }
-            }
-
-            // Content
-            Column(
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-
-                Text(
-                    text = content,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
         }
     }
 }
