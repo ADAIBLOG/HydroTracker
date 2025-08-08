@@ -21,7 +21,6 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import kotlinx.coroutines.launch
@@ -31,7 +30,6 @@ import com.cemcakmak.hydrotracker.data.repository.WaterIntakeRepository
 import com.cemcakmak.hydrotracker.data.repository.WaterProgress
 import com.cemcakmak.hydrotracker.data.repository.TodayStatistics
 import com.cemcakmak.hydrotracker.data.database.entities.WaterIntakeEntry
-import com.cemcakmak.hydrotracker.ui.theme.HydroTrackerTheme
 import com.cemcakmak.hydrotracker.utils.WaterCalculator
 import com.cemcakmak.hydrotracker.presentation.common.HydroSnackbarHost
 import com.cemcakmak.hydrotracker.presentation.common.showSuccessSnackbar
@@ -140,8 +138,7 @@ fun HomeScreen(
                     title = {
                         Text(
                             text = "HydroTracker",
-                            style = MaterialTheme.typography.headlineLarge,
-                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.headlineLargeEmphasized,
                             modifier = Modifier.fillMaxWidth(),
                             color = MaterialTheme.colorScheme.onSurface,
                         )
@@ -167,18 +164,21 @@ fun HomeScreen(
                     icon = { Icon(Icons.Default.Home, contentDescription = "Home") },
                     label = { Text("Home") },
                     selected = true,
+                    alwaysShowLabel = true,
                     onClick = { }
                 )
                 NavigationBarItem(
                     icon = { Icon(Icons.Default.Analytics, contentDescription = "History") },
                     label = { Text("History") },
                     selected = false,
+                    alwaysShowLabel = true,
                     onClick = onNavigateToHistory
                 )
                 NavigationBarItem(
                     icon = { Icon(Icons.Default.Person, contentDescription = "Profile") },
                     label = { Text("Profile") },
                     selected = false,
+                    alwaysShowLabel = true,
                     onClick = onNavigateToProfile
                 )
             }
@@ -709,14 +709,5 @@ private fun getMotivationalMessage(progress: Float, userProfile: UserProfile, is
         progress >= 0.5f -> "🌟 Halfway there! Keep up the good work!"
         progress >= 0.25f -> "👍 Good start! Stay consistent!"
         else -> userProfile.activityLevel.getHydrationTip()
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun HomeScreenPreview() {
-    HydroTrackerTheme {
-        // Note: Preview won't work with repository parameter
-        // You can create a fake repository for preview if needed
     }
 }

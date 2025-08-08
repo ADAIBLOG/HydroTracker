@@ -3,24 +3,28 @@
 
 package com.cemcakmak.hydrotracker.presentation.common
 
-import androidx.compose.animation.*
-import androidx.compose.animation.core.*
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.Analytics
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.rememberNavController
 
-/**
- * Main navigation scaffold with bottom navigation bar
- * Provides consistent navigation across Home, History, and Profile screens
- * Features Material 3 Expressive animations and design
- */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun MainNavigationScaffold(
@@ -28,19 +32,8 @@ fun MainNavigationScaffold(
     currentRoute: String,
     content: @Composable (PaddingValues) -> Unit
 ) {
-    // Animation states for navigation items
-    val selectedScale by animateFloatAsState(
-        targetValue = 1f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMedium
-        ),
-        label = "selected_scale"
-    )
-
     val shouldShowBottomBar = when (currentRoute) {
         NavigationRoutes.HOME, NavigationRoutes.HISTORY, NavigationRoutes.PROFILE -> true
-        NavigationRoutes.SETTINGS, NavigationRoutes.ONBOARDING -> false
         else -> false
     }
 
@@ -63,56 +56,31 @@ private fun HydroNavigationBar(
     currentRoute: String
 ) {
     NavigationBar(
-        containerColor = MaterialTheme.colorScheme.surface,
-        tonalElevation = 8.dp
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
     ) {
-        NavigationItem.values().forEach { item ->
+        NavigationItem.entries.forEach { item ->
             val isSelected = currentRoute == item.route
 
             NavigationBarItem(
                 icon = {
-                    AnimatedNavigationIcon(
-                        icon = item.icon,
-                        selectedIcon = item.selectedIcon,
-                        isSelected = isSelected,
-                        contentDescription = item.label
+                    Icon(
+                        imageVector = if (isSelected) item.selectedIcon else item.icon,
+                        contentDescription = item.label,
+                        modifier = Modifier.size(24.dp)
                     )
                 },
                 label = {
-                    AnimatedVisibility(
-                        visible = isSelected,
-                        enter = slideInVertically(
-                            animationSpec = spring(
-                                dampingRatio = Spring.DampingRatioMediumBouncy,
-                                stiffness = Spring.StiffnessMedium
-                            ),
-                            initialOffsetY = { it / 2 }
-                        ) + fadeIn(animationSpec = tween(300)),
-                        exit = slideOutVertically(
-                            animationSpec = spring(
-                                dampingRatio = Spring.DampingRatioNoBouncy,
-                                stiffness = Spring.StiffnessMedium
-                            ),
-                            targetOffsetY = { it / 2 }
-                        ) + fadeOut(animationSpec = tween(200))
-                    ) {
-                        Text(
-                            text = item.label,
-                            style = MaterialTheme.typography.labelMedium
-                        )
-                    }
+                    Text(
+                        text = item.label,
+                        style = MaterialTheme.typography.labelMediumEmphasized
+                    )
                 },
                 selected = isSelected,
                 onClick = {
                     if (currentRoute != item.route) {
                         navController.navigate(item.route) {
-                            // Pop up to the start destination to avoid building up a large stack
-                            popUpTo(NavigationRoutes.HOME) {
-                                saveState = true
-                            }
-                            // Avoid multiple copies of the same destination
+                            popUpTo(NavigationRoutes.HOME) { saveState = true }
                             launchSingleTop = true
-                            // Restore state when re-selecting a previously selected item
                             restoreState = true
                         }
                     }
@@ -129,58 +97,6 @@ private fun HydroNavigationBar(
     }
 }
 
-@Composable
-private fun AnimatedNavigationIcon(
-    icon: ImageVector,
-    selectedIcon: ImageVector,
-    isSelected: Boolean,
-    contentDescription: String?
-) {
-    // Scale animation for selection
-    val scale by animateFloatAsState(
-        targetValue = if (isSelected) 1.2f else 1f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMedium
-        ),
-        label = "icon_scale"
-    )
-
-    // Icon transition animation
-    AnimatedContent(
-        targetState = if (isSelected) selectedIcon else icon,
-        transitionSpec = {
-            scaleIn(
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                    stiffness = Spring.StiffnessHigh
-                ),
-                initialScale = 0.8f
-            ) + fadeIn(
-                animationSpec = tween(300)
-            ) togetherWith scaleOut(
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioNoBouncy,
-                    stiffness = Spring.StiffnessMedium
-                ),
-                targetScale = 0.8f
-            ) + fadeOut(
-                animationSpec = tween(200)
-            )
-        },
-        label = "icon_transition"
-    ) { targetIcon ->
-        Icon(
-            imageVector = targetIcon,
-            contentDescription = contentDescription,
-            modifier = Modifier.size((24 * scale).dp)
-        )
-    }
-}
-
-/**
- * Navigation items for the bottom navigation bar
- */
 enum class NavigationItem(
     val route: String,
     val label: String,
@@ -190,19 +106,46 @@ enum class NavigationItem(
     HOME(
         route = NavigationRoutes.HOME,
         label = "Home",
-        icon = Icons.Default.Home,
+        icon = Icons.Filled.Home,
         selectedIcon = Icons.Filled.Home
     ),
     HISTORY(
         route = NavigationRoutes.HISTORY,
         label = "History",
-        icon = Icons.Default.Analytics,
+        icon = Icons.Filled.Analytics,
         selectedIcon = Icons.Filled.Analytics
     ),
     PROFILE(
         route = NavigationRoutes.PROFILE,
         label = "Profile",
-        icon = Icons.Default.Person,
+        icon = Icons.Filled.Person,
         selectedIcon = Icons.Filled.Person
+    )
+}
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Preview
+@Composable
+fun MainNavigationScaffoldPreview() {
+    val navController = rememberNavController()
+    MainNavigationScaffold(
+        navController = navController,
+        currentRoute = NavigationRoutes.HOME,
+        content = { paddingValues ->
+            Text(
+                text = "Sample Content",
+                modifier = Modifier.size(paddingValues.calculateBottomPadding())
+            )
+        }
+    )
+}
+
+@Preview
+@Composable
+fun HydroNavigationBarPreview() {
+    val navController = rememberNavController()
+    HydroNavigationBar(
+        navController = navController,
+        currentRoute = NavigationRoutes.HOME
     )
 }
