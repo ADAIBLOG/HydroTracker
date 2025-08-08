@@ -38,7 +38,7 @@ enum class Gender {
         return when (this) {
             MALE -> "Stay hydrated, champion!"
             FEMALE -> "Keep glowing with hydration!"
-            OTHER -> "You've got this, hydration hero!"
+            OTHER -> "You've got this!"
         }
     }
 }

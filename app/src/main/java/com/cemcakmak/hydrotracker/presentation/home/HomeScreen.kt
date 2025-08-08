@@ -2,6 +2,7 @@ package com.cemcakmak.hydrotracker.presentation.home
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -18,6 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -184,14 +186,17 @@ fun HomeScreen(
             }
         },
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = { showCustomDialog = true },
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary
+            ExtendedFloatingActionButton(
+                onClick = { showCustomDialog = true }
             ) {
                 Icon(
-                    imageVector = Icons.Default.Add,
+                    imageVector = Icons.Default.Edit,
                     contentDescription = "Add Custom Amount"
+                )
+                Text(
+                    text = "Add Custom",
+                    style = MaterialTheme.typography.labelLargeEmphasized,
+                    modifier = Modifier.padding(start = 12.dp),
                 )
             }
         },
@@ -201,49 +206,9 @@ fun HomeScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Welcome message
-            AnimatedVisibility(
-                visible = isVisible,
-                enter = slideInVertically(
-                    animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioMediumBouncy,
-                        stiffness = Spring.StiffnessMedium
-                    ),
-                    initialOffsetY = { -it / 3 }
-                ) + fadeIn(animationSpec = tween(600))
-            ) {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-                    )
-                ) {
-                    Column(
-                        modifier = Modifier.padding(20.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            text = userProfile.gender.getPersonalizedGreeting(),
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.SemiBold,
-                            textAlign = TextAlign.Center
-                        )
-
-                        Text(
-                            text = userProfile.ageGroup.getMotivationalMessage(),
-                            style = MaterialTheme.typography.bodyMedium,
-                            textAlign = TextAlign.Center,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            }
 
             // Daily Progress Section
             AnimatedVisibility(
@@ -259,29 +224,25 @@ fun HomeScreen(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer
+                        containerColor = MaterialTheme.colorScheme.surface
                     ),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
-                    shape = MaterialTheme.shapes.large
                 ) {
                     Column(
                         modifier = Modifier.padding(24.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                        verticalArrangement = Arrangement.spacedBy(20.dp)
                     ) {
                         Text(
                             text = "Daily Progress",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                            style = MaterialTheme.typography.headlineLargeEmphasized,
+                            color = MaterialTheme.colorScheme.onSurface
                         )
 
                         // Progress amount display
                         Text(
                             text = "${todayProgress.getFormattedCurrent()} / ${todayProgress.getFormattedGoal()}",
                             style = MaterialTheme.typography.headlineMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                            color = MaterialTheme.colorScheme.onSurface
                         )
 
                         // Wavy Progress Indicator
@@ -302,7 +263,7 @@ fun HomeScreen(
                             text = getMotivationalMessage(todayProgress.progress, userProfile, todayProgress.isGoalAchieved),
                             style = MaterialTheme.typography.bodyLarge,
                             textAlign = TextAlign.Center,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
                         )
 
                         // Additional stats row
@@ -333,49 +294,15 @@ fun HomeScreen(
                 }
             }
 
-            // Visual Divider
-            HorizontalDivider(
-                color = MaterialTheme.colorScheme.outlineVariant,
-                thickness = 1.dp
-            )
-
-            // Material 3 Carousel for Quick Add Water
-            AnimatedVisibility(
-                visible = isVisible,
-                enter = slideInVertically(
-                    animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioMediumBouncy,
-                        stiffness = Spring.StiffnessMedium
-                    ),
-                    initialOffsetY = { it / 2 }
-                ) + fadeIn(animationSpec = tween(600, delayMillis = 400))
-            ) {
-                val presets = remember { ContainerPreset.getDefaultPresets() }
-                val carouselState = rememberCarouselState { presets.size }
-
-                HorizontalMultiBrowseCarousel(
-                    state = carouselState,
-                    modifier = Modifier
-                        .width(412.dp)
-                        .height(135.dp),
-                    preferredItemWidth = 130.dp,
-                    itemSpacing = 8.dp,
-                    contentPadding = PaddingValues(horizontal = 16.dp)
-                ) { index ->
-                    val preset = presets[index]
-                    CarouselWaterCard(
-                        preset = preset,
-                        onClick = { addWaterIntake(preset.volume, preset.name) },
-                        modifier = Modifier
-                            .height(130.dp)
-                            .maskClip(MaterialTheme.shapes.extraLarge)
-                    )
-                }
-
-            }
-
-            // Recent Entries Section
-            if (todayEntries.isNotEmpty()) {
+            Card (
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .fillMaxHeight(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainer
+                ),
+                shape = MaterialTheme.shapes.extraLargeIncreased
+            ){
                 AnimatedVisibility(
                     visible = isVisible,
                     enter = slideInVertically(
@@ -384,105 +311,83 @@ fun HomeScreen(
                             stiffness = Spring.StiffnessMedium
                         ),
                         initialOffsetY = { it / 2 }
-                    ) + fadeIn(animationSpec = tween(600, delayMillis = 500))
+                    ) + fadeIn(animationSpec = tween(600, delayMillis = 400))
                 ) {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant
-                        )
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(20.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            Text(
-                                text = "Recent Entries",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold
-                            )
+                    val presets = remember { ContainerPreset.getDefaultPresets() }
+                    val carouselState = rememberCarouselState { presets.size }
 
-                            // Show last 3 entries
-                            todayEntries.take(3).forEach { entry ->
-                                RecentEntryItem(entry = entry)
-                            }
-
-                            if (todayEntries.size > 3) {
-                                Text(
-                                    text = "... and ${todayEntries.size - 3} more entries",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    textAlign = TextAlign.Center,
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-
-            // User Profile Summary
-            AnimatedVisibility(
-                visible = isVisible,
-                enter = slideInVertically(
-                    animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioMediumBouncy,
-                        stiffness = Spring.StiffnessMedium
-                    ),
-                    initialOffsetY = { it / 2 }
-                ) + fadeIn(animationSpec = tween(600, delayMillis = 600))
-            ) {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.secondaryContainer
-                    )
-                ) {
                     Column(
-                        modifier = Modifier.padding(20.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 16.dp, bottom = 12.dp)
+                            .padding(horizontal = 20.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         Text(
-                            text = "Your Hydration Plan",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold
+                            text = "Quick Select",
+                            style = MaterialTheme.typography.titleLargeEmphasized,
+                            color = MaterialTheme.colorScheme.onSurface,
                         )
 
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            InfoItem(
-                                label = "Daily Goal",
-                                value = WaterCalculator.formatWaterAmount(userProfile.dailyWaterGoal)
-                            )
-
-                            InfoItem(
-                                label = "Reminders",
-                                value = "Every ${userProfile.reminderInterval} min"
+                        HorizontalMultiBrowseCarousel(
+                            state = carouselState,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(135.dp),
+                            preferredItemWidth = 130.dp,
+                            itemSpacing = 8.dp,
+                        ) { index ->
+                            val preset = presets[index]
+                            CarouselWaterCard(
+                                preset = preset,
+                                onClick = { addWaterIntake(preset.volume, preset.name) },
+                                modifier = Modifier
+                                    .height(130.dp)
+                                    .maskClip(MaterialTheme.shapes.extraLarge)
                             )
                         }
+                    }
+                }
 
-                        Row(
+                // Recent Entries Section
+                if (todayEntries.isNotEmpty()) {
+                    AnimatedVisibility(
+                        visible = isVisible,
+                        enter = slideInVertically(
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioMediumBouncy,
+                                stiffness = Spring.StiffnessMedium
+                            ),
+                            initialOffsetY = { it / 2 }
+                        ) + fadeIn(animationSpec = tween(600, delayMillis = 500))
+                    ) {
+                        Card(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant
+                            )
                         ) {
-                            InfoItem(
-                                label = "Activity Level",
-                                value = userProfile.activityLevel.getDisplayName()
-                            )
+                            Column(
+                                modifier = Modifier.padding(20.dp),
+                                verticalArrangement = Arrangement.spacedBy(16.dp)
+                            ) {
+                                Text(
+                                    text = "Recent Entries",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.SemiBold
+                                )
 
-                            InfoItem(
-                                label = "Active Hours",
-                                value = "${userProfile.wakeUpTime} - ${userProfile.sleepTime}"
-                            )
+                                todayEntries.forEach { entry ->
+                                    RecentEntryItem(entry = entry)
+                                }
+                            }
                         }
                     }
                 }
             }
 
             // Bottom spacing for FAB
-            Spacer(modifier = Modifier.height(80.dp))
+            Spacer(modifier = Modifier.height(20.dp))
         }
     }
 
@@ -509,7 +414,7 @@ fun CarouselWaterCard(
             .clip(MaterialTheme.shapes.extraLarge)
             .background(MaterialTheme.colorScheme.surfaceVariant)
             .clickable { onClick() }
-            .padding(16.dp),
+            .padding(10.dp),
         contentAlignment = Alignment.Center,
     ) {
         Column(
@@ -517,13 +422,31 @@ fun CarouselWaterCard(
             verticalArrangement = Arrangement.SpaceEvenly,
             modifier = Modifier.fillMaxSize()
         ) {
-            preset.icon?.let { icon ->
-                Icon(
-                    imageVector = icon,
-                    contentDescription = preset.name,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(32.dp)
-                )
+            when {
+                preset.iconRes != null -> {
+                    Icon(
+                        painter = painterResource(preset.iconRes),
+                        contentDescription = preset.name,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(32.dp)
+                    )
+                }
+                preset.icon != null -> {
+                    Icon(
+                        imageVector = preset.icon,
+                        contentDescription = preset.name,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(32.dp)
+                    )
+                }
+                else -> {
+                    Icon(
+                        imageVector = Icons.Default.WaterDrop,
+                        contentDescription = preset.name,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(32.dp)
+                    )
+                }
             }
 
             Text(
@@ -555,7 +478,7 @@ private fun CustomWaterDialog(
     Dialog(onDismissRequest = onDismiss) {
         Card(
             modifier = Modifier.fillMaxWidth(),
-            shape = MaterialTheme.shapes.extraLarge,
+            shape = MaterialTheme.shapes.extraLargeIncreased,
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surface
             )
@@ -596,6 +519,7 @@ private fun CustomWaterDialog(
                     Spacer(modifier = Modifier.width(8.dp))
 
                     Button(
+                        shapes = ButtonDefaults.shapes(),
                         onClick = {
                             val amount = amountText.toDoubleOrNull()
                             if (amount != null && amount > 0 && amount <= 5000) {
@@ -644,62 +568,79 @@ private fun StatChip(
 
 @Composable
 private fun RecentEntryItem(entry: WaterIntakeEntry) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Text(
-                text = "💧",
-                style = MaterialTheme.typography.bodyLarge
-            )
+    // Find a matching preset to fetch its icon (res or vector)
+    val preset = remember(entry.containerType) {
+        ContainerPreset.getDefaultPresets()
+            .firstOrNull { it.name == entry.containerType }
+    }
+
+    ListItem(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(MaterialTheme.shapes.large),
+        leadingContent = {
+            // Tonal icon container
+            Surface(
+                shape = MaterialTheme.shapes.medium,
+                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                tonalElevation = 1.dp,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .padding(10.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    when {
+                        preset?.iconRes != null -> {
+                            Icon(
+                                painter = painterResource(preset.iconRes),
+                                contentDescription = preset.name,
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                        preset?.icon != null -> {
+                            Icon(
+                                imageVector = preset.icon,
+                                contentDescription = preset.name,
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                        else -> {
+                            Icon(
+                                imageVector = Icons.Default.WaterDrop,
+                                contentDescription = entry.containerType,
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        headlineContent = {
             Text(
                 text = entry.containerType,
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Medium
             )
-        }
-
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Text(
-                text = entry.getFormattedAmount(),
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary
-            )
+        },
+        supportingContent = {
             Text(
                 text = entry.getFormattedTime(),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+        },
+        trailingContent = {
+            Text(
+                text = entry.getFormattedAmount(),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.primary
+            )
         }
-    }
-}
-
-@Composable
-private fun InfoItem(
-    label: String,
-    value: String
-) {
-    Column {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
-        )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.Medium
-        )
-    }
+    )
 }
 
 private fun getMotivationalMessage(progress: Float, userProfile: UserProfile, isGoalAchieved: Boolean): String {

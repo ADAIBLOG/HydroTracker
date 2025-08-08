@@ -1,8 +1,10 @@
 package com.cemcakmak.hydrotracker.data.models
 
+import com.cemcakmak.hydrotracker.R
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.annotation.DrawableRes
 
 /**
  * Predefined container sizes for quick water logging
@@ -11,15 +13,12 @@ import androidx.compose.ui.graphics.vector.ImageVector
 data class ContainerPreset(
     val id: Long = 0,
     val name: String,
-    val volume: Double, // in milliliters
+    val volume: Double,
     val isDefault: Boolean = false,
-    val icon: ImageVector? = null, // Changed to use Material Icons
+    val icon: ImageVector? = null,
+    @DrawableRes val iconRes: Int? = null,
     val isCustom: Boolean = false
 ) {
-
-    /**
-     * Gets formatted volume for display
-     */
     fun getFormattedVolume(): String {
         return when {
             volume >= 1000 -> "${(volume / 1000).format(1)} L"
@@ -27,17 +26,7 @@ data class ContainerPreset(
         }
     }
 
-    /**
-     * Gets display text combining name and volume
-     */
-    fun getDisplayText(): String {
-        return "$name (${getFormattedVolume()})"
-    }
-
     companion object {
-        /**
-         * Default container presets with new volumes and Material Icons
-         */
         fun getDefaultPresets(): List<ContainerPreset> {
             return listOf(
                 ContainerPreset(
@@ -49,45 +38,45 @@ data class ContainerPreset(
                 ),
                 ContainerPreset(
                     id = 2,
-                    name = "Small Glass",
+                    name = "Tea Cup",
                     volume = 150.0,
                     isDefault = true,
-                    icon = Icons.Default.LocalBar
+                    iconRes = R.drawable.glass_cup
                 ),
                 ContainerPreset(
                     id = 3,
-                    name = "Tea Cup",
+                    name = "Small Cup",
                     volume = 175.0,
                     isDefault = true,
-                    icon = Icons.Default.EmojiFoodBeverage
+                    iconRes = R.drawable.water_loss
                 ),
                 ContainerPreset(
                     id = 4,
                     name = "Medium Glass",
                     volume = 200.0,
                     isDefault = true,
-                    icon = Icons.Default.LocalDrink
+                    iconRes = R.drawable.water_medium
                 ),
                 ContainerPreset(
                     id = 5,
                     name = "Large Glass",
                     volume = 300.0,
                     isDefault = true,
-                    icon = Icons.Default.LocalDrink
+                    iconRes = R.drawable.water_full
                 ),
                 ContainerPreset(
                     id = 6,
                     name = "Water Bottle",
                     volume = 500.0,
                     isDefault = true,
-                    icon = Icons.Default.WaterDrop
+                    iconRes = R.drawable.water_bottle
                 ),
                 ContainerPreset(
                     id = 7,
                     name = "Large Bottle",
                     volume = 1000.0,
                     isDefault = true,
-                    icon = Icons.Default.Opacity
+                    iconRes = R.drawable.water_bottle_large
                 )
             )
         }
