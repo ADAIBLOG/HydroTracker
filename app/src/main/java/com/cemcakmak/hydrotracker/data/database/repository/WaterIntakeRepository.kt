@@ -15,9 +15,10 @@ import com.cemcakmak.hydrotracker.data.database.entities.DailySummary
 import com.cemcakmak.hydrotracker.data.models.ContainerPreset
 import java.text.SimpleDateFormat
 import java.util.*
-import com.cemcakmak.hydrotracker.data.repository.UserRepository
 import com.cemcakmak.hydrotracker.widgets.WidgetUpdateHelper
+import com.cemcakmak.hydrotracker.utils.UserDayCalculator
 import android.content.Context
+import android.content.SharedPreferences
 
 class WaterIntakeRepository(
     private val waterIntakeDao: WaterIntakeDao,
@@ -25,10 +26,45 @@ class WaterIntakeRepository(
     private val userRepository: UserRepository,
     private val context: Context
 ) {
+    private val prefs: SharedPreferences = context.getSharedPreferences(
+        "water_intake_prefs", Context.MODE_PRIVATE
+    )
 
-    // Get today's date string
+    // Get today's date string based on calendar day
     private fun getTodayDateString(): String {
         return SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+    }
+
+    // Get today's user day string based on wake-up time
+    private suspend fun getTodayUserDayString(): String {
+        val userProfile = userRepository.userProfile.value
+        val wakeUpTime = userProfile?.wakeUpTime ?: "07:00"
+        return UserDayCalculator.getCurrentUserDayString(wakeUpTime)
+    }
+
+    /**
+     * Check if a new user day has started and handle the transition
+     * Should be called when the app starts or becomes foreground
+     */
+    suspend fun checkAndHandleNewUserDay() = withContext(Dispatchers.IO) {
+        val userProfile = userRepository.userProfile.value ?: return@withContext
+        val wakeUpTime = userProfile.wakeUpTime
+        val currentTime = System.currentTimeMillis()
+        val lastCheckTime = prefs.getLong("last_day_check_time", 0L)
+
+        if (lastCheckTime == 0L) {
+            // First time running, just store current time
+            prefs.edit().putLong("last_day_check_time", currentTime).apply()
+            return@withContext
+        }
+
+        if (UserDayCalculator.hasNewUserDayStarted(lastCheckTime, wakeUpTime)) {
+            // New user day has started, update widgets to reflect reset
+            WidgetUpdateHelper.updateAllWidgets(context)
+            
+            // Store the new check time
+            prefs.edit().putLong("last_day_check_time", currentTime).apply()
+        }
     }
 
     // ===== WATER INTAKE OPERATIONS =====
@@ -39,15 +75,19 @@ class WaterIntakeRepository(
         note: String? = null
     ): Result<Long> = withContext(Dispatchers.IO) {
         try {
-            val entry = WaterIntakeEntry.create(
+            val userDayString = getTodayUserDayString()
+            val entry = WaterIntakeEntry(
                 amount = amount,
+                timestamp = System.currentTimeMillis(),
+                date = userDayString,
                 containerType = containerPreset.name,
                 containerVolume = containerPreset.volume,
-                note = note
+                note = note,
+                createdAt = System.currentTimeMillis()
             )
 
             val entryId = waterIntakeDao.insertEntry(entry)
-            updateDailySummaryForToday()
+            updateDailySummaryForDate(userDayString)
             
             // Update widgets after successful water intake
             WidgetUpdateHelper.updateAllWidgets(context)
@@ -63,15 +103,19 @@ class WaterIntakeRepository(
         note: String? = null
     ): Result<Long> = withContext(Dispatchers.IO) {
         try {
-            val entry = WaterIntakeEntry.create(
+            val userDayString = getTodayUserDayString()
+            val entry = WaterIntakeEntry(
                 amount = amount,
+                timestamp = System.currentTimeMillis(),
+                date = userDayString,
                 containerType = "Custom",
                 containerVolume = amount,
-                note = note
+                note = note,
+                createdAt = System.currentTimeMillis()
             )
 
             val entryId = waterIntakeDao.insertEntry(entry)
-            updateDailySummaryForToday()
+            updateDailySummaryForDate(userDayString)
             
             // Update widgets after successful water intake
             WidgetUpdateHelper.updateAllWidgets(context)
@@ -105,11 +149,17 @@ class WaterIntakeRepository(
     // ===== QUERY OPERATIONS =====
 
     fun getTodayEntries(): Flow<List<WaterIntakeEntry>> {
-        return waterIntakeDao.getEntriesForDate(getTodayDateString())
+        return kotlinx.coroutines.flow.flow {
+            val userDayString = getTodayUserDayString()
+            waterIntakeDao.getEntriesForDate(userDayString).collect { emit(it) }
+        }
     }
 
     fun getTodayTotalIntake(): Flow<Double> {
-        return waterIntakeDao.getTotalIntakeForDate(getTodayDateString())
+        return kotlinx.coroutines.flow.flow {
+            val userDayString = getTodayUserDayString()
+            waterIntakeDao.getTotalIntakeForDate(userDayString).collect { emit(it) }
+        }
     }
 
     fun getEntriesForDate(date: String): Flow<List<WaterIntakeEntry>> {
@@ -189,7 +239,10 @@ class WaterIntakeRepository(
     // ===== DAILY SUMMARY OPERATIONS =====
 
     fun getTodaySummary(): Flow<DailySummary?> {
-        return dailySummaryDao.getSummaryForDate(getTodayDateString())
+        return kotlinx.coroutines.flow.flow {
+            val userDayString = getTodayUserDayString()
+            dailySummaryDao.getSummaryForDate(userDayString).collect { emit(it) }
+        }
     }
 
     fun getLast30DaysSummaries(): Flow<List<DailySummary>> {
@@ -197,7 +250,8 @@ class WaterIntakeRepository(
     }
 
     private suspend fun updateDailySummaryForToday() {
-        updateDailySummaryForDate(getTodayDateString())
+        val userDayString = getTodayUserDayString()
+        updateDailySummaryForDate(userDayString)
     }
 
     private suspend fun updateDailySummaryForDate(date: String) = withContext(Dispatchers.IO) {

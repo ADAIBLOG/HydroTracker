@@ -47,6 +47,10 @@ fun HomeScreen(
     onNavigateToSettings: () -> Unit = {},
     onNavigateToProfile: () -> Unit = {}
 ) {
+    // Check for new user day when HomeScreen is displayed
+    LaunchedEffect(Unit) {
+        waterIntakeRepository.checkAndHandleNewUserDay()
+    }
     // Collect real-time water intake data from database
     val todayProgress by waterIntakeRepository.getTodayProgress().collectAsState(
         initial = WaterProgress(

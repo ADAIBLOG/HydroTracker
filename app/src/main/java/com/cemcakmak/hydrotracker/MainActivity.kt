@@ -20,6 +20,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.*
 import androidx.compose.animation.*
 import androidx.compose.ui.graphics.TransformOrigin
+import kotlinx.coroutines.launch
 import com.cemcakmak.hydrotracker.data.repository.*
 import com.cemcakmak.hydrotracker.data.database.DatabaseInitializer
 import com.cemcakmak.hydrotracker.presentation.common.*
@@ -83,6 +84,11 @@ fun HydroTrackerApp(
 
     LaunchedEffect(isOnboardingCompleted, userProfile) {
         isLoading = false
+        
+        // Check for new user day when app starts
+        if (isOnboardingCompleted && userProfile != null) {
+            waterIntakeRepository.checkAndHandleNewUserDay()
+        }
     }
 
     val startDestination = if (isOnboardingCompleted && userProfile != null)
