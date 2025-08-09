@@ -13,9 +13,8 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.cemcakmak.hydrotracker.MainActivity
 import com.cemcakmak.hydrotracker.R
-import com.cemcakmak.hydrotracker.data.models.ReminderStyle
 import com.cemcakmak.hydrotracker.data.models.UserProfile
-import com.cemcakmak.hydrotracker.data.repository.WaterProgress
+import com.cemcakmak.hydrotracker.data.database.repository.WaterProgress
 
 /**
  * Service for creating and managing hydration reminder notifications

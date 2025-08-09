@@ -1,7 +1,7 @@
 // WaterIntakeRepository.kt
 // Location: app/src/main/java/com/cemcakmak/hydrotracker/data/repository/WaterIntakeRepository.kt
 
-package com.cemcakmak.hydrotracker.data.repository
+package com.cemcakmak.hydrotracker.data.database.repository
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -18,7 +18,11 @@ import java.util.*
 import com.cemcakmak.hydrotracker.widgets.WidgetUpdateHelper
 import com.cemcakmak.hydrotracker.utils.UserDayCalculator
 import android.content.Context
+import androidx.core.content.edit
 import android.content.SharedPreferences
+import com.cemcakmak.hydrotracker.data.repository.UserRepository
+import kotlinx.coroutines.flow.flow
+import kotlin.random.Random
 
 class WaterIntakeRepository(
     private val waterIntakeDao: WaterIntakeDao,
@@ -30,13 +34,8 @@ class WaterIntakeRepository(
         "water_intake_prefs", Context.MODE_PRIVATE
     )
 
-    // Get today's date string based on calendar day
-    private fun getTodayDateString(): String {
-        return SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
-    }
-
     // Get today's user day string based on wake-up time
-    private suspend fun getTodayUserDayString(): String {
+    private fun getTodayUserDayString(): String {
         val userProfile = userRepository.userProfile.value
         val wakeUpTime = userProfile?.wakeUpTime ?: "07:00"
         return UserDayCalculator.getCurrentUserDayString(wakeUpTime)
@@ -54,7 +53,7 @@ class WaterIntakeRepository(
 
         if (lastCheckTime == 0L) {
             // First time running, just store current time
-            prefs.edit().putLong("last_day_check_time", currentTime).apply()
+            prefs.edit { putLong("last_day_check_time", currentTime) }
             return@withContext
         }
 
@@ -63,7 +62,7 @@ class WaterIntakeRepository(
             WidgetUpdateHelper.updateAllWidgets(context)
             
             // Store the new check time
-            prefs.edit().putLong("last_day_check_time", currentTime).apply()
+            prefs.edit { putLong("last_day_check_time", currentTime) }
         }
     }
 
@@ -82,34 +81,6 @@ class WaterIntakeRepository(
                 date = userDayString,
                 containerType = containerPreset.name,
                 containerVolume = containerPreset.volume,
-                note = note,
-                createdAt = System.currentTimeMillis()
-            )
-
-            val entryId = waterIntakeDao.insertEntry(entry)
-            updateDailySummaryForDate(userDayString)
-            
-            // Update widgets after successful water intake
-            WidgetUpdateHelper.updateAllWidgets(context)
-            
-            Result.success(entryId)
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
-
-    suspend fun addCustomWaterIntake(
-        amount: Double,
-        note: String? = null
-    ): Result<Long> = withContext(Dispatchers.IO) {
-        try {
-            val userDayString = getTodayUserDayString()
-            val entry = WaterIntakeEntry(
-                amount = amount,
-                timestamp = System.currentTimeMillis(),
-                date = userDayString,
-                containerType = "Custom",
-                containerVolume = amount,
                 note = note,
                 createdAt = System.currentTimeMillis()
             )
@@ -149,25 +120,17 @@ class WaterIntakeRepository(
     // ===== QUERY OPERATIONS =====
 
     fun getTodayEntries(): Flow<List<WaterIntakeEntry>> {
-        return kotlinx.coroutines.flow.flow {
+        return flow {
             val userDayString = getTodayUserDayString()
             waterIntakeDao.getEntriesForDate(userDayString).collect { emit(it) }
         }
     }
 
     fun getTodayTotalIntake(): Flow<Double> {
-        return kotlinx.coroutines.flow.flow {
+        return flow {
             val userDayString = getTodayUserDayString()
             waterIntakeDao.getTotalIntakeForDate(userDayString).collect { emit(it) }
         }
-    }
-
-    fun getEntriesForDate(date: String): Flow<List<WaterIntakeEntry>> {
-        return waterIntakeDao.getEntriesForDate(date)
-    }
-
-    fun getEntriesForDateRange(startDate: String, endDate: String): Flow<List<WaterIntakeEntry>> {
-        return waterIntakeDao.getEntriesForDateRange(startDate, endDate)
     }
 
     fun getLast30DaysEntries(): Flow<List<WaterIntakeEntry>> {
@@ -238,20 +201,8 @@ class WaterIntakeRepository(
 
     // ===== DAILY SUMMARY OPERATIONS =====
 
-    fun getTodaySummary(): Flow<DailySummary?> {
-        return kotlinx.coroutines.flow.flow {
-            val userDayString = getTodayUserDayString()
-            dailySummaryDao.getSummaryForDate(userDayString).collect { emit(it) }
-        }
-    }
-
     fun getLast30DaysSummaries(): Flow<List<DailySummary>> {
         return dailySummaryDao.getLast30DaysSummaries()
-    }
-
-    private suspend fun updateDailySummaryForToday() {
-        val userDayString = getTodayUserDayString()
-        updateDailySummaryForDate(userDayString)
     }
 
     private suspend fun updateDailySummaryForDate(date: String) = withContext(Dispatchers.IO) {
@@ -268,8 +219,6 @@ class WaterIntakeRepository(
                 val goalPercentage = (totalIntake / dailyGoal).toFloat()
                 val goalAchieved = totalIntake >= dailyGoal
 
-                // Get entries for this date to calculate additional stats
-                val entries = waterIntakeDao.getEntriesForDate(date)
                 // Since this is a Flow, we need to collect it once. For now, we'll use basic stats
                 val averageIntake = if (entryCount > 0) totalIntake / entryCount else 0.0
 
@@ -315,7 +264,7 @@ class WaterIntakeRepository(
         try {
             val calendar = Calendar.getInstance()
             val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-            val random = kotlin.random.Random
+            val random = Random
 
             val containerTypes = listOf(
                 "Small Glass" to 200.0,
@@ -457,28 +406,20 @@ data class WaterProgress(
     val isGoalAchieved: Boolean,
     val remainingAmount: Double
 ) {
-    fun getProgressPercentage(): Int = (progress * 100).toInt()
-
     fun getFormattedCurrent(): String {
         return when {
-            currentIntake >= 1000 -> "${String.format("%.1f", currentIntake / 1000)} L"
+            currentIntake >= 1000 -> "${String.format(Locale.US, "%.1f", currentIntake / 1000)} L"
             else -> "${currentIntake.toInt()} ml"
         }
     }
 
     fun getFormattedGoal(): String {
         return when {
-            dailyGoal >= 1000 -> "${String.format("%.1f", dailyGoal / 1000)} L"
+            dailyGoal >= 1000 -> "${String.format(Locale.US, "%.1f", dailyGoal / 1000)} L"
             else -> "${dailyGoal.toInt()} ml"
         }
     }
 
-    fun getFormattedRemaining(): String {
-        return when {
-            remainingAmount >= 1000 -> "${String.format("%.1f", remainingAmount / 1000)} L"
-            else -> "${remainingAmount.toInt()} ml"
-        }
-    }
 }
 
 data class TodayStatistics(
@@ -504,21 +445,21 @@ data class WeeklyStatistics(
 ) {
     fun getFormattedTotal(): String {
         return when {
-            totalIntake >= 1000 -> "${String.format("%.1f", totalIntake / 1000)} L"
+            totalIntake >= 1000 -> "${String.format(Locale.US, "%.1f", totalIntake / 1000)} L"
             else -> "${totalIntake.toInt()} ml"
         }
     }
 
     fun getFormattedAverage(): String {
         return when {
-            averageDailyIntake >= 1000 -> "${String.format("%.1f", averageDailyIntake / 1000)} L"
+            averageDailyIntake >= 1000 -> "${String.format(Locale.US, "%.1f", averageDailyIntake / 1000)} L"
             else -> "${averageDailyIntake.toInt()} ml"
         }
     }
 
     fun getFormattedBestDay(): String {
         return when {
-            bestDayAmount >= 1000 -> "${String.format("%.1f", bestDayAmount / 1000)} L"
+            bestDayAmount >= 1000 -> "${String.format(Locale.US, "%.1f", bestDayAmount / 1000)} L"
             else -> "${bestDayAmount.toInt()} ml"
         }
     }

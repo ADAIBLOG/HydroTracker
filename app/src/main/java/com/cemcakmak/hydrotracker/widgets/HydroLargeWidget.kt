@@ -6,11 +6,9 @@ import android.appwidget.AppWidgetProvider
 import android.content.Context
 import android.content.Intent
 import android.widget.RemoteViews
-import androidx.core.content.ContextCompat
 import com.cemcakmak.hydrotracker.MainActivity
 import com.cemcakmak.hydrotracker.R
 import com.cemcakmak.hydrotracker.data.repository.UserRepository
-import com.cemcakmak.hydrotracker.data.repository.WaterIntakeRepository
 import com.cemcakmak.hydrotracker.data.database.DatabaseInitializer
 import com.cemcakmak.hydrotracker.utils.WaterCalculator
 import kotlinx.coroutines.CoroutineScope

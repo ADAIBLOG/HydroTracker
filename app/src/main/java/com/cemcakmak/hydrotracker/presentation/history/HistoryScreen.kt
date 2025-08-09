@@ -25,9 +25,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.cemcakmak.hydrotracker.data.repository.WaterIntakeRepository
-import com.cemcakmak.hydrotracker.data.repository.WeeklyStatistics
-import com.cemcakmak.hydrotracker.data.repository.TodayStatistics
+import com.cemcakmak.hydrotracker.data.database.repository.WaterIntakeRepository
+import com.cemcakmak.hydrotracker.data.database.repository.WeeklyStatistics
+import com.cemcakmak.hydrotracker.data.database.repository.TodayStatistics
 import com.cemcakmak.hydrotracker.data.database.entities.WaterIntakeEntry
 import com.cemcakmak.hydrotracker.data.database.entities.DailySummary
 import com.cemcakmak.hydrotracker.ui.theme.HydroTrackerTheme

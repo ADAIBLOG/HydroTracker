@@ -22,12 +22,11 @@ import com.cemcakmak.hydrotracker.data.models.UserProfile
 import com.cemcakmak.hydrotracker.data.models.Gender
 import com.cemcakmak.hydrotracker.data.models.AgeGroup
 import com.cemcakmak.hydrotracker.data.models.ActivityLevel
-import com.cemcakmak.hydrotracker.data.repository.WaterProgress
-import com.cemcakmak.hydrotracker.data.repository.WaterIntakeRepository
+import com.cemcakmak.hydrotracker.data.database.repository.WaterProgress
+import com.cemcakmak.hydrotracker.data.database.repository.WaterIntakeRepository
 import com.cemcakmak.hydrotracker.notifications.HydroNotificationService
 import com.cemcakmak.hydrotracker.notifications.HydroNotificationScheduler
 import com.cemcakmak.hydrotracker.notifications.NotificationPermissionManager
-import com.cemcakmak.hydrotracker.presentation.common.showInfoSnackbar
 import com.cemcakmak.hydrotracker.presentation.common.showSuccessSnackbar
 import com.cemcakmak.hydrotracker.presentation.common.showStackedSuccessSnackbar
 import com.cemcakmak.hydrotracker.presentation.common.showStackedErrorSnackbar

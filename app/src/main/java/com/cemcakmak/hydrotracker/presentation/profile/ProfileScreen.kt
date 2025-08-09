@@ -15,8 +15,8 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import com.cemcakmak.hydrotracker.data.models.UserProfile
 import com.cemcakmak.hydrotracker.data.repository.UserRepository
-import com.cemcakmak.hydrotracker.data.repository.WaterIntakeRepository
-import com.cemcakmak.hydrotracker.data.repository.TodayStatistics
+import com.cemcakmak.hydrotracker.data.database.repository.WaterIntakeRepository
+import com.cemcakmak.hydrotracker.data.database.repository.TodayStatistics
 import com.cemcakmak.hydrotracker.utils.WaterCalculator
 import com.cemcakmak.hydrotracker.presentation.common.HydroSnackbarHost
 import com.cemcakmak.hydrotracker.presentation.common.showSuccessSnackbar

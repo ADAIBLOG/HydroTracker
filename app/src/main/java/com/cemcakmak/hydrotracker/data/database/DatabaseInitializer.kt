@@ -5,7 +5,7 @@ package com.cemcakmak.hydrotracker.data.database
 
 import android.content.Context
 import androidx.room.Room
-import com.cemcakmak.hydrotracker.data.repository.WaterIntakeRepository
+import com.cemcakmak.hydrotracker.data.database.repository.WaterIntakeRepository
 import com.cemcakmak.hydrotracker.data.repository.UserRepository
 
 object DatabaseInitializer {

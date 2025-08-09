@@ -20,9 +20,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.*
 import androidx.compose.animation.*
 import androidx.compose.ui.graphics.TransformOrigin
-import kotlinx.coroutines.launch
 import com.cemcakmak.hydrotracker.data.repository.*
 import com.cemcakmak.hydrotracker.data.database.DatabaseInitializer
+import com.cemcakmak.hydrotracker.data.database.repository.WaterIntakeRepository
 import com.cemcakmak.hydrotracker.presentation.common.*
 import com.cemcakmak.hydrotracker.presentation.home.HomeScreen
 import com.cemcakmak.hydrotracker.presentation.history.HistoryScreen
