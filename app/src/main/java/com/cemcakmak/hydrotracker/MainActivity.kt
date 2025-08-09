@@ -16,6 +16,9 @@ import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.*
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
+import androidx.compose.ui.graphics.TransformOrigin
 import com.cemcakmak.hydrotracker.data.repository.*
 import com.cemcakmak.hydrotracker.data.database.DatabaseInitializer
 import com.cemcakmak.hydrotracker.presentation.common.*
@@ -98,7 +101,49 @@ fun HydroTrackerApp(
             val route = currentRoute?.destination?.route ?: startDestination
 
             MainNavigationScaffold(navController = navController, currentRoute = route) { padding ->
-                NavHost(navController = navController, startDestination = startDestination) {
+                NavHost(
+                    navController = navController, 
+                    startDestination = startDestination,
+                    // Predictive back gesture animations
+                    popExitTransition = {
+                        scaleOut(
+                            targetScale = 0.7f,
+                            transformOrigin = TransformOrigin(
+                                pivotFractionX = 1f,
+                                pivotFractionY = 0.5f
+                            )
+                        ) + fadeOut()
+                    },
+                    popEnterTransition = {
+                        scaleIn(
+                            initialScale = 1.1f,
+                            transformOrigin = TransformOrigin(
+                                pivotFractionX = 0.4f,
+                                pivotFractionY = 0.5f
+                            )
+                        )
+                    },
+                    enterTransition = {
+                        scaleIn(
+                            initialScale = 0.9f,
+                            transformOrigin = TransformOrigin(
+                                pivotFractionX = 0.5f, 
+                                pivotFractionY = 0.5f
+                            ),
+                            animationSpec = tween(300)
+                        ) + fadeIn(animationSpec = tween(300))
+                    },
+                    exitTransition = {
+                        scaleOut(
+                            targetScale = 1.1f,
+                            transformOrigin = TransformOrigin(
+                                pivotFractionX = 0.5f, 
+                                pivotFractionY = 0.5f
+                            ),
+                            animationSpec = tween(300)
+                        ) + fadeOut(animationSpec = tween(300))
+                    }
+                ) {
 
                     composable(NavigationRoutes.ONBOARDING) {
                         val context = LocalContext.current
