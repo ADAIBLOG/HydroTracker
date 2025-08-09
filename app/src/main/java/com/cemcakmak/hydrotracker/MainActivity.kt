@@ -5,6 +5,8 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.result.ActivityResultLauncher
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -17,7 +19,6 @@ import androidx.core.view.WindowCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.*
 import androidx.compose.animation.*
-import androidx.compose.animation.core.*
 import androidx.compose.ui.graphics.TransformOrigin
 import com.cemcakmak.hydrotracker.data.repository.*
 import com.cemcakmak.hydrotracker.data.database.DatabaseInitializer
@@ -35,6 +36,19 @@ class MainActivity : ComponentActivity() {
     private lateinit var userRepository: UserRepository
     private lateinit var waterIntakeRepository: WaterIntakeRepository
 
+    // Modern permission launcher
+    private val notificationPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted: Boolean ->
+        if (isGranted) {
+            val userProfile = userRepository.userProfile.value
+            userProfile?.takeIf { it.isOnboardingCompleted }?.let {
+                HydroNotificationScheduler.startNotifications(this, it)
+            }
+        }
+        // Handle denied case if needed - currently no-op as per original logic
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -48,36 +62,17 @@ class MainActivity : ComponentActivity() {
         )
 
         setContent {
-            HydroTrackerApp(userRepository, waterIntakeRepository)
+            HydroTrackerApp(userRepository, waterIntakeRepository, notificationPermissionLauncher)
         }
     }
 
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<out String>,
-        grantResults: IntArray
-    ) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-
-        NotificationPermissionManager.handlePermissionResult(
-            requestCode = requestCode,
-            permissions = permissions,
-            grantResults = grantResults,
-            onGranted = {
-                val userProfile = userRepository.userProfile.value
-                userProfile?.takeIf { it.isOnboardingCompleted }?.let {
-                    HydroNotificationScheduler.startNotifications(this, it)
-                }
-            },
-            onDenied = { /* no-op */ }
-        )
-    }
 }
 
 @Composable
 fun HydroTrackerApp(
     userRepository: UserRepository,
-    waterIntakeRepository: WaterIntakeRepository
+    waterIntakeRepository: WaterIntakeRepository,
+    notificationPermissionLauncher: ActivityResultLauncher<String>
 ) {
     val navController = rememberNavController()
     val themeViewModel: ThemeViewModel = viewModel(factory = ThemeViewModelFactory(userRepository))
@@ -122,26 +117,6 @@ fun HydroTrackerApp(
                                 pivotFractionY = 0.5f
                             )
                         )
-                    },
-                    enterTransition = {
-                        scaleIn(
-                            initialScale = 0.9f,
-                            transformOrigin = TransformOrigin(
-                                pivotFractionX = 0.5f, 
-                                pivotFractionY = 0.5f
-                            ),
-                            animationSpec = tween(300)
-                        ) + fadeIn(animationSpec = tween(300))
-                    },
-                    exitTransition = {
-                        scaleOut(
-                            targetScale = 1.1f,
-                            transformOrigin = TransformOrigin(
-                                pivotFractionX = 0.5f, 
-                                pivotFractionY = 0.5f
-                            ),
-                            animationSpec = tween(300)
-                        ) + fadeOut(animationSpec = tween(300))
                     }
                 ) {
 
@@ -192,7 +167,6 @@ fun HydroTrackerApp(
                     }
 
                     composable(NavigationRoutes.SETTINGS) {
-                        val activity = LocalContext.current as? ComponentActivity
                         SettingsScreen(
                             themePreferences = themePreferences,
                             userProfile = userProfile,
@@ -203,7 +177,7 @@ fun HydroTrackerApp(
                             onThemeToggle = themeViewModel::toggleDynamicColor,
                             isDynamicColorAvailable = themeViewModel.isDynamicColorAvailable(),
                             onRequestNotificationPermission = {
-                                activity?.let { NotificationPermissionManager.requestNotificationPermission(it) }
+                                notificationPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
                             },
                             onNavigateBack = { navController.popBackStack() },
                             onNavigateToOnboarding = {
