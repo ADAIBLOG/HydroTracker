@@ -158,6 +158,7 @@ fun HomeScreen(
     )
 
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
+    val scrollState = rememberScrollState()
 
     val elevated by remember {
         derivedStateOf { scrollBehavior.state.collapsedFraction > 0f }
@@ -166,6 +167,22 @@ fun HomeScreen(
         targetValue = if (elevated) 6.dp else 0.dp,
         label = "AppBarElevation"
     )
+
+    // Track scroll direction for FAB collapse/expand
+    var lastScrollValue by remember { mutableIntStateOf(0) }
+    val fabExpanded by remember {
+        derivedStateOf { 
+            val currentScroll = scrollState.value
+            val isScrollingUp = currentScroll < lastScrollValue
+            val isAtTop = currentScroll <= 0
+            
+            // Update last scroll value for next comparison
+            lastScrollValue = currentScroll
+            
+            // Expand when scrolling up or at the top, collapse when scrolling down
+            isScrollingUp || isAtTop
+        }
+    }
 
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
@@ -226,18 +243,21 @@ fun HomeScreen(
         },
         floatingActionButton = {
             ExtendedFloatingActionButton(
-                onClick = { showCustomDialog = true }
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Edit,
-                    contentDescription = "Add Custom Amount"
-                )
-                Text(
-                    text = "Add Custom",
-                    style = MaterialTheme.typography.labelLargeEmphasized,
-                    modifier = Modifier.padding(start = 12.dp),
-                )
-            }
+                onClick = { showCustomDialog = true },
+                expanded = fabExpanded,
+                icon = {
+                    Icon(
+                        imageVector = Icons.Default.Edit,
+                        contentDescription = "Add Custom Amount"
+                    )
+                },
+                text = {
+                    Text(
+                        text = "Add Custom",
+                        style = MaterialTheme.typography.labelLargeEmphasized
+                    )
+                }
+            )
         },
         snackbarHost = { HydroSnackbarHost(snackbarHostState) }
     ) { paddingValues ->
@@ -245,7 +265,7 @@ fun HomeScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .verticalScroll(rememberScrollState()),
+                .verticalScroll(scrollState),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
 

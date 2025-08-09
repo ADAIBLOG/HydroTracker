@@ -56,7 +56,7 @@ private fun HydroNavigationBar(
     currentRoute: String
 ) {
     NavigationBar(
-        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        containerColor = MaterialTheme.colorScheme.surfaceContainerHighest
     ) {
         NavigationItem.entries.forEach { item ->
             val isSelected = currentRoute == item.route
