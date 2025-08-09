@@ -3,7 +3,13 @@
     "allow": [
       "Bash(./gradlew:*)",
       "Bash(cmd /c:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "WebFetch(domain:m3.material.io)",
+      "WebFetch(domain:developer.android.com)",
+      "Bash(.gradlew:*)",
+      "WebFetch(domain:proandroiddev.com)",
+      "WebFetch(domain:medium.com)",
+      "Bash(gradlew.bat build:*)"
     ],
     "deny": []
   }

@@ -2,7 +2,6 @@ package com.cemcakmak.hydrotracker.presentation.home
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -18,7 +17,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -79,6 +80,10 @@ fun HomeScreen(
 
     // Custom entry dialog state
     var showCustomDialog by remember { mutableStateOf(false) }
+    
+    // Edit entry dialog state
+    var showEditDialog by remember { mutableStateOf(false) }
+    var entryToEdit by remember { mutableStateOf<WaterIntakeEntry?>(null) }
 
     // Function to add water intake to database
     fun addWaterIntake(amount: Double, containerName: String) {
@@ -99,6 +104,40 @@ fun HomeScreen(
             }.onFailure { error ->
                 snackbarHostState.showErrorSnackbar(
                     message = "Failed to add water: ${error.message}"
+                )
+            }
+        }
+    }
+
+    // Function to delete water intake entry
+    fun deleteWaterIntake(entry: WaterIntakeEntry) {
+        coroutineScope.launch {
+            val result = waterIntakeRepository.deleteWaterIntake(entry)
+            
+            result.onSuccess {
+                snackbarHostState.showSuccessSnackbar(
+                    message = "Deleted ${entry.getFormattedAmount()} entry"
+                )
+            }.onFailure { error ->
+                snackbarHostState.showErrorSnackbar(
+                    message = "Failed to delete entry: ${error.message}"
+                )
+            }
+        }
+    }
+
+    // Function to update water intake entry
+    fun updateWaterIntake(entry: WaterIntakeEntry) {
+        coroutineScope.launch {
+            val result = waterIntakeRepository.updateWaterIntake(entry)
+            
+            result.onSuccess {
+                snackbarHostState.showSuccessSnackbar(
+                    message = "Updated entry to ${entry.getFormattedAmount()}"
+                )
+            }.onFailure { error ->
+                snackbarHostState.showErrorSnackbar(
+                    message = "Failed to update entry: ${error.message}"
                 )
             }
         }
@@ -364,7 +403,7 @@ fun HomeScreen(
                         Card(
                             modifier = Modifier.fillMaxWidth(),
                             colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.surfaceVariant
+                                containerColor = MaterialTheme.colorScheme.surfaceContainer
                             )
                         ) {
                             Column(
@@ -373,12 +412,24 @@ fun HomeScreen(
                             ) {
                                 Text(
                                     text = "Recent Entries",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.SemiBold
+                                    style = MaterialTheme.typography.titleLargeEmphasized,
+                                    color = MaterialTheme.colorScheme.onSurface,
                                 )
 
                                 todayEntries.forEach { entry ->
-                                    RecentEntryItem(entry = entry)
+                                    key(entry.id) {
+                                        RecentEntryItem(
+                                            entry = entry,
+                                            onEdit = { entry ->
+                                                entryToEdit = entry
+                                                showEditDialog = true
+                                            },
+                                            onDelete = { entryToDelete ->
+                                                deleteWaterIntake(entryToDelete)
+                                            }
+                                        )
+                                        HorizontalDivider()
+                                    }
                                 }
                             }
                         }
@@ -401,6 +452,22 @@ fun HomeScreen(
             }
         )
     }
+
+    // Edit Water Entry Dialog
+    if (showEditDialog && entryToEdit != null) {
+        EditWaterDialog(
+            entry = entryToEdit!!,
+            onDismiss = { 
+                showEditDialog = false
+                entryToEdit = null
+            },
+            onConfirm = { updatedEntry ->
+                updateWaterIntake(updatedEntry)
+                showEditDialog = false
+                entryToEdit = null
+            }
+        )
+    }
 }
 
 @Composable
@@ -412,22 +479,23 @@ fun CarouselWaterCard(
     Box(
         modifier = modifier
             .clip(MaterialTheme.shapes.extraLarge)
-            .background(MaterialTheme.colorScheme.surfaceVariant)
-            .clickable { onClick() }
-            .padding(10.dp),
+            .background(MaterialTheme.colorScheme.primaryContainer)
+            .clickable { onClick() },
         contentAlignment = Alignment.Center,
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.SpaceEvenly,
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(top = 10.dp, bottom = 10.dp)
         ) {
             when {
                 preset.iconRes != null -> {
                     Icon(
                         painter = painterResource(preset.iconRes),
                         contentDescription = preset.name,
-                        tint = MaterialTheme.colorScheme.primary,
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
                         modifier = Modifier.size(32.dp)
                     )
                 }
@@ -435,7 +503,7 @@ fun CarouselWaterCard(
                     Icon(
                         imageVector = preset.icon,
                         contentDescription = preset.name,
-                        tint = MaterialTheme.colorScheme.primary,
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
                         modifier = Modifier.size(32.dp)
                     )
                 }
@@ -443,7 +511,7 @@ fun CarouselWaterCard(
                     Icon(
                         imageVector = Icons.Default.WaterDrop,
                         contentDescription = preset.name,
-                        tint = MaterialTheme.colorScheme.primary,
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
                         modifier = Modifier.size(32.dp)
                     )
                 }
@@ -451,8 +519,7 @@ fun CarouselWaterCard(
 
             Text(
                 text = preset.name,
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Medium,
+                style = MaterialTheme.typography.titleMedium,
                 textAlign = TextAlign.Center,
                 maxLines = 2
             )
@@ -537,6 +604,128 @@ private fun CustomWaterDialog(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun EditWaterDialog(
+    entry: WaterIntakeEntry,
+    onDismiss: () -> Unit,
+    onConfirm: (WaterIntakeEntry) -> Unit
+) {
+    var amountText by remember { mutableStateOf(entry.amount.toString()) }
+    var containerType by remember { mutableStateOf(entry.containerType) }
+    var isError by remember { mutableStateOf(false) }
+
+    val presets = remember { ContainerPreset.getDefaultPresets() }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = MaterialTheme.shapes.extraLargeIncreased,
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface
+            )
+        ) {
+            Column(
+                modifier = Modifier.padding(24.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Text(
+                    text = "Edit Water Entry",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold
+                )
+
+                // Container type dropdown
+                var expanded by remember { mutableStateOf(false) }
+                
+                ExposedDropdownMenuBox(
+                    expanded = expanded,
+                    onExpandedChange = { expanded = !expanded }
+                ) {
+                    OutlinedTextField(
+                        value = containerType,
+                        onValueChange = { },
+                        readOnly = true,
+                        label = { Text("Container Type") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                        modifier = Modifier
+                            .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
+                            .fillMaxWidth()
+                    )
+                    
+                    ExposedDropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false }
+                    ) {
+                        presets.forEach { preset ->
+                            DropdownMenuItem(
+                                text = { Text(preset.name) },
+                                onClick = {
+                                    containerType = preset.name
+                                    amountText = preset.volume.toString()
+                                    expanded = false
+                                }
+                            )
+                        }
+                        DropdownMenuItem(
+                            text = { Text("Custom") },
+                            onClick = {
+                                containerType = "Custom"
+                                expanded = false
+                            }
+                        )
+                    }
+                }
+
+                // Amount field
+                OutlinedTextField(
+                    value = amountText,
+                    onValueChange = {
+                        amountText = it
+                        isError = false
+                    },
+                    label = { Text("Amount (ml)") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    isError = isError,
+                    supportingText = if (isError) {
+                        { Text("Please enter a valid amount (1-5000 ml)") }
+                    } else null,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    TextButton(onClick = onDismiss) {
+                        Text("Cancel")
+                    }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    Button(
+                        shapes = ButtonDefaults.shapes(),
+                        onClick = {
+                            val amount = amountText.toDoubleOrNull()
+                            if (amount != null && amount > 0 && amount <= 5000) {
+                                val updatedEntry = entry.copy(
+                                    amount = amount,
+                                    containerType = containerType
+                                )
+                                onConfirm(updatedEntry)
+                            } else {
+                                isError = true
+                            }
+                        }
+                    ) {
+                        Text("Update")
+                    }
+                }
+            }
+        }
+    }
+}
+
 @Composable
 private fun StatChip(
     label: String,
@@ -567,80 +756,302 @@ private fun StatChip(
 }
 
 @Composable
-private fun RecentEntryItem(entry: WaterIntakeEntry) {
+private fun RecentEntryItem(
+    entry: WaterIntakeEntry,
+    onEdit: (WaterIntakeEntry) -> Unit = {},
+    onDelete: (WaterIntakeEntry) -> Unit = {}
+) {
     // Find a matching preset to fetch its icon (res or vector)
     val preset = remember(entry.containerType) {
         ContainerPreset.getDefaultPresets()
             .firstOrNull { it.name == entry.containerType }
     }
 
-    ListItem(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(MaterialTheme.shapes.large),
-        leadingContent = {
-            // Tonal icon container
-            Surface(
-                shape = MaterialTheme.shapes.medium,
-                color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                tonalElevation = 1.dp,
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    val hapticFeedback = LocalHapticFeedback.current
+
+    val dismissState = rememberSwipeToDismissBoxState(
+        initialValue = SwipeToDismissBoxValue.Settled,
+        positionalThreshold = { distance -> distance * 0.5f }
+    )
+
+    // Handle state changes and actions
+    LaunchedEffect(dismissState.currentValue) {
+        when (dismissState.currentValue) {
+            SwipeToDismissBoxValue.StartToEnd -> {
+                // Right swipe - Edit
+                hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                onEdit(entry)
+                // Reset to center after action
+                kotlinx.coroutines.delay(100)
+                dismissState.snapTo(SwipeToDismissBoxValue.Settled)
+            }
+            SwipeToDismissBoxValue.EndToStart -> {
+                // Left swipe - Show delete confirmation
+                hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                showDeleteDialog = true
+                // Reset to center after showing dialog
+                kotlinx.coroutines.delay(100)
+                dismissState.snapTo(SwipeToDismissBoxValue.Settled)
+            }
+            SwipeToDismissBoxValue.Settled -> {
+                // No action needed
+            }
+        }
+    }
+
+    SwipeToDismissBox(
+        state = dismissState,
+        modifier = Modifier.fillMaxWidth(),
+        backgroundContent = {
+            val direction = dismissState.dismissDirection
+            val alignment = when (direction) {
+                SwipeToDismissBoxValue.StartToEnd -> Alignment.CenterStart
+                SwipeToDismissBoxValue.EndToStart -> Alignment.CenterEnd
+                SwipeToDismissBoxValue.Settled -> Alignment.Center
+            }
+
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        color = when (direction) {
+                            SwipeToDismissBoxValue.StartToEnd -> MaterialTheme.colorScheme.primaryContainer
+                            SwipeToDismissBoxValue.EndToStart -> MaterialTheme.colorScheme.errorContainer
+                            SwipeToDismissBoxValue.Settled -> MaterialTheme.colorScheme.surface
+                        },
+                        shape = MaterialTheme.shapes.extraLargeIncreased
+                    )
+                    .padding(horizontal = 20.dp),
+                contentAlignment = alignment
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(44.dp)
-                        .padding(10.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    when {
-                        preset?.iconRes != null -> {
+                when (direction) {
+                    SwipeToDismissBoxValue.StartToEnd -> {
+                        // Edit action
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
                             Icon(
-                                painter = painterResource(preset.iconRes),
-                                contentDescription = preset.name,
-                                tint = MaterialTheme.colorScheme.primary
+                                imageVector = Icons.Default.Edit,
+                                contentDescription = "Edit entry",
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                modifier = Modifier.size(24.dp)
                             )
-                        }
-                        preset?.icon != null -> {
-                            Icon(
-                                imageVector = preset.icon,
-                                contentDescription = preset.name,
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                        else -> {
-                            Icon(
-                                imageVector = Icons.Default.WaterDrop,
-                                contentDescription = entry.containerType,
-                                tint = MaterialTheme.colorScheme.primary
+                            Text(
+                                text = "Edit",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                fontWeight = FontWeight.Medium
                             )
                         }
                     }
+                    SwipeToDismissBoxValue.EndToStart -> {
+                        // Delete action
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text(
+                                text = "Delete",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onErrorContainer,
+                                fontWeight = FontWeight.Medium
+                            )
+                            Icon(
+                                imageVector = Icons.Default.Delete,
+                                contentDescription = "Delete entry",
+                                tint = MaterialTheme.colorScheme.onErrorContainer,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                    }
+                    SwipeToDismissBoxValue.Settled -> {
+                        // No action
+                    }
                 }
             }
-        },
-        headlineContent = {
-            Text(
-                text = entry.containerType,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Medium
-            )
-        },
-        supportingContent = {
-            Text(
-                text = entry.getFormattedTime(),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        },
-        trailingContent = {
-            Text(
-                text = entry.getFormattedAmount(),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.primary
+        }
+    ) {
+        // Main list item content
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = MaterialTheme.shapes.extraLargeIncreased,
+            color = MaterialTheme.colorScheme.surfaceContainer
+        ) {
+            ListItem(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp),
+                colors = ListItemDefaults.colors(
+                    MaterialTheme.colorScheme.surfaceContainer
+                ),
+                leadingContent = {
+                    Surface(
+                        shape = MaterialTheme.shapes.large,
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        tonalElevation = 2.dp,
+                        modifier = Modifier.size(56.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            when {
+                                preset?.iconRes != null -> {
+                                    Icon(
+                                        painter = painterResource(preset.iconRes),
+                                        contentDescription = preset.name,
+                                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                }
+                                preset?.icon != null -> {
+                                    Icon(
+                                        imageVector = preset.icon,
+                                        contentDescription = preset.name,
+                                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                }
+                                else -> {
+                                    Icon(
+                                        imageVector = Icons.Default.WaterDrop,
+                                        contentDescription = entry.containerType,
+                                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                },
+                headlineContent = {
+                    Text(
+                        text = entry.containerType,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                },
+                supportingContent = {
+                    Text(
+                        text = entry.getFormattedTime(),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                },
+                trailingContent = {
+                    Column(
+                        horizontalAlignment = Alignment.End
+                    ) {
+                        Text(
+                            text = entry.getFormattedAmount(),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            text = "Edit → • ← Delete",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.outline,
+                            modifier = Modifier.padding(top = 2.dp)
+                        )
+                    }
+                }
             )
         }
-    )
+    }
+
+    // Delete confirmation dialog
+    if (showDeleteDialog) {
+        DeleteConfirmationDialog(
+            entry = entry,
+            onConfirm = {
+                onDelete(entry)
+                showDeleteDialog = false
+            },
+            onDismiss = {
+                showDeleteDialog = false
+            }
+        )
+    }
+}
+
+@Composable
+private fun DeleteConfirmationDialog(
+    entry: WaterIntakeEntry,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = MaterialTheme.shapes.extraLargeIncreased,
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface
+            )
+        ) {
+            Column(
+                modifier = Modifier.padding(24.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "Delete",
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Text(
+                        text = "Delete Entry",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+
+                Text(
+                    text = "Are you sure you want to delete this ${entry.getFormattedAmount()} ${entry.containerType} entry?",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Text(
+                    text = "This action cannot be undone.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    TextButton(onClick = onDismiss) {
+                        Text("Cancel")
+                    }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    Button(
+                        onClick = onConfirm,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.error
+                        ),
+                        shapes = ButtonDefaults.shapes()
+                    ) {
+                        Text(
+                            text = "Delete",
+                            color = MaterialTheme.colorScheme.onError
+                        )
+                    }
+                }
+            }
+        }
+    }
 }
 
 private fun getMotivationalMessage(progress: Float, userProfile: UserProfile, isGoalAchieved: Boolean): String {
