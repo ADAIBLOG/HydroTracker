@@ -16,6 +16,8 @@ import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material.icons.automirrored.filled.TrendingFlat
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.CalendarViewMonth
+import androidx.compose.material.icons.outlined.CalendarViewWeek
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -103,7 +105,6 @@ fun HistoryScreen(
                 .fillMaxSize()
                 .padding(paddingValues),
             contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
             // Period Selector
             item {
@@ -225,7 +226,7 @@ enum class TimePeriod(val displayName: String, val description: String) {
     MONTHLY("Monthly", "Month view")
 }
 
-
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun PeriodSelector(
     selectedPeriod: TimePeriod,
@@ -239,31 +240,45 @@ private fun PeriodSelector(
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
+            containerColor = MaterialTheme.colorScheme.surface
         )
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            // Period Type Selection
+            // Period Type Selection with ToggleButton
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 TimePeriod.entries.forEach { period ->
                     val isSelected = selectedPeriod == period
+                    val icon = when (period) {
+                        TimePeriod.WEEKLY -> Icons.Outlined.CalendarViewWeek
+                        TimePeriod.MONTHLY -> Icons.Outlined.CalendarViewMonth
+                    }
                     
-                    FilterChip(
-                        onClick = { onPeriodSelected(period) },
-                        label = { Text(period.displayName) },
-                        selected = isSelected,
-                        modifier = Modifier.weight(1f),
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = MaterialTheme.colorScheme.primary,
-                            selectedLabelColor = MaterialTheme.colorScheme.onPrimary
-                        )
-                    )
+                    ToggleButton(
+                        checked = isSelected,
+                        onCheckedChange = { onPeriodSelected(period) },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = icon,
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Text(
+                                text = period.displayName,
+                                style = MaterialTheme.typography.labelLarge
+                            )
+                        }
+                    }
                 }
             }
             
@@ -273,13 +288,15 @@ private fun PeriodSelector(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(
+                FilledIconButton(
                     onClick = {
                         when (selectedPeriod) {
                             TimePeriod.WEEKLY -> onWeekOffsetChanged(currentWeekOffset - 1)
                             TimePeriod.MONTHLY -> onMonthOffsetChanged(currentMonthOffset - 1)
                         }
-                    }
+                    },
+                    shapes = IconButtonDefaults.shapes(),
+                    colors = IconButtonDefaults.filledIconButtonColors()
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
@@ -289,9 +306,8 @@ private fun PeriodSelector(
                 
                 Text(
                     text = getCurrentPeriodText(selectedPeriod, currentWeekOffset, currentMonthOffset, weekStartDay),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.titleMediumEmphasized,
+                    color = MaterialTheme.colorScheme.onSurface,
                     textAlign = TextAlign.Center
                 )
                 
@@ -302,6 +318,8 @@ private fun PeriodSelector(
                             TimePeriod.MONTHLY -> onMonthOffsetChanged(currentMonthOffset + 1)
                         }
                     },
+                    shapes = IconButtonDefaults.shapes(),
+                    colors = IconButtonDefaults.filledIconButtonColors(),
                     enabled = when (selectedPeriod) {
                         TimePeriod.WEEKLY -> currentWeekOffset < 0
                         TimePeriod.MONTHLY -> currentMonthOffset < 0
@@ -328,7 +346,9 @@ private fun WeeklyChartSection(
     var selectedDayData by remember { mutableStateOf<com.cemcakmak.hydrotracker.data.database.dao.DailyTotal?>(null) }
     Card(
         modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        )
     ) {
         Column(
             modifier = Modifier.padding(20.dp),
@@ -336,8 +356,7 @@ private fun WeeklyChartSection(
         ) {
             Text(
                 text = getCurrentPeriodText(selectedPeriod, weekOffset, 0, weekStartDay),
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
+                style = MaterialTheme.typography.titleLargeEmphasized
             )
 
             // Filter summaries for the selected week and convert to DailyTotal format
@@ -485,12 +504,7 @@ private fun WeeklyBarChart(
                             .clip(MaterialTheme.shapes.small)
                             .clickable { onBarClick(dayTotal) }
                             .background(
-                                brush = Brush.verticalGradient(
-                                    colors = listOf(
-                                        MaterialTheme.colorScheme.primary,
-                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
-                                    )
-                                )
+                                color = MaterialTheme.colorScheme.primary
                             ),
                         contentAlignment = Alignment.Center
                     ) {
@@ -507,7 +521,7 @@ private fun WeeklyBarChart(
             }
         }
         
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(2.dp))
 
         // Day labels
         Row(
@@ -558,7 +572,9 @@ private fun MonthlyChartSection(
     var selectedSummary by remember { mutableStateOf<DailySummary?>(null) }
     Card(
         modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        )
     ) {
         Column(
             modifier = Modifier.padding(20.dp),
@@ -566,8 +582,7 @@ private fun MonthlyChartSection(
         ) {
             Text(
                 text = getPeriodTitle(selectedPeriod),
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
+                style = MaterialTheme.typography.titleLargeEmphasized
             )
 
             val filteredSummaries = filterSummariesByPeriod(summaries, selectedPeriod, weekOffset = 0, monthOffset)
@@ -657,7 +672,9 @@ private fun MonthlyHeatmap(
     val cols = 7 // Days of week
 
     Column(
-        verticalArrangement = Arrangement.spacedBy(4.dp)
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
         repeat(rows) { row ->
             Row(
@@ -689,6 +706,8 @@ private fun MonthlyHeatmap(
                 }
             }
         }
+
+        Spacer(modifier = Modifier.height(4.dp))
 
         // Legend
         Row(
@@ -1046,7 +1065,7 @@ private fun InlineDetailPanel(
                 .fillMaxWidth()
                 .padding(vertical = 8.dp),
             colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.secondaryContainer
+                containerColor = MaterialTheme.colorScheme.primaryContainer
             ),
             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
@@ -1062,18 +1081,18 @@ private fun InlineDetailPanel(
                 ) {
                     Text(
                         text = formatDisplayDate(data.date),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                        style = MaterialTheme.typography.titleMediumEmphasized,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
-                    IconButton(
+                    FilledIconButton(
                         onClick = onDismiss,
+                        colors = IconButtonDefaults.filledIconButtonColors(),
+                        shapes = IconButtonDefaults.shapes(),
                         modifier = Modifier.size(32.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Default.Close,
                             contentDescription = "Close",
-                            tint = MaterialTheme.colorScheme.onSecondaryContainer,
                             modifier = Modifier.size(18.dp)
                         )
                     }
@@ -1092,12 +1111,11 @@ private fun InlineDetailPanel(
                         Text(
                             text = "Water Intake",
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
                         )
                         Text(
                             text = WaterCalculator.formatWaterAmount(data.amount),
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.titleLargeEmphasized,
                             color = MaterialTheme.colorScheme.primary
                         )
                     }
@@ -1115,27 +1133,14 @@ private fun InlineDetailPanel(
                                     Text(
                                         text = "Goal: ${WaterCalculator.formatWaterAmount(goal)}",
                                         style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer
                                     )
                                     Text(
                                         text = "Progress: ${(percentage * 100).toInt()}%",
                                         style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer
                                     )
                                 }
-
-                                // Achievement status icon
-                                val (status) = when {
-                                    percentage >= 1.0f -> "🎉" to MaterialTheme.colorScheme.primary
-                                    percentage >= 0.8f -> "🌟" to MaterialTheme.colorScheme.tertiary
-                                    percentage >= 0.5f -> "💪" to MaterialTheme.colorScheme.secondary
-                                    else -> "📈" to MaterialTheme.colorScheme.outline
-                                }
-
-                                Text(
-                                    text = status,
-                                    style = MaterialTheme.typography.headlineMedium
-                                )
                             }
                             
                             // Compact progress bar
@@ -1145,9 +1150,7 @@ private fun InlineDetailPanel(
                                     .fillMaxWidth()
                                     .height(6.dp)
                                     .clip(MaterialTheme.shapes.small),
-                                color = if (percentage >= 1.0f) 
-                                    MaterialTheme.colorScheme.primary 
-                                else MaterialTheme.colorScheme.secondary,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer,
                                 trackColor = MaterialTheme.colorScheme.surfaceVariant
                             )
                         }
