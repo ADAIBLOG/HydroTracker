@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import com.cemcakmak.hydrotracker.data.models.ThemePreferences
 import com.cemcakmak.hydrotracker.data.models.DarkModePreference
 import com.cemcakmak.hydrotracker.data.models.ColorSource
+import com.cemcakmak.hydrotracker.data.models.WeekStartDay
 import com.cemcakmak.hydrotracker.data.models.UserProfile
 import com.cemcakmak.hydrotracker.data.repository.UserRepository
 import com.cemcakmak.hydrotracker.data.database.repository.WaterIntakeRepository
@@ -36,6 +37,7 @@ fun SettingsScreen(
     onThemeToggle: (Boolean) -> Unit = {},
     onDarkModeChange: (DarkModePreference) -> Unit = {},
     onColorSourceChange: (ColorSource) -> Unit = {},
+    onWeekStartDayChange: (WeekStartDay) -> Unit = {},
     onRequestNotificationPermission: () -> Unit = {},
     onNavigateBack: () -> Unit = {},
     onNavigateToOnboarding: () -> Unit = {},
@@ -111,9 +113,10 @@ fun SettingsScreen(
                     initialOffsetY = { it / 2 }
                 ) + fadeIn(animationSpec = tween(600, delayMillis = 200))
             ) {
-                DarkModeSection(
-                    currentPreference = themePreferences.darkMode,
-                    onDarkModeChange = onDarkModeChange
+                DisplaySection(
+                    themePreferences = themePreferences,
+                    onDarkModeChange = onDarkModeChange,
+                    onWeekStartDayChange = onWeekStartDayChange
                 )
             }
 
@@ -290,9 +293,10 @@ private fun ColorSourceOption(
 }
 
 @Composable
-private fun DarkModeSection(
-    currentPreference: DarkModePreference,
-    onDarkModeChange: (DarkModePreference) -> Unit
+private fun DisplaySection(
+    themePreferences: ThemePreferences,
+    onDarkModeChange: (DarkModePreference) -> Unit,
+    onWeekStartDayChange: (WeekStartDay) -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth()
@@ -317,11 +321,40 @@ private fun DarkModeSection(
                 )
             }
 
+            // Dark Mode Options
+            Text(
+                text = "Theme Mode",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp)
+            )
+            
             DarkModePreference.values().forEach { preference ->
                 DarkModeOption(
                     preference = preference,
-                    isSelected = currentPreference == preference,
+                    isSelected = themePreferences.darkMode == preference,
                     onClick = { onDarkModeChange(preference) }
+                )
+            }
+            
+            HorizontalDivider(
+                modifier = Modifier.padding(vertical = 8.dp),
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+            )
+            
+            // Week Start Day Options
+            Text(
+                text = "Week starts on",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp)
+            )
+            
+            WeekStartDay.values().forEach { weekStartDay ->
+                WeekStartDayOption(
+                    weekStartDay = weekStartDay,
+                    isSelected = themePreferences.weekStartDay == weekStartDay,
+                    onClick = { onWeekStartDayChange(weekStartDay) }
                 )
             }
         }
@@ -375,6 +408,66 @@ private fun DarkModeOption(
                     )
                     Text(
                         text = preference.getDescription(),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            RadioButton(
+                selected = isSelected,
+                onClick = onClick
+            )
+        }
+    }
+}
+
+@Composable
+private fun WeekStartDayOption(
+    weekStartDay: WeekStartDay,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    val icon = when (weekStartDay) {
+        WeekStartDay.SUNDAY -> Icons.Default.Weekend
+        WeekStartDay.MONDAY -> Icons.Default.Today
+    }
+
+    Card(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isSelected) {
+                MaterialTheme.colorScheme.primaryContainer
+            } else {
+                MaterialTheme.colorScheme.surface
+            }
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Column {
+                    Text(
+                        text = weekStartDay.displayName,
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Text(
+                        text = weekStartDay.getDescription(),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

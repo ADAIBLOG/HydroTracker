@@ -15,7 +15,7 @@ import java.util.*
  */
 object UserDayCalculator {
     
-    private fun getDateFormat() = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+    private val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
     
     /**
      * Get the current user day date string based on wake-up time
@@ -30,10 +30,10 @@ object UserDayCalculator {
             // Before wake-up time, so this is still the previous day's "user day"
             val calendar = Calendar.getInstance()
             calendar.add(Calendar.DAY_OF_YEAR, -1)
-            getDateFormat().format(calendar.time)
+            dateFormat.format(calendar.time)
         } else {
             // After wake-up time, so this is today's "user day"
-            getDateFormat().format(Date())
+            dateFormat.format(Date())
         }
     }
     
@@ -48,10 +48,10 @@ object UserDayCalculator {
         return if (time.isBefore(wakeUp)) {
             // Before wake-up time, so this entry belongs to the previous day's "user day"
             calendar.add(Calendar.DAY_OF_YEAR, -1)
-            getDateFormat().format(calendar.time)
+            dateFormat.format(calendar.time)
         } else {
             // After wake-up time, so this entry belongs to today's "user day"
-            getDateFormat().format(calendar.time)
+            dateFormat.format(calendar.time)
         }
     }
     

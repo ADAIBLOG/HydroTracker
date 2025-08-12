@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material.icons.automirrored.filled.TrendingFlat
@@ -30,19 +31,29 @@ import com.cemcakmak.hydrotracker.data.database.repository.WaterIntakeRepository
 import com.cemcakmak.hydrotracker.data.database.repository.WeeklyStatistics
 import com.cemcakmak.hydrotracker.data.database.entities.WaterIntakeEntry
 import com.cemcakmak.hydrotracker.data.database.entities.DailySummary
+import com.cemcakmak.hydrotracker.data.models.WeekStartDay
+import com.cemcakmak.hydrotracker.data.models.ThemePreferences
 import com.cemcakmak.hydrotracker.utils.WaterCalculator
 import java.text.SimpleDateFormat
 import java.util.*
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.time.temporal.WeekFields
 
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun HistoryScreen(
     waterIntakeRepository: WaterIntakeRepository,
+    themePreferences: ThemePreferences = ThemePreferences(),
     onNavigateBack: () -> Unit = {}
 ) {
     // State for different time periods
-    var selectedPeriod by remember { mutableStateOf(TimePeriod.LAST_7_DAYS) }
+    var selectedPeriod by remember { mutableStateOf(TimePeriod.WEEKLY) }
+    
+    // Navigation state for current week/month
+    var currentWeekOffset by remember { mutableIntStateOf(0) } // 0 = current week, -1 = previous week, etc.
+    var currentMonthOffset by remember { mutableIntStateOf(0) } // 0 = current month, -1 = previous month, etc.
 
     // Collect data from repository
     val last30DaysSummaries by waterIntakeRepository.getLast30DaysSummaries().collectAsState(
@@ -108,7 +119,17 @@ fun HistoryScreen(
                 ) {
                     PeriodSelector(
                         selectedPeriod = selectedPeriod,
-                        onPeriodSelected = { selectedPeriod = it }
+                        onPeriodSelected = { 
+                            selectedPeriod = it
+                            // Reset navigation when switching between weekly/monthly
+                            currentWeekOffset = 0
+                            currentMonthOffset = 0
+                        },
+                        currentWeekOffset = currentWeekOffset,
+                        currentMonthOffset = currentMonthOffset,
+                        onWeekOffsetChanged = { currentWeekOffset = it },
+                        onMonthOffsetChanged = { currentMonthOffset = it },
+                        weekStartDay = themePreferences.weekStartDay
                     )
                 }
             }
@@ -126,16 +147,20 @@ fun HistoryScreen(
                     ) + fadeIn(animationSpec = tween(700, delayMillis = 200))
                 ) {
                     when (selectedPeriod) {
-                        TimePeriod.YESTERDAY, TimePeriod.LAST_3_DAYS, TimePeriod.THIS_WEEK, TimePeriod.LAST_7_DAYS -> {
+                        TimePeriod.WEEKLY -> {
                             WeeklyChartSection(
                                 weeklyStats = weeklyStats,
                                 selectedPeriod = selectedPeriod,
+                                weekOffset = currentWeekOffset,
+                                summaries = last30DaysSummaries,
+                                weekStartDay = themePreferences.weekStartDay
                             )
                         }
-                        TimePeriod.THIS_MONTH, TimePeriod.LAST_30_DAYS -> {
+                        TimePeriod.MONTHLY -> {
                             MonthlyChartSection(
-                                summaries = last30DaysSummaries.take(getDataLimitForPeriod(selectedPeriod)),
-                                selectedPeriod = selectedPeriod
+                                summaries = last30DaysSummaries,
+                                selectedPeriod = selectedPeriod,
+                                monthOffset = currentMonthOffset
                             )
                         }
                     }
@@ -155,9 +180,12 @@ fun HistoryScreen(
                     ) + fadeIn(animationSpec = tween(600, delayMillis = 300))
                 ) {
                     StatisticsGrid(
-                        summaries = last30DaysSummaries.take(getDataLimitForPeriod(selectedPeriod)),
-                        entries = last30DaysEntries.take(getDataLimitForPeriod(selectedPeriod) * 5), // Approximate entries per day
-                        selectedPeriod = selectedPeriod
+                        summaries = last30DaysSummaries,
+                        entries = last30DaysEntries,
+                        selectedPeriod = selectedPeriod,
+                        weekOffset = currentWeekOffset,
+                        monthOffset = currentMonthOffset,
+                        weekStartDay = themePreferences.weekStartDay
                     )
                 }
             }
@@ -174,7 +202,13 @@ fun HistoryScreen(
                         )
                     ) + fadeIn(animationSpec = tween(600, delayMillis = 400))
                 ) {
-                    GoalAchievementSection(last30DaysSummaries.take(getDataLimitForPeriod(selectedPeriod)))
+                    GoalAchievementSection(
+                        summaries = last30DaysSummaries,
+                        selectedPeriod = selectedPeriod,
+                        weekOffset = currentWeekOffset,
+                        monthOffset = currentMonthOffset,
+                        weekStartDay = themePreferences.weekStartDay
+                    )
                 }
             }
 
@@ -187,18 +221,20 @@ fun HistoryScreen(
 }
 
 enum class TimePeriod(val displayName: String, val description: String) {
-    YESTERDAY("Yesterday", "Previous day"),
-    LAST_3_DAYS("3 Days", "Last 3 days"),
-    THIS_WEEK("This Week", "Current week"),
-    LAST_7_DAYS("7 Days", "Last 7 days"),
-    THIS_MONTH("This Month", "Current month"),
-    LAST_30_DAYS("30 Days", "Last 30 days")
+    WEEKLY("Weekly", "Week view"),
+    MONTHLY("Monthly", "Month view")
 }
+
 
 @Composable
 private fun PeriodSelector(
     selectedPeriod: TimePeriod,
-    onPeriodSelected: (TimePeriod) -> Unit
+    onPeriodSelected: (TimePeriod) -> Unit,
+    currentWeekOffset: Int,
+    currentMonthOffset: Int,
+    onWeekOffsetChanged: (Int) -> Unit,
+    onMonthOffsetChanged: (Int) -> Unit,
+    weekStartDay: WeekStartDay
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -207,22 +243,15 @@ private fun PeriodSelector(
         )
     ) {
         Column(
-            modifier = Modifier.padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Text(
-                text = "Time Period",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 4.dp)
-            )
-            
-            // First row: Quick periods
+            // Period Type Selection
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                listOf(TimePeriod.YESTERDAY, TimePeriod.LAST_3_DAYS, TimePeriod.THIS_WEEK).forEach { period ->
+                TimePeriod.entries.forEach { period ->
                     val isSelected = selectedPeriod == period
                     
                     FilterChip(
@@ -238,34 +267,52 @@ private fun PeriodSelector(
                 }
             }
             
-            // Second row: Longer periods
+            // Navigation Controls
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                listOf(TimePeriod.LAST_7_DAYS, TimePeriod.THIS_MONTH, TimePeriod.LAST_30_DAYS).forEach { period ->
-                    val isSelected = selectedPeriod == period
-                    
-                    FilterChip(
-                        onClick = { onPeriodSelected(period) },
-                        label = { Text(period.displayName) },
-                        selected = isSelected,
-                        modifier = Modifier.weight(1f),
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = MaterialTheme.colorScheme.primary,
-                            selectedLabelColor = MaterialTheme.colorScheme.onPrimary
-                        )
+                IconButton(
+                    onClick = {
+                        when (selectedPeriod) {
+                            TimePeriod.WEEKLY -> onWeekOffsetChanged(currentWeekOffset - 1)
+                            TimePeriod.MONTHLY -> onMonthOffsetChanged(currentMonthOffset - 1)
+                        }
+                    }
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Previous ${selectedPeriod.displayName.lowercase()}"
+                    )
+                }
+                
+                Text(
+                    text = getCurrentPeriodText(selectedPeriod, currentWeekOffset, currentMonthOffset, weekStartDay),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center
+                )
+                
+                IconButton(
+                    onClick = {
+                        when (selectedPeriod) {
+                            TimePeriod.WEEKLY -> onWeekOffsetChanged(currentWeekOffset + 1)
+                            TimePeriod.MONTHLY -> onMonthOffsetChanged(currentMonthOffset + 1)
+                        }
+                    },
+                    enabled = when (selectedPeriod) {
+                        TimePeriod.WEEKLY -> currentWeekOffset < 0
+                        TimePeriod.MONTHLY -> currentMonthOffset < 0
+                    }
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                        contentDescription = "Next ${selectedPeriod.displayName.lowercase()}"
                     )
                 }
             }
-            
-            // Description text
-            Text(
-                text = selectedPeriod.description,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp)
-            )
         }
     }
 }
@@ -274,6 +321,9 @@ private fun PeriodSelector(
 private fun WeeklyChartSection(
     weeklyStats: WeeklyStatistics?,
     selectedPeriod: TimePeriod,
+    weekOffset: Int,
+    summaries: List<DailySummary> = emptyList(),
+    weekStartDay: WeekStartDay = WeekStartDay.MONDAY
 ) {
     var selectedDayData by remember { mutableStateOf<com.cemcakmak.hydrotracker.data.database.dao.DailyTotal?>(null) }
     Card(
@@ -285,15 +335,30 @@ private fun WeeklyChartSection(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Text(
-                text = getPeriodTitle(selectedPeriod),
+                text = getCurrentPeriodText(selectedPeriod, weekOffset, 0, weekStartDay),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
             )
 
-            // Use filtered data based on selected period
-            val filteredDailyTotals = when {
-                weeklyStats != null -> weeklyStats.dailyTotals.take(getDataLimitForPeriod(selectedPeriod))
-                else -> emptyList()
+            // Filter summaries for the selected week and convert to DailyTotal format
+            val filteredSummaries = filterSummariesByPeriod(summaries, selectedPeriod, weekOffset, 0, weekStartDay)
+            
+            // Create a complete week with all 7 days, filling in missing days with 0 data
+            val (startOfWeek, endOfWeek) = getWeekDateRange(weekOffset, weekStartDay)
+            val filteredDailyTotals = mutableListOf<com.cemcakmak.hydrotracker.data.database.dao.DailyTotal>()
+            
+            for (i in 0..6) {
+                val currentDate = startOfWeek.plusDays(i.toLong())
+                val dateString = currentDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
+                val summary = filteredSummaries.find { it.date == dateString }
+                
+                filteredDailyTotals.add(
+                    com.cemcakmak.hydrotracker.data.database.dao.DailyTotal(
+                        date = dateString,
+                        totalAmount = summary?.totalIntake ?: 0.0,
+                        entryCount = summary?.entryCount ?: 0
+                    )
+                )
             }
             
             if (filteredDailyTotals.isNotEmpty()) {
@@ -360,7 +425,12 @@ private fun WeeklyChartSection(
                         .height(150.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator()
+                    Text(
+                        text = "No data available for this week",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center
+                    )
                 }
             }
         }
@@ -482,7 +552,8 @@ private fun WeeklyStatItem(
 @Composable
 private fun MonthlyChartSection(
     summaries: List<DailySummary>,
-    selectedPeriod: TimePeriod
+    selectedPeriod: TimePeriod,
+    monthOffset: Int
 ) {
     var selectedSummary by remember { mutableStateOf<DailySummary?>(null) }
     Card(
@@ -499,10 +570,12 @@ private fun MonthlyChartSection(
                 fontWeight = FontWeight.Bold
             )
 
-            if (summaries.isNotEmpty()) {
+            val filteredSummaries = filterSummariesByPeriod(summaries, selectedPeriod, weekOffset = 0, monthOffset)
+            
+            if (filteredSummaries.isNotEmpty()) {
                 // Monthly heatmap-style visualization
                 MonthlyHeatmap(
-                    summaries = summaries,
+                    summaries = filteredSummaries,
                     onCellClick = { summary -> selectedSummary = summary }
                 )
                 
@@ -535,8 +608,8 @@ private fun MonthlyChartSection(
                 }
 
                 // Monthly stats
-                val totalDays = summaries.size
-                val goalAchievedDays = summaries.count { it.goalAchieved }
+                val totalDays = filteredSummaries.size
+                val goalAchievedDays = filteredSummaries.count { it.goalAchieved }
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -653,7 +726,10 @@ private fun MonthlyHeatmap(
 private fun StatisticsGrid(
     summaries: List<DailySummary>,
     entries: List<WaterIntakeEntry>,
-    selectedPeriod: TimePeriod
+    selectedPeriod: TimePeriod,
+    weekOffset: Int,
+    monthOffset: Int,
+    weekStartDay: WeekStartDay = WeekStartDay.MONDAY
 ) {
     Column(
         verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -664,13 +740,17 @@ private fun StatisticsGrid(
             fontWeight = FontWeight.Bold
         )
 
-        // Calculate trend data
-        val currentStreak = calculateStreak(summaries)
-        val bestStreak = calculateBestStreak(summaries)
-        val totalEntries = entries.size
-        val totalIntake = entries.sumOf { it.amount }
+        // Filter data based on selected period and offset
+        val filteredSummaries = filterSummariesByPeriod(summaries, selectedPeriod, weekOffset, monthOffset, weekStartDay)
+        val filteredEntries = filterEntriesByPeriod(entries, selectedPeriod, weekOffset, monthOffset, weekStartDay)
         
-        val (streakTrend, intakeTrend) = calculateTrends(summaries, selectedPeriod)
+        // Calculate trend data
+        val currentStreak = calculateStreak(filteredSummaries)
+        val bestStreak = calculateBestStreak(filteredSummaries)
+        val totalEntries = filteredEntries.size
+        val totalIntake = filteredEntries.sumOf { it.amount }
+        
+        val (streakTrend, intakeTrend) = calculateTrends(filteredSummaries, selectedPeriod)
         
         // Grid of stat cards
         Column(
@@ -818,7 +898,13 @@ private fun StatCard(
 }
 
 @Composable
-private fun GoalAchievementSection(summaries: List<DailySummary>) {
+private fun GoalAchievementSection(
+    summaries: List<DailySummary>,
+    selectedPeriod: TimePeriod,
+    weekOffset: Int,
+    monthOffset: Int,
+    weekStartDay: WeekStartDay = WeekStartDay.MONDAY
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -835,8 +921,10 @@ private fun GoalAchievementSection(summaries: List<DailySummary>) {
                 fontWeight = FontWeight.Bold
             )
 
-            if (summaries.isNotEmpty()) {
-                val achievementRate = summaries.count { it.goalAchieved }.toFloat() / summaries.size
+            val filteredSummaries = filterSummariesByPeriod(summaries, selectedPeriod, weekOffset, monthOffset, weekStartDay)
+            
+            if (filteredSummaries.isNotEmpty()) {
+                val achievementRate = filteredSummaries.count { it.goalAchieved }.toFloat() / filteredSummaries.size
 
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -1087,10 +1175,8 @@ private fun calculateTrends(summaries: List<DailySummary>, period: TimePeriod): 
     
     // Split data into current and previous periods for comparison
     val splitPoint = when (period) {
-        TimePeriod.YESTERDAY -> 1
-        TimePeriod.LAST_3_DAYS -> 3
-        TimePeriod.THIS_WEEK, TimePeriod.LAST_7_DAYS -> 7
-        TimePeriod.THIS_MONTH, TimePeriod.LAST_30_DAYS -> 15 // Compare last 15 days with previous 15
+        TimePeriod.WEEKLY -> 7
+        TimePeriod.MONTHLY -> 15 // Compare last 15 days with previous 15
     }
     
     if (sortedSummaries.size < splitPoint * 2) {
@@ -1138,24 +1224,102 @@ private fun calculateTrendInfo(current: Double, previous: Double): TrendInfo? {
     }
 }
 
+private fun getCurrentPeriodText(
+    period: TimePeriod, 
+    weekOffset: Int, 
+    monthOffset: Int, 
+    weekStartDay: WeekStartDay = WeekStartDay.MONDAY
+): String {
+    return when (period) {
+        TimePeriod.WEEKLY -> {
+            val (startOfWeek, endOfWeek) = getWeekDateRange(weekOffset, weekStartDay)
+            
+            when (weekOffset) {
+                0 -> "This Week"
+                -1 -> "Last Week"
+                else -> "${startOfWeek.format(DateTimeFormatter.ofPattern("MMM d"))} - ${endOfWeek.format(DateTimeFormatter.ofPattern("MMM d"))}"
+            }
+        }
+        TimePeriod.MONTHLY -> {
+            val today = LocalDate.now()
+            val targetMonth = today.plusMonths(monthOffset.toLong())
+            when (monthOffset) {
+                0 -> "This Month"
+                -1 -> "Last Month"
+                else -> targetMonth.format(DateTimeFormatter.ofPattern("MMMM yyyy"))
+            }
+        }
+    }
+}
+
 private fun getPeriodTitle(period: TimePeriod): String {
     return when (period) {
-        TimePeriod.YESTERDAY -> "Yesterday's Activity"
-        TimePeriod.LAST_3_DAYS -> "Last 3 Days"
-        TimePeriod.THIS_WEEK -> "This Week"
-        TimePeriod.LAST_7_DAYS -> "7-Day Overview"
-        TimePeriod.THIS_MONTH -> "This Month"
-        TimePeriod.LAST_30_DAYS -> "30-Day Overview"
+        TimePeriod.WEEKLY -> "Weekly Overview"
+        TimePeriod.MONTHLY -> "Monthly Overview"
     }
 }
 
 private fun getDataLimitForPeriod(period: TimePeriod): Int {
     return when (period) {
-        TimePeriod.YESTERDAY -> 1
-        TimePeriod.LAST_3_DAYS -> 3
-        TimePeriod.THIS_WEEK -> 7
-        TimePeriod.LAST_7_DAYS -> 7
-        TimePeriod.THIS_MONTH -> 30
-        TimePeriod.LAST_30_DAYS -> 30
+        TimePeriod.WEEKLY -> 7
+        TimePeriod.MONTHLY -> 30
+    }
+}
+
+private fun getWeekDateRange(weekOffset: Int, weekStartDay: WeekStartDay = WeekStartDay.MONDAY): Pair<LocalDate, LocalDate> {
+    val today = LocalDate.now()
+    val weekFields = WeekFields.of(weekStartDay.dayOfWeek, 1)
+    
+    // Get the start of current week first
+    val currentWeekStart = today.with(weekFields.dayOfWeek(), 1)
+    
+    // Then apply the offset to get the target week
+    val targetWeekStart = currentWeekStart.plusWeeks(weekOffset.toLong())
+    val targetWeekEnd = targetWeekStart.plusDays(6)
+    
+    return Pair(targetWeekStart, targetWeekEnd)
+}
+
+private fun getMonthDateRange(monthOffset: Int): Pair<LocalDate, LocalDate> {
+    val today = LocalDate.now()
+    val targetMonth = today.plusMonths(monthOffset.toLong())
+    val startOfMonth = targetMonth.withDayOfMonth(1)
+    val endOfMonth = targetMonth.withDayOfMonth(targetMonth.lengthOfMonth())
+    return Pair(startOfMonth, endOfMonth)
+}
+
+private fun filterSummariesByPeriod(
+    summaries: List<DailySummary>,
+    period: TimePeriod,
+    weekOffset: Int,
+    monthOffset: Int,
+    weekStartDay: WeekStartDay = WeekStartDay.MONDAY
+): List<DailySummary> {
+    val (startDate, endDate) = when (period) {
+        TimePeriod.WEEKLY -> getWeekDateRange(weekOffset, weekStartDay)
+        TimePeriod.MONTHLY -> getMonthDateRange(monthOffset)
+    }
+    
+    return summaries.filter { summary ->
+        val summaryDate = LocalDate.parse(summary.date)
+        summaryDate >= startDate && summaryDate <= endDate
+    }
+}
+
+private fun filterEntriesByPeriod(
+    entries: List<WaterIntakeEntry>,
+    period: TimePeriod,
+    weekOffset: Int,
+    monthOffset: Int,
+    weekStartDay: WeekStartDay = WeekStartDay.MONDAY
+): List<WaterIntakeEntry> {
+    val (startDate, endDate) = when (period) {
+        TimePeriod.WEEKLY -> getWeekDateRange(weekOffset, weekStartDay)
+        TimePeriod.MONTHLY -> getMonthDateRange(monthOffset)
+    }
+    
+    return entries.filter { entry ->
+        val entryDate = LocalDate.parse(entry.date)
+        entryDate >= startDate && entryDate <= endDate
     }
 }

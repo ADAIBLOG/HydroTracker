@@ -151,6 +151,7 @@ class UserRepository(context: Context) {
             putBoolean("use_dynamic_color", themePreferences.useDynamicColor)
             putString("dark_mode", themePreferences.darkMode.name)
             putString("color_source", themePreferences.colorSource.name)
+            putString("week_start_day", themePreferences.weekStartDay.name)
             apply()
         }
     }
@@ -166,6 +167,9 @@ class UserRepository(context: Context) {
             ),
             colorSource = ColorSource.valueOf(
                 prefs.getString("color_source", ColorSource.HYDRO_THEME.name) ?: ColorSource.HYDRO_THEME.name
+            ),
+            weekStartDay = WeekStartDay.valueOf(
+                prefs.getString("week_start_day", WeekStartDay.MONDAY.name) ?: WeekStartDay.MONDAY.name
             )
         )
     }

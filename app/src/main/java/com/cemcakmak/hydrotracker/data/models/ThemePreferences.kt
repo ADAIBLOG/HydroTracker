@@ -1,5 +1,7 @@
 package com.cemcakmak.hydrotracker.data.models
 
+import java.time.DayOfWeek
+
 /**
  * Material 3 Expressive theme preferences
  * Manages dynamic color settings and theme customization
@@ -7,7 +9,8 @@ package com.cemcakmak.hydrotracker.data.models
 data class ThemePreferences(
     val useDynamicColor: Boolean = false, // Default to our water theme
     val darkMode: DarkModePreference = DarkModePreference.SYSTEM,
-    val colorSource: ColorSource = ColorSource.HYDRO_THEME
+    val colorSource: ColorSource = ColorSource.HYDRO_THEME,
+    val weekStartDay: WeekStartDay = WeekStartDay.MONDAY
 )
 
 enum class DarkModePreference {
@@ -55,5 +58,17 @@ enum class ColorSource {
 
     fun requiresAndroid12(): Boolean {
         return this == DYNAMIC_COLOR
+    }
+}
+
+enum class WeekStartDay(val displayName: String, val dayOfWeek: DayOfWeek) {
+    SUNDAY("Sunday", DayOfWeek.SUNDAY),
+    MONDAY("Monday", DayOfWeek.MONDAY);
+    
+    fun getDescription(): String {
+        return when (this) {
+            SUNDAY -> "Week starts on Sunday"
+            MONDAY -> "Week starts on Monday"
+        }
     }
 }

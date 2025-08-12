@@ -9,6 +9,7 @@ import kotlinx.coroutines.launch
 import com.cemcakmak.hydrotracker.data.models.ThemePreferences
 import com.cemcakmak.hydrotracker.data.models.DarkModePreference
 import com.cemcakmak.hydrotracker.data.models.ColorSource
+import com.cemcakmak.hydrotracker.data.models.WeekStartDay
 import com.cemcakmak.hydrotracker.data.repository.UserRepository
 
 /**
@@ -59,6 +60,19 @@ class ThemeViewModel(private val userRepository: UserRepository) : ViewModel() {
             val newPreferences = _themePreferences.value.copy(
                 colorSource = source,
                 useDynamicColor = source == ColorSource.DYNAMIC_COLOR
+            )
+            _themePreferences.value = newPreferences
+            userRepository.updateThemePreferences(newPreferences)
+        }
+    }
+
+    /**
+     * Update week start day preference
+     */
+    fun updateWeekStartDay(weekStartDay: WeekStartDay) {
+        viewModelScope.launch {
+            val newPreferences = _themePreferences.value.copy(
+                weekStartDay = weekStartDay
             )
             _themePreferences.value = newPreferences
             userRepository.updateThemePreferences(newPreferences)

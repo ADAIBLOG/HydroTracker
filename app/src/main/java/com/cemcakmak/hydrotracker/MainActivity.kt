@@ -156,7 +156,10 @@ fun HydroTrackerApp(
                     }
 
                     composable(NavigationRoutes.HISTORY) {
-                        HistoryScreen(waterIntakeRepository) {
+                        HistoryScreen(
+                            waterIntakeRepository = waterIntakeRepository,
+                            themePreferences = themePreferences
+                        ) {
                             navController.popBackStack()
                         }
                     }
@@ -180,6 +183,7 @@ fun HydroTrackerApp(
                             waterIntakeRepository = waterIntakeRepository,
                             onColorSourceChange = themeViewModel::setColorSource,
                             onDarkModeChange = themeViewModel::updateDarkModePreference,
+                            onWeekStartDayChange = themeViewModel::updateWeekStartDay,
                             onThemeToggle = themeViewModel::toggleDynamicColor,
                             isDynamicColorAvailable = themeViewModel.isDynamicColorAvailable(),
                             onRequestNotificationPermission = {
