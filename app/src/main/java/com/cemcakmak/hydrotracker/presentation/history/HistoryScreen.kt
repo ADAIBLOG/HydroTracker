@@ -9,6 +9,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
@@ -18,6 +21,7 @@ import androidx.compose.material.icons.automirrored.filled.TrendingFlat
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.CalendarViewMonth
 import androidx.compose.material.icons.outlined.CalendarViewWeek
+import androidx.compose.material.icons.outlined.CalendarToday
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -53,9 +57,10 @@ fun HistoryScreen(
     // State for different time periods
     var selectedPeriod by remember { mutableStateOf(TimePeriod.WEEKLY) }
     
-    // Navigation state for current week/month
+    // Navigation state for current week/month/year
     var currentWeekOffset by remember { mutableIntStateOf(0) } // 0 = current week, -1 = previous week, etc.
     var currentMonthOffset by remember { mutableIntStateOf(0) } // 0 = current month, -1 = previous month, etc.
+    var currentYearOffset by remember { mutableIntStateOf(0) } // 0 = current year, -1 = previous year, etc.
 
     // Collect data from repository
     val last30DaysSummaries by waterIntakeRepository.getLast30DaysSummaries().collectAsState(
@@ -122,14 +127,17 @@ fun HistoryScreen(
                         selectedPeriod = selectedPeriod,
                         onPeriodSelected = { 
                             selectedPeriod = it
-                            // Reset navigation when switching between weekly/monthly
+                            // Reset navigation when switching between periods
                             currentWeekOffset = 0
                             currentMonthOffset = 0
+                            currentYearOffset = 0
                         },
                         currentWeekOffset = currentWeekOffset,
                         currentMonthOffset = currentMonthOffset,
+                        currentYearOffset = currentYearOffset,
                         onWeekOffsetChanged = { currentWeekOffset = it },
                         onMonthOffsetChanged = { currentMonthOffset = it },
+                        onYearOffsetChanged = { currentYearOffset = it },
                         weekStartDay = themePreferences.weekStartDay
                     )
                 }
@@ -161,7 +169,15 @@ fun HistoryScreen(
                             MonthlyChartSection(
                                 summaries = last30DaysSummaries,
                                 selectedPeriod = selectedPeriod,
-                                monthOffset = currentMonthOffset
+                                monthOffset = currentMonthOffset,
+                                weekStartDay = themePreferences.weekStartDay
+                            )
+                        }
+                        TimePeriod.YEARLY -> {
+                            YearlyChartSection(
+                                summaries = last30DaysSummaries,
+                                selectedPeriod = selectedPeriod,
+                                yearOffset = currentYearOffset
                             )
                         }
                     }
@@ -186,6 +202,7 @@ fun HistoryScreen(
                         selectedPeriod = selectedPeriod,
                         weekOffset = currentWeekOffset,
                         monthOffset = currentMonthOffset,
+                        yearOffset = currentYearOffset,
                         weekStartDay = themePreferences.weekStartDay
                     )
                 }
@@ -208,6 +225,7 @@ fun HistoryScreen(
                         selectedPeriod = selectedPeriod,
                         weekOffset = currentWeekOffset,
                         monthOffset = currentMonthOffset,
+                        yearOffset = currentYearOffset,
                         weekStartDay = themePreferences.weekStartDay
                     )
                 }
@@ -223,7 +241,8 @@ fun HistoryScreen(
 
 enum class TimePeriod(val displayName: String, val description: String) {
     WEEKLY("Weekly", "Week view"),
-    MONTHLY("Monthly", "Month view")
+    MONTHLY("Monthly", "Month view"),
+    YEARLY("Yearly", "Year view")
 }
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
@@ -233,8 +252,10 @@ private fun PeriodSelector(
     onPeriodSelected: (TimePeriod) -> Unit,
     currentWeekOffset: Int,
     currentMonthOffset: Int,
+    currentYearOffset: Int,
     onWeekOffsetChanged: (Int) -> Unit,
     onMonthOffsetChanged: (Int) -> Unit,
+    onYearOffsetChanged: (Int) -> Unit,
     weekStartDay: WeekStartDay
 ) {
     Card(
@@ -257,6 +278,7 @@ private fun PeriodSelector(
                     val icon = when (period) {
                         TimePeriod.WEEKLY -> Icons.Outlined.CalendarViewWeek
                         TimePeriod.MONTHLY -> Icons.Outlined.CalendarViewMonth
+                        TimePeriod.YEARLY -> Icons.Outlined.CalendarToday
                     }
                     
                     ToggleButton(
@@ -293,6 +315,7 @@ private fun PeriodSelector(
                         when (selectedPeriod) {
                             TimePeriod.WEEKLY -> onWeekOffsetChanged(currentWeekOffset - 1)
                             TimePeriod.MONTHLY -> onMonthOffsetChanged(currentMonthOffset - 1)
+                            TimePeriod.YEARLY -> onYearOffsetChanged(currentYearOffset - 1)
                         }
                     },
                     shapes = IconButtonDefaults.shapes(),
@@ -305,7 +328,7 @@ private fun PeriodSelector(
                 }
                 
                 Text(
-                    text = getCurrentPeriodText(selectedPeriod, currentWeekOffset, currentMonthOffset, weekStartDay),
+                    text = getCurrentPeriodText(selectedPeriod, currentWeekOffset, currentMonthOffset, currentYearOffset, weekStartDay),
                     style = MaterialTheme.typography.titleMediumEmphasized,
                     color = MaterialTheme.colorScheme.onSurface,
                     textAlign = TextAlign.Center
@@ -316,6 +339,7 @@ private fun PeriodSelector(
                         when (selectedPeriod) {
                             TimePeriod.WEEKLY -> onWeekOffsetChanged(currentWeekOffset + 1)
                             TimePeriod.MONTHLY -> onMonthOffsetChanged(currentMonthOffset + 1)
+                            TimePeriod.YEARLY -> onYearOffsetChanged(currentYearOffset + 1)
                         }
                     },
                     shapes = IconButtonDefaults.shapes(),
@@ -323,6 +347,7 @@ private fun PeriodSelector(
                     enabled = when (selectedPeriod) {
                         TimePeriod.WEEKLY -> currentWeekOffset < 0
                         TimePeriod.MONTHLY -> currentMonthOffset < 0
+                        TimePeriod.YEARLY -> currentYearOffset < 0
                     }
                 ) {
                     Icon(
@@ -355,12 +380,12 @@ private fun WeeklyChartSection(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Text(
-                text = getCurrentPeriodText(selectedPeriod, weekOffset, 0, weekStartDay),
+                text = getCurrentPeriodText(selectedPeriod, weekOffset, 0, 0, weekStartDay),
                 style = MaterialTheme.typography.titleLargeEmphasized
             )
 
             // Filter summaries for the selected week and convert to DailyTotal format
-            val filteredSummaries = filterSummariesByPeriod(summaries, selectedPeriod, weekOffset, 0, weekStartDay)
+            val filteredSummaries = filterSummariesByPeriod(summaries, selectedPeriod, weekOffset, 0, 0, weekStartDay)
             
             // Create a complete week with all 7 days, filling in missing days with 0 data
             val (startOfWeek, endOfWeek) = getWeekDateRange(weekOffset, weekStartDay)
@@ -564,10 +589,10 @@ private fun WeeklyStatItem(
 }
 
 @Composable
-private fun MonthlyChartSection(
+private fun YearlyChartSection(
     summaries: List<DailySummary>,
     selectedPeriod: TimePeriod,
-    monthOffset: Int
+    yearOffset: Int
 ) {
     var selectedSummary by remember { mutableStateOf<DailySummary?>(null) }
     Card(
@@ -585,13 +610,187 @@ private fun MonthlyChartSection(
                 style = MaterialTheme.typography.titleLargeEmphasized
             )
 
-            val filteredSummaries = filterSummariesByPeriod(summaries, selectedPeriod, weekOffset = 0, monthOffset)
+            val filteredSummaries = filterSummariesByPeriod(summaries, selectedPeriod, weekOffset = 0, monthOffset = 0, yearOffset = yearOffset)
+            
+            if (filteredSummaries.isNotEmpty()) {
+                // Yearly visualization - all days of the year
+                YearlyHeatmap(
+                    summaries = filteredSummaries,
+                    onCellClick = { summary -> 
+                        // Just update the selected summary for potential future use
+                        selectedSummary = summary 
+                    }
+                )
+
+                // Yearly stats
+                val totalDays = filteredSummaries.size
+                val goalAchievedDays = filteredSummaries.count { it.goalAchieved }
+                val totalIntake = filteredSummaries.sumOf { it.totalIntake }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    WeeklyStatItem(
+                        label = "Days Tracked",
+                        value = "$totalDays"
+                    )
+                    WeeklyStatItem(
+                        label = "Goals Met",
+                        value = "$goalAchievedDays"
+                    )
+                    WeeklyStatItem(
+                        label = "Total Intake",
+                        value = "${(totalIntake / 1000).toInt()}L"
+                    )
+                }
+            } else {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(150.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "No data available for this year",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun YearlyHeatmap(
+    summaries: List<DailySummary>,
+    onCellClick: (DailySummary) -> Unit
+) {
+    // Create a map for quick lookup of summaries by date
+    val summaryMap = summaries.associateBy { it.date }
+    
+    // Generate all days of the year
+    val yearToShow = if (summaries.isNotEmpty()) {
+        LocalDate.parse(summaries.first().date).year
+    } else {
+        LocalDate.now().year
+    }
+    
+    val startOfYear = LocalDate.of(yearToShow, 1, 1)
+    val daysInYear = if (startOfYear.isLeapYear) 366 else 365
+    
+    // Generate all dates in the year
+    val allDates = (0 until daysInYear).map { dayIndex ->
+        startOfYear.plusDays(dayIndex.toLong())
+    }
+
+    Column(
+        verticalArrangement = Arrangement.spacedBy(3.dp),
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        // Dynamic grid layout
+        LazyVerticalGrid(
+            columns = GridCells.Adaptive(minSize = 12.dp),
+            contentPadding = PaddingValues(4.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+            horizontalArrangement = Arrangement.spacedBy(2.dp),
+            modifier = Modifier.heightIn(max = 400.dp)
+        ) {
+            items(allDates) { date ->
+                val dateString = date.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
+                val summary = summaryMap[dateString]
+
+                Box(
+                    modifier = Modifier
+                        .size(12.dp)
+                        .clip(MaterialTheme.shapes.small)
+                        .clickable(enabled = summary != null) { 
+                            summary?.let { onCellClick(it) }
+                        }
+                        .background(
+                            when {
+                                summary == null -> MaterialTheme.colorScheme.surfaceVariant
+                                summary.goalAchieved -> MaterialTheme.colorScheme.primary
+                                summary.goalPercentage >= 0.8f -> MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
+                                summary.goalPercentage >= 0.6f -> MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
+                                summary.goalPercentage >= 0.4f -> MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
+                                summary.goalPercentage >= 0.2f -> MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)
+                                else -> MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                            }
+                        )
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Legend
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Less",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(3.dp)
+            ) {
+                listOf(0.1f, 0.25f, 0.4f, 0.6f, 0.8f, 1.0f).forEach { alpha ->
+                    Box(
+                        modifier = Modifier
+                            .size(12.dp)
+                            .clip(MaterialTheme.shapes.small)
+                            .background(MaterialTheme.colorScheme.primary.copy(alpha = alpha))
+                    )
+                }
+            }
+            Text(
+                text = "More",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+
+@Composable
+private fun MonthlyChartSection(
+    summaries: List<DailySummary>,
+    selectedPeriod: TimePeriod,
+    monthOffset: Int,
+    weekStartDay: WeekStartDay = WeekStartDay.MONDAY
+) {
+    var selectedSummary by remember { mutableStateOf<DailySummary?>(null) }
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Text(
+                text = getPeriodTitle(selectedPeriod),
+                style = MaterialTheme.typography.titleLargeEmphasized
+            )
+
+            val filteredSummaries = filterSummariesByPeriod(summaries, selectedPeriod, weekOffset = 0, monthOffset, 0)
             
             if (filteredSummaries.isNotEmpty()) {
                 // Monthly heatmap-style visualization
                 MonthlyHeatmap(
                     summaries = filteredSummaries,
-                    onCellClick = { summary -> selectedSummary = summary }
+                    onCellClick = { summary -> selectedSummary = summary },
+                    weekStartDay = weekStartDay
                 )
                 
                 // Inline detail panel with animation
@@ -665,47 +864,31 @@ private fun MonthlyChartSection(
 @Composable
 private fun MonthlyHeatmap(
     summaries: List<DailySummary>,
-    onCellClick: (DailySummary) -> Unit
+    onCellClick: (DailySummary) -> Unit,
+    weekStartDay: WeekStartDay = WeekStartDay.MONDAY
 ) {
-    // Simple grid showing goal achievement
-    val rows = 6 // Roughly 5 weeks
-    val cols = 7 // Days of week
+    // Create a map for quick lookup and determine the month being displayed
+    val summaryMap = summaries.associateBy { it.date }
+    
+    // Get the month/year being displayed
+    val monthYear = if (summaries.isNotEmpty()) {
+        val firstDate = LocalDate.parse(summaries.first().date)
+        firstDate.withDayOfMonth(1)
+    } else {
+        LocalDate.now().withDayOfMonth(1)
+    }
 
     Column(
-        verticalArrangement = Arrangement.spacedBy(4.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        repeat(rows) { row ->
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                repeat(cols) { col ->
-                    val dayIndex = row * cols + col
-                    val summary = summaries.getOrNull(dayIndex)
-
-                    Box(
-                        modifier = Modifier
-                            .size(18.dp)
-                            .clip(MaterialTheme.shapes.small)
-                            .clickable(enabled = summary != null) { 
-                                summary?.let { onCellClick(it) }
-                            }
-                            .background(
-                                when {
-                                    summary == null -> MaterialTheme.colorScheme.surfaceVariant
-                                    summary.goalAchieved -> MaterialTheme.colorScheme.primary
-                                    summary.goalPercentage >= 0.8f -> MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
-                                    summary.goalPercentage >= 0.6f -> MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
-                                    summary.goalPercentage >= 0.4f -> MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
-                                    summary.goalPercentage >= 0.2f -> MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)
-                                    else -> MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
-                                }
-                            )
-                    )
-                }
-            }
-        }
+        MonthlyCalendarGrid(
+            monthYear = monthYear,
+            summaryMap = summaryMap,
+            onCellClick = onCellClick,
+            weekStartDay = weekStartDay
+        )
 
         Spacer(modifier = Modifier.height(4.dp))
 
@@ -726,7 +909,7 @@ private fun MonthlyHeatmap(
                 listOf(0.1f, 0.25f, 0.4f, 0.6f, 0.8f, 1.0f).forEach { alpha ->
                     Box(
                         modifier = Modifier
-                            .size(14.dp)
+                            .size(18.dp)
                             .clip(MaterialTheme.shapes.small)
                             .background(MaterialTheme.colorScheme.primary.copy(alpha = alpha))
                     )
@@ -742,12 +925,128 @@ private fun MonthlyHeatmap(
 }
 
 @Composable
+private fun MonthlyCalendarGrid(
+    monthYear: LocalDate,
+    summaryMap: Map<String, DailySummary>,
+    onCellClick: (DailySummary) -> Unit,
+    weekStartDay: WeekStartDay = WeekStartDay.MONDAY
+) {
+    // Use the user's preferred week start day
+    val weekFields = WeekFields.of(weekStartDay.dayOfWeek, 1)
+    
+    // Get first day of month and its day of week
+    val firstDayOfMonth = monthYear.withDayOfMonth(1)
+    val lastDayOfMonth = monthYear.withDayOfMonth(monthYear.lengthOfMonth())
+    
+    // Find the first day to display (might be from previous month)
+    val startOfCalendar = firstDayOfMonth.with(weekFields.dayOfWeek(), 1)
+    
+    // Find the last day to display (might be from next month)
+    val endOfCalendar = lastDayOfMonth.with(weekFields.dayOfWeek(), 7)
+    
+    // Generate all days for the calendar grid
+    val calendarDays = mutableListOf<LocalDate>()
+    var currentDate = startOfCalendar
+    while (!currentDate.isAfter(endOfCalendar)) {
+        calendarDays.add(currentDate)
+        currentDate = currentDate.plusDays(1)
+    }
+    
+    // Group into weeks
+    val weeks = calendarDays.chunked(7)
+
+    Column(
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        // Day headers based on week start day
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            val dayHeaders = if (weekStartDay == WeekStartDay.SUNDAY) {
+                listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
+            } else {
+                listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+            }
+            
+            dayHeaders.forEach { dayName ->
+                Text(
+                    text = dayName,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.weight(1f),
+                    textAlign = TextAlign.Center
+                )
+            }
+        }
+        
+        // Calendar weeks
+        weeks.forEach { week ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                week.forEach { date ->
+                    val dateString = date.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
+                    val summary = summaryMap[dateString]
+                    val isCurrentMonth = date.month == monthYear.month
+                    
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .aspectRatio(1f),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(28.dp)
+                                .clip(MaterialTheme.shapes.small)
+                                .clickable(enabled = summary != null && isCurrentMonth) { 
+                                    summary?.let { onCellClick(it) }
+                                }
+                                .background(
+                                    when {
+                                        !isCurrentMonth -> Color.Transparent
+                                        summary == null -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                                        summary.goalAchieved -> MaterialTheme.colorScheme.primary
+                                        summary.goalPercentage >= 0.8f -> MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
+                                        summary.goalPercentage >= 0.6f -> MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
+                                        summary.goalPercentage >= 0.4f -> MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
+                                        summary.goalPercentage >= 0.2f -> MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)
+                                        else -> MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                                    }
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (isCurrentMonth) {
+                                Text(
+                                    text = date.dayOfMonth.toString(),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = when {
+                                        summary == null -> MaterialTheme.colorScheme.onSurfaceVariant
+                                        summary.goalPercentage > 0.5f -> MaterialTheme.colorScheme.onPrimary
+                                        else -> MaterialTheme.colorScheme.onSurfaceVariant
+                                    },
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun StatisticsGrid(
     summaries: List<DailySummary>,
     entries: List<WaterIntakeEntry>,
     selectedPeriod: TimePeriod,
     weekOffset: Int,
     monthOffset: Int,
+    yearOffset: Int,
     weekStartDay: WeekStartDay = WeekStartDay.MONDAY
 ) {
     Column(
@@ -760,8 +1059,8 @@ private fun StatisticsGrid(
         )
 
         // Filter data based on selected period and offset
-        val filteredSummaries = filterSummariesByPeriod(summaries, selectedPeriod, weekOffset, monthOffset, weekStartDay)
-        val filteredEntries = filterEntriesByPeriod(entries, selectedPeriod, weekOffset, monthOffset, weekStartDay)
+        val filteredSummaries = filterSummariesByPeriod(summaries, selectedPeriod, weekOffset, monthOffset, yearOffset, weekStartDay)
+        val filteredEntries = filterEntriesByPeriod(entries, selectedPeriod, weekOffset, monthOffset, yearOffset, weekStartDay)
         
         // Calculate trend data
         val currentStreak = calculateStreak(filteredSummaries)
@@ -922,6 +1221,7 @@ private fun GoalAchievementSection(
     selectedPeriod: TimePeriod,
     weekOffset: Int,
     monthOffset: Int,
+    yearOffset: Int,
     weekStartDay: WeekStartDay = WeekStartDay.MONDAY
 ) {
     Card(
@@ -940,7 +1240,7 @@ private fun GoalAchievementSection(
                 fontWeight = FontWeight.Bold
             )
 
-            val filteredSummaries = filterSummariesByPeriod(summaries, selectedPeriod, weekOffset, monthOffset, weekStartDay)
+            val filteredSummaries = filterSummariesByPeriod(summaries, selectedPeriod, weekOffset, monthOffset, yearOffset, weekStartDay)
             
             if (filteredSummaries.isNotEmpty()) {
                 val achievementRate = filteredSummaries.count { it.goalAchieved }.toFloat() / filteredSummaries.size
@@ -1180,6 +1480,7 @@ private fun calculateTrends(summaries: List<DailySummary>, period: TimePeriod): 
     val splitPoint = when (period) {
         TimePeriod.WEEKLY -> 7
         TimePeriod.MONTHLY -> 15 // Compare last 15 days with previous 15
+        TimePeriod.YEARLY -> 182 // Compare last 6 months with previous 6 months
     }
     
     if (sortedSummaries.size < splitPoint * 2) {
@@ -1231,6 +1532,7 @@ private fun getCurrentPeriodText(
     period: TimePeriod, 
     weekOffset: Int, 
     monthOffset: Int, 
+    yearOffset: Int,
     weekStartDay: WeekStartDay = WeekStartDay.MONDAY
 ): String {
     return when (period) {
@@ -1252,6 +1554,15 @@ private fun getCurrentPeriodText(
                 else -> targetMonth.format(DateTimeFormatter.ofPattern("MMMM yyyy"))
             }
         }
+        TimePeriod.YEARLY -> {
+            val today = LocalDate.now()
+            val targetYear = today.plusYears(yearOffset.toLong())
+            when (yearOffset) {
+                0 -> "This Year"
+                -1 -> "Last Year"
+                else -> targetYear.format(DateTimeFormatter.ofPattern("yyyy"))
+            }
+        }
     }
 }
 
@@ -1259,6 +1570,7 @@ private fun getPeriodTitle(period: TimePeriod): String {
     return when (period) {
         TimePeriod.WEEKLY -> "Weekly Overview"
         TimePeriod.MONTHLY -> "Monthly Overview"
+        TimePeriod.YEARLY -> "Yearly Overview"
     }
 }
 
@@ -1266,6 +1578,7 @@ private fun getDataLimitForPeriod(period: TimePeriod): Int {
     return when (period) {
         TimePeriod.WEEKLY -> 7
         TimePeriod.MONTHLY -> 30
+        TimePeriod.YEARLY -> 365
     }
 }
 
@@ -1291,16 +1604,26 @@ private fun getMonthDateRange(monthOffset: Int): Pair<LocalDate, LocalDate> {
     return Pair(startOfMonth, endOfMonth)
 }
 
+private fun getYearDateRange(yearOffset: Int): Pair<LocalDate, LocalDate> {
+    val today = LocalDate.now()
+    val targetYear = today.plusYears(yearOffset.toLong())
+    val startOfYear = targetYear.withDayOfYear(1)
+    val endOfYear = targetYear.withDayOfYear(targetYear.lengthOfYear())
+    return Pair(startOfYear, endOfYear)
+}
+
 private fun filterSummariesByPeriod(
     summaries: List<DailySummary>,
     period: TimePeriod,
     weekOffset: Int,
     monthOffset: Int,
+    yearOffset: Int = 0,
     weekStartDay: WeekStartDay = WeekStartDay.MONDAY
 ): List<DailySummary> {
     val (startDate, endDate) = when (period) {
         TimePeriod.WEEKLY -> getWeekDateRange(weekOffset, weekStartDay)
         TimePeriod.MONTHLY -> getMonthDateRange(monthOffset)
+        TimePeriod.YEARLY -> getYearDateRange(yearOffset)
     }
     
     return summaries.filter { summary ->
@@ -1314,11 +1637,13 @@ private fun filterEntriesByPeriod(
     period: TimePeriod,
     weekOffset: Int,
     monthOffset: Int,
+    yearOffset: Int = 0,
     weekStartDay: WeekStartDay = WeekStartDay.MONDAY
 ): List<WaterIntakeEntry> {
     val (startDate, endDate) = when (period) {
         TimePeriod.WEEKLY -> getWeekDateRange(weekOffset, weekStartDay)
         TimePeriod.MONTHLY -> getMonthDateRange(monthOffset)
+        TimePeriod.YEARLY -> getYearDateRange(yearOffset)
     }
     
     return entries.filter { entry ->
