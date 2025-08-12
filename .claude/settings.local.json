@@ -9,7 +9,10 @@
       "Bash(.gradlew:*)",
       "WebFetch(domain:proandroiddev.com)",
       "WebFetch(domain:medium.com)",
-      "Bash(gradlew.bat build:*)"
+      "Bash(gradlew.bat build:*)",
+      "Bash(gradlew:*)",
+      "Bash(rm:*)",
+      "Bash(grep:*)"
     ],
     "deny": []
   }
