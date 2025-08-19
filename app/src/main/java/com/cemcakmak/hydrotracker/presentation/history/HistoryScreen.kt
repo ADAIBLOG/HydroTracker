@@ -5,6 +5,7 @@ package com.cemcakmak.hydrotracker.presentation.history
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -15,9 +16,6 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.automirrored.filled.TrendingUp
-import androidx.compose.material.icons.automirrored.filled.TrendingDown
-import androidx.compose.material.icons.automirrored.filled.TrendingFlat
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -206,6 +204,10 @@ fun HistoryScreen(
                 }
             }
 
+            item {
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+
             // Goal Achievement
             item {
                 AnimatedVisibility(
@@ -384,7 +386,7 @@ private fun WeeklyChartSection(
             val filteredSummaries = filterSummariesByPeriod(summaries, selectedPeriod, weekOffset, 0, 0, weekStartDay)
             
             // Create a complete week with all 7 days, filling in missing days with 0 data
-            val (startOfWeek, endOfWeek) = getWeekDateRange(weekOffset, weekStartDay)
+            val (startOfWeek) = getWeekDateRange(weekOffset, weekStartDay)
             val filteredDailyTotals = mutableListOf<com.cemcakmak.hydrotracker.data.database.dao.DailyTotal>()
             
             for (i in 0..6) {
@@ -1054,23 +1056,25 @@ private fun StatisticsGrid(
     ) {
         Text(
             text = "Statistics",
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold
+            style = MaterialTheme.typography.titleLargeEmphasized
         )
 
-        // Filter data based on selected period and offset
-        val filteredSummaries = filterSummariesByPeriod(summaries, selectedPeriod, weekOffset, monthOffset, yearOffset, weekStartDay)
-        val filteredEntries = filterEntriesByPeriod(entries, selectedPeriod, weekOffset, monthOffset, yearOffset, weekStartDay)
+        // Calculate statistics from ALL data (not filtered)
+        val currentStreak = calculateStreak(summaries.sortedByDescending { it.date })
+        val totalIntake = summaries.sumOf { it.totalIntake }
+        val totalDays = summaries.size
         
-        // Calculate trend data
-        val currentStreak = calculateStreak(filteredSummaries)
-        val bestStreak = calculateBestStreak(filteredSummaries)
-        val totalEntries = filteredEntries.size
-        val totalIntake = filteredEntries.sumOf { it.amount }
+        // Calculate daily average from all data
+        val dailyAverage = if (totalDays > 0) totalIntake / totalDays else 0.0
         
-        val (streakTrend, intakeTrend) = calculateTrends(filteredSummaries, selectedPeriod)
+        // Calculate success rate from all data
+        val successRate = if (totalDays > 0) {
+            summaries.count { it.goalAchieved }.toFloat() / totalDays
+        } else 0f
         
-        // Grid of stat cards
+        val (streakTrend, intakeTrend) = calculateTrends(summaries, selectedPeriod)
+        
+        // Grid of stat cards - consistent across all periods
         Column(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
@@ -1084,31 +1088,16 @@ private fun StatisticsGrid(
                     title = "Current Streak",
                     value = currentStreak.toString(),
                     subtitle = "days",
-                    color = MaterialTheme.colorScheme.tertiary,
-                    trend = streakTrend
+                    color = MaterialTheme.colorScheme.error,
                 )
 
-                StatCard(
-                    modifier = Modifier.weight(1f),
-                    icon = Icons.AutoMirrored.Filled.TrendingUp,
-                    title = "Best Streak",
-                    value = bestStreak.toString(),
-                    subtitle = "days",
-                    color = MaterialTheme.colorScheme.secondary
-                )
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
                 StatCard(
                     modifier = Modifier.weight(1f),
                     icon = Icons.Default.Stars,
-                    title = "Total Entries",
-                    value = totalEntries.toString(),
-                    subtitle = "logged",
-                    color = MaterialTheme.colorScheme.error
+                    title = "Daily Average",
+                    value = WaterCalculator.formatWaterAmount(dailyAverage).split(" ")[0],
+                    subtitle = WaterCalculator.formatWaterAmount(dailyAverage).split(" ")[1],
+                    color = MaterialTheme.colorScheme.secondary
                 )
 
                 StatCard(
@@ -1117,8 +1106,7 @@ private fun StatisticsGrid(
                     title = "Total Intake",
                     value = "${(totalIntake / 1000).toInt()}",
                     subtitle = "liters",
-                    color = MaterialTheme.colorScheme.primary,
-                    trend = intakeTrend
+                    color = MaterialTheme.colorScheme.tertiary,
                 )
             }
         }
@@ -1133,18 +1121,18 @@ private fun StatCard(
     value: String,
     subtitle: String,
     color: Color,
-    trend: TrendInfo? = null
 ) {
     Card(
         modifier = modifier,
-        colors = CardDefaults.cardColors(
-            containerColor = color.copy(alpha = 0.1f)
-        )
+        colors = CardDefaults.cardColors(MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -1156,60 +1144,34 @@ private fun StatCard(
                     tint = color,
                     modifier = Modifier.size(24.dp)
                 )
-                
-                trend?.let { trendInfo ->
-                    Icon(
-                        imageVector = when (trendInfo.direction) {
-                            TrendDirection.UP -> Icons.AutoMirrored.Filled.TrendingUp
-                            TrendDirection.DOWN -> Icons.AutoMirrored.Filled.TrendingDown
-                            TrendDirection.STABLE -> Icons.AutoMirrored.Filled.TrendingFlat
-                        },
-                        contentDescription = null,
-                        tint = when (trendInfo.direction) {
-                            TrendDirection.UP -> MaterialTheme.colorScheme.primary
-                            TrendDirection.DOWN -> MaterialTheme.colorScheme.error
-                            TrendDirection.STABLE -> MaterialTheme.colorScheme.onSurfaceVariant
-                        },
-                        modifier = Modifier.size(16.dp)
-                    )
-                }
             }
 
-            Text(
-                text = value,
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                color = color
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = value,
+                    style = MaterialTheme.typography.headlineMediumEmphasized,
+                    color = color
+                )
 
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
 
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
                     text = title,
-                    style = MaterialTheme.typography.labelMedium,
+                    style = MaterialTheme.typography.labelMediumEmphasized,
                     color = MaterialTheme.colorScheme.onSurface,
                     textAlign = TextAlign.Center
                 )
-                
-                trend?.let { trendInfo ->
-                    Text(
-                        text = trendInfo.percentageText,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = when (trendInfo.direction) {
-                            TrendDirection.UP -> MaterialTheme.colorScheme.primary
-                            TrendDirection.DOWN -> MaterialTheme.colorScheme.error
-                            TrendDirection.STABLE -> MaterialTheme.colorScheme.onSurfaceVariant
-                        },
-                        textAlign = TextAlign.Center
-                    )
-                }
             }
         }
     }
@@ -1227,7 +1189,7 @@ private fun GoalAchievementSection(
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.secondaryContainer
+            containerColor = MaterialTheme.colorScheme.surface
         )
     ) {
         Column(
@@ -1236,8 +1198,7 @@ private fun GoalAchievementSection(
         ) {
             Text(
                 text = "Goal Achievement",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
+                style = MaterialTheme.typography.titleLargeEmphasized,
             )
 
             val filteredSummaries = filterSummariesByPeriod(summaries, selectedPeriod, weekOffset, monthOffset, yearOffset, weekStartDay)
@@ -1261,7 +1222,7 @@ private fun GoalAchievementSection(
                         text = "of days you met your goal",
                         style = MaterialTheme.typography.bodyLarge,
                         textAlign = TextAlign.Center,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                        color = MaterialTheme.colorScheme.onSurface
                     )
 
                     // Achievement progress bar
@@ -1275,14 +1236,6 @@ private fun GoalAchievementSection(
                         amplitude = WavyProgressIndicatorDefaults.indicatorAmplitude,
                         wavelength = WavyProgressIndicatorDefaults.LinearDeterminateWavelength,
                         waveSpeed = WavyProgressIndicatorDefaults.LinearDeterminateWavelength
-                    )
-
-                    // Motivational message
-                    Text(
-                        text = getAchievementMessage(achievementRate),
-                        style = MaterialTheme.typography.bodyMedium,
-                        textAlign = TextAlign.Center,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f)
                     )
                 }
             } else {
@@ -1310,6 +1263,23 @@ private fun calculateStreak(summaries: List<DailySummary>): Int {
         }
     }
     return streak
+}
+
+private fun calculateStreakInPeriod(summaries: List<DailySummary>): Int {
+    // For non-current periods, count consecutive goal achievements within the period
+    var maxStreak = 0
+    var currentStreak = 0
+    val sortedSummaries = summaries.sortedBy { it.date }
+
+    for (summary in sortedSummaries) {
+        if (summary.goalAchieved) {
+            currentStreak++
+            maxStreak = maxOf(maxStreak, currentStreak)
+        } else {
+            currentStreak = 0
+        }
+    }
+    return maxStreak
 }
 
 private fun calculateBestStreak(summaries: List<DailySummary>): Int {
