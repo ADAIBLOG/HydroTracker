@@ -19,9 +19,6 @@ import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material.icons.automirrored.filled.TrendingFlat
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.CalendarViewMonth
-import androidx.compose.material.icons.outlined.CalendarViewWeek
-import androidx.compose.material.icons.outlined.CalendarToday
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -29,6 +26,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -274,34 +273,30 @@ private fun PeriodSelector(
             ) {
                 TimePeriod.entries.forEach { period ->
                     val isSelected = selectedPeriod == period
-                    val icon = when (period) {
-                        TimePeriod.WEEKLY -> Icons.Outlined.CalendarViewWeek
-                        TimePeriod.MONTHLY -> Icons.Outlined.CalendarViewMonth
-                        TimePeriod.YEARLY -> Icons.Outlined.CalendarToday
-                    }
+
+                    val haptics = LocalHapticFeedback.current
                     
                     ToggleButton(
                         checked = isSelected,
-                        onCheckedChange = { onPeriodSelected(period) },
+                        onCheckedChange = { onPeriodSelected(period)
+                            haptics.performHapticFeedback(HapticFeedbackType.ToggleOn)},
                         modifier = Modifier.weight(1f)
                     ) {
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(
-                                imageVector = icon,
-                                contentDescription = null,
-                                modifier = Modifier.size(20.dp)
-                            )
                             Text(
                                 text = period.displayName,
-                                style = MaterialTheme.typography.labelLarge
+                                style = MaterialTheme.typography.labelLargeEmphasized
                             )
                         }
                     }
                 }
             }
+
+            // Haptic feedback for button clicks
+            val haptics = LocalHapticFeedback.current
             
             // Navigation Controls
             Row(
@@ -316,6 +311,7 @@ private fun PeriodSelector(
                             TimePeriod.MONTHLY -> onMonthOffsetChanged(currentMonthOffset - 1)
                             TimePeriod.YEARLY -> onYearOffsetChanged(currentYearOffset - 1)
                         }
+                        haptics.performHapticFeedback(HapticFeedbackType.Confirm)
                     },
                     shapes = IconButtonDefaults.shapes(),
                     colors = IconButtonDefaults.filledIconButtonColors()
@@ -340,6 +336,7 @@ private fun PeriodSelector(
                             TimePeriod.MONTHLY -> onMonthOffsetChanged(currentMonthOffset + 1)
                             TimePeriod.YEARLY -> onYearOffsetChanged(currentYearOffset + 1)
                         }
+                        haptics.performHapticFeedback(HapticFeedbackType.Confirm)
                     },
                     shapes = IconButtonDefaults.shapes(),
                     colors = IconButtonDefaults.filledIconButtonColors(),
@@ -405,10 +402,12 @@ private fun WeeklyChartSection(
             }
             
             if (filteredDailyTotals.isNotEmpty()) {
+                val haptics = LocalHapticFeedback.current
                 // Simple bar chart representation
                 WeeklyBarChart(
                     dailyTotals = filteredDailyTotals,
-                    onBarClick = { dayTotal -> selectedDayData = dayTotal }
+                    onBarClick = { dayTotal -> selectedDayData = dayTotal
+                        haptics.performHapticFeedback(HapticFeedbackType.ContextClick)}
                 )
                 
                 // Inline detail panel with animation
@@ -785,10 +784,12 @@ private fun MonthlyChartSection(
             val filteredSummaries = filterSummariesByPeriod(summaries, selectedPeriod, weekOffset = 0, monthOffset, 0)
             
             if (filteredSummaries.isNotEmpty()) {
+                val haptics = LocalHapticFeedback.current
                 // Monthly heatmap-style visualization
                 MonthlyHeatmap(
                     summaries = filteredSummaries,
-                    onCellClick = { summary -> selectedSummary = summary },
+                    onCellClick = { summary -> selectedSummary = summary
+                        haptics.performHapticFeedback(HapticFeedbackType.ContextClick)},
                     weekStartDay = weekStartDay
                 )
                 
@@ -1357,7 +1358,7 @@ data class TrendInfo(
 @Composable
 private fun InlineDetailPanel(
     data: ChartDetailData,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
 ) {
         Card(
             modifier = Modifier
@@ -1366,7 +1367,7 @@ private fun InlineDetailPanel(
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.primaryContainer
             ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         ) {
             Column(
                 modifier = Modifier.padding(16.dp),
@@ -1383,8 +1384,12 @@ private fun InlineDetailPanel(
                         style = MaterialTheme.typography.titleMediumEmphasized,
                         color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
+                    val haptics = LocalHapticFeedback.current
                     FilledIconButton(
-                        onClick = onDismiss,
+                        onClick = {
+                            haptics.performHapticFeedback(HapticFeedbackType.ContextClick)
+                            onDismiss()
+                        },
                         colors = IconButtonDefaults.filledIconButtonColors(),
                         shapes = IconButtonDefaults.shapes(),
                         modifier = Modifier.size(32.dp)
