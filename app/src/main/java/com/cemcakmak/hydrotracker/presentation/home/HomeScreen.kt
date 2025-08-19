@@ -78,6 +78,9 @@ fun HomeScreen(
         )
     )
 
+    // Vibration and haptics
+    val haptics = LocalHapticFeedback.current
+
     // Coroutine scope for database operations
     val coroutineScope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -247,7 +250,8 @@ fun HomeScreen(
         },
         floatingActionButton = {
             ExtendedFloatingActionButton(
-                onClick = { showCustomDialog = true },
+                onClick = { showCustomDialog = true
+                    haptics.performHapticFeedback(HapticFeedbackType.ContextClick) },
                 expanded = fabExpanded,
                 icon = {
                     Icon(
@@ -403,7 +407,8 @@ fun HomeScreen(
                             val preset = presets[index]
                             CarouselWaterCard(
                                 preset = preset,
-                                onClick = { addWaterIntake(preset.volume, preset.name) },
+                                onClick = { addWaterIntake(preset.volume, preset.name)
+                                    haptics.performHapticFeedback(HapticFeedbackType.Confirm)},
                                 modifier = Modifier
                                     .height(130.dp)
                                     .maskClip(MaterialTheme.shapes.extraLarge)
