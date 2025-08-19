@@ -30,8 +30,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.cemcakmak.hydrotracker.data.database.repository.WaterIntakeRepository
-import com.cemcakmak.hydrotracker.data.database.repository.WeeklyStatistics
-import com.cemcakmak.hydrotracker.data.database.entities.WaterIntakeEntry
 import com.cemcakmak.hydrotracker.data.database.entities.DailySummary
 import com.cemcakmak.hydrotracker.data.models.WeekStartDay
 import com.cemcakmak.hydrotracker.data.models.ThemePreferences
@@ -63,16 +61,7 @@ fun HistoryScreen(
         initial = emptyList()
     )
 
-    val last30DaysEntries by waterIntakeRepository.getLast30DaysEntries().collectAsState(
-        initial = emptyList()
-    )
 
-    // Calculate weekly statistics
-    var weeklyStats by remember { mutableStateOf<WeeklyStatistics?>(null) }
-
-    LaunchedEffect(Unit) {
-        weeklyStats = waterIntakeRepository.getWeeklyStatistics()
-    }
 
     // Animation states
     var isVisible by remember { mutableStateOf(false) }
@@ -154,7 +143,6 @@ fun HistoryScreen(
                     when (selectedPeriod) {
                         TimePeriod.WEEKLY -> {
                             WeeklyChartSection(
-                                weeklyStats = weeklyStats,
                                 selectedPeriod = selectedPeriod,
                                 weekOffset = currentWeekOffset,
                                 summaries = last30DaysSummaries,
@@ -193,13 +181,7 @@ fun HistoryScreen(
                     ) + fadeIn(animationSpec = tween(600, delayMillis = 300))
                 ) {
                     StatisticsGrid(
-                        summaries = last30DaysSummaries,
-                        entries = last30DaysEntries,
-                        selectedPeriod = selectedPeriod,
-                        weekOffset = currentWeekOffset,
-                        monthOffset = currentMonthOffset,
-                        yearOffset = currentYearOffset,
-                        weekStartDay = themePreferences.weekStartDay
+                        summaries = last30DaysSummaries
                     )
                 }
             }
@@ -360,7 +342,6 @@ private fun PeriodSelector(
 
 @Composable
 private fun WeeklyChartSection(
-    weeklyStats: WeeklyStatistics?,
     selectedPeriod: TimePeriod,
     weekOffset: Int,
     summaries: List<DailySummary> = emptyList(),
@@ -446,7 +427,8 @@ private fun WeeklyChartSection(
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
                     val totalAmount = filteredDailyTotals.sumOf { it.totalAmount }
-                    val avgAmount = totalAmount / filteredDailyTotals.size
+                    val daysWithData = filteredDailyTotals.count { it.totalAmount > 0.0 }
+                    val avgAmount = if (daysWithData > 0) totalAmount / daysWithData else 0.0
                     val bestAmount = filteredDailyTotals.maxOfOrNull { it.totalAmount } ?: 0.0
                     
                     WeeklyStatItem(
@@ -594,7 +576,6 @@ private fun YearlyChartSection(
     selectedPeriod: TimePeriod,
     yearOffset: Int
 ) {
-    var selectedSummary by remember { mutableStateOf<DailySummary?>(null) }
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -616,9 +597,8 @@ private fun YearlyChartSection(
                 // Yearly visualization - all days of the year
                 YearlyHeatmap(
                     summaries = filteredSummaries,
-                    onCellClick = { summary -> 
-                        // Just update the selected summary for potential future use
-                        selectedSummary = summary 
+                    onCellClick = { _ -> 
+                        // Cell click handler for future use
                     }
                 )
 
@@ -1043,13 +1023,7 @@ private fun MonthlyCalendarGrid(
 
 @Composable
 private fun StatisticsGrid(
-    summaries: List<DailySummary>,
-    entries: List<WaterIntakeEntry>,
-    selectedPeriod: TimePeriod,
-    weekOffset: Int,
-    monthOffset: Int,
-    yearOffset: Int,
-    weekStartDay: WeekStartDay = WeekStartDay.MONDAY
+    summaries: List<DailySummary>
 ) {
     Column(
         verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -1067,12 +1041,6 @@ private fun StatisticsGrid(
         // Calculate daily average from all data
         val dailyAverage = if (totalDays > 0) totalIntake / totalDays else 0.0
         
-        // Calculate success rate from all data
-        val successRate = if (totalDays > 0) {
-            summaries.count { it.goalAchieved }.toFloat() / totalDays
-        } else 0f
-        
-        val (streakTrend, intakeTrend) = calculateTrends(summaries, selectedPeriod)
         
         // Grid of stat cards - consistent across all periods
         Column(
@@ -1265,48 +1233,8 @@ private fun calculateStreak(summaries: List<DailySummary>): Int {
     return streak
 }
 
-private fun calculateStreakInPeriod(summaries: List<DailySummary>): Int {
-    // For non-current periods, count consecutive goal achievements within the period
-    var maxStreak = 0
-    var currentStreak = 0
-    val sortedSummaries = summaries.sortedBy { it.date }
 
-    for (summary in sortedSummaries) {
-        if (summary.goalAchieved) {
-            currentStreak++
-            maxStreak = maxOf(maxStreak, currentStreak)
-        } else {
-            currentStreak = 0
-        }
-    }
-    return maxStreak
-}
 
-private fun calculateBestStreak(summaries: List<DailySummary>): Int {
-    var maxStreak = 0
-    var currentStreak = 0
-    val sortedSummaries = summaries.sortedBy { it.date }
-
-    for (summary in sortedSummaries) {
-        if (summary.goalAchieved) {
-            currentStreak++
-            maxStreak = maxOf(maxStreak, currentStreak)
-        } else {
-            currentStreak = 0
-        }
-    }
-    return maxStreak
-}
-
-private fun getAchievementMessage(rate: Float): String {
-    return when {
-        rate >= 0.9f -> "🏆 Outstanding! You're a hydration champion!"
-        rate >= 0.7f -> "🌟 Excellent work! Keep up the great consistency!"
-        rate >= 0.5f -> "💪 Good progress! You're building a solid habit!"
-        rate >= 0.3f -> "👍 Making progress! Stay focused on your goals!"
-        else -> "🚀 Every day is a new opportunity to hydrate better!"
-    }
-}
 
 data class ChartDetailData(
     val date: String,
@@ -1315,15 +1243,6 @@ data class ChartDetailData(
     val goalPercentage: Float?
 )
 
-enum class TrendDirection {
-    UP, DOWN, STABLE
-}
-
-data class TrendInfo(
-    val direction: TrendDirection,
-    val percentage: Double,
-    val percentageText: String
-)
 
 @Composable
 private fun InlineDetailPanel(
@@ -1445,62 +1364,7 @@ private fun formatDisplayDate(dateString: String): String {
     }
 }
 
-private fun calculateTrends(summaries: List<DailySummary>, period: TimePeriod): Pair<TrendInfo?, TrendInfo?> {
-    if (summaries.isEmpty()) return Pair(null, null)
-    
-    val sortedSummaries = summaries.sortedBy { it.date }
-    
-    // Split data into current and previous periods for comparison
-    val splitPoint = when (period) {
-        TimePeriod.WEEKLY -> 7
-        TimePeriod.MONTHLY -> 15 // Compare last 15 days with previous 15
-        TimePeriod.YEARLY -> 182 // Compare last 6 months with previous 6 months
-    }
-    
-    if (sortedSummaries.size < splitPoint * 2) {
-        return Pair(null, null) // Not enough data for trend analysis
-    }
-    
-    val currentPeriod = sortedSummaries.takeLast(splitPoint)
-    val previousPeriod = sortedSummaries.dropLast(splitPoint).takeLast(splitPoint)
-    
-    // Calculate streak trend
-    val currentStreakRate = currentPeriod.count { it.goalAchieved }.toDouble() / currentPeriod.size
-    val previousStreakRate = previousPeriod.count { it.goalAchieved }.toDouble() / previousPeriod.size
-    val streakTrend = calculateTrendInfo(currentStreakRate, previousStreakRate)
-    
-    // Calculate intake trend
-    val currentAvgIntake = currentPeriod.map { it.totalIntake }.average()
-    val previousAvgIntake = previousPeriod.map { it.totalIntake }.average()
-    val intakeTrend = calculateTrendInfo(currentAvgIntake, previousAvgIntake)
-    
-    return Pair(streakTrend, intakeTrend)
-}
 
-private fun calculateTrendInfo(current: Double, previous: Double): TrendInfo? {
-    if (previous == 0.0) return null
-    
-    val changePercent = ((current - previous) / previous) * 100
-    val absChange = kotlin.math.abs(changePercent)
-    
-    return when {
-        absChange < 5.0 -> TrendInfo(
-            direction = TrendDirection.STABLE,
-            percentage = changePercent,
-            percentageText = "±${absChange.toInt()}%"
-        )
-        changePercent > 0 -> TrendInfo(
-            direction = TrendDirection.UP,
-            percentage = changePercent,
-            percentageText = "+${absChange.toInt()}%"
-        )
-        else -> TrendInfo(
-            direction = TrendDirection.DOWN,
-            percentage = changePercent,
-            percentageText = "-${absChange.toInt()}%"
-        )
-    }
-}
 
 private fun getCurrentPeriodText(
     period: TimePeriod, 
@@ -1548,13 +1412,6 @@ private fun getPeriodTitle(period: TimePeriod): String {
     }
 }
 
-private fun getDataLimitForPeriod(period: TimePeriod): Int {
-    return when (period) {
-        TimePeriod.WEEKLY -> 7
-        TimePeriod.MONTHLY -> 30
-        TimePeriod.YEARLY -> 365
-    }
-}
 
 private fun getWeekDateRange(weekOffset: Int, weekStartDay: WeekStartDay = WeekStartDay.MONDAY): Pair<LocalDate, LocalDate> {
     val today = LocalDate.now()
@@ -1606,22 +1463,3 @@ private fun filterSummariesByPeriod(
     }
 }
 
-private fun filterEntriesByPeriod(
-    entries: List<WaterIntakeEntry>,
-    period: TimePeriod,
-    weekOffset: Int,
-    monthOffset: Int,
-    yearOffset: Int = 0,
-    weekStartDay: WeekStartDay = WeekStartDay.MONDAY
-): List<WaterIntakeEntry> {
-    val (startDate, endDate) = when (period) {
-        TimePeriod.WEEKLY -> getWeekDateRange(weekOffset, weekStartDay)
-        TimePeriod.MONTHLY -> getMonthDateRange(monthOffset)
-        TimePeriod.YEARLY -> getYearDateRange(yearOffset)
-    }
-    
-    return entries.filter { entry ->
-        val entryDate = LocalDate.parse(entry.date)
-        entryDate >= startDate && entryDate <= endDate
-    }
-}
