@@ -2,6 +2,7 @@ package com.cemcakmak.hydrotracker.presentation.profile
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -107,15 +108,17 @@ private fun QuickStatItem(
     }
 }
 
+
 /**
- * Hydration Plan Card with editable settings
+ * Personal Information Card with all user customizable settings from onboarding
  */
 @Composable
-fun HydrationPlanCard(
+fun PersonalInformationCard(
     userProfile: UserProfile,
     onEditGoal: () -> Unit,
     onEditActivity: () -> Unit,
-    onEditSchedule: () -> Unit
+    onEditSchedule: () -> Unit,
+    onEditPersonalInfo: () -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -133,15 +136,41 @@ fun HydrationPlanCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Your Hydration Plan",
+                    text = "Personal Information",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold
                 )
 
                 Icon(
-                    imageVector = Icons.Default.WaterDrop,
+                    imageVector = Icons.Default.Person,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary
+                )
+            }
+
+            // Gender
+            EditableInfoRow(
+                icon = Icons.Default.Person,
+                label = "Gender",
+                value = userProfile.gender.getDisplayName(),
+                onClick = onEditPersonalInfo
+            )
+
+            // Age Group
+            EditableInfoRow(
+                icon = Icons.Default.Cake,
+                label = "Age Group", 
+                value = userProfile.ageGroup.getDisplayName(),
+                onClick = onEditPersonalInfo
+            )
+
+            // Weight (if available)
+            if (userProfile.weight != null) {
+                EditableInfoRow(
+                    icon = Icons.Default.MonitorWeight,
+                    label = "Weight",
+                    value = "${userProfile.weight!!.toInt()} kg",
+                    onClick = onEditPersonalInfo
                 )
             }
 
@@ -169,69 +198,12 @@ fun HydrationPlanCard(
                 onClick = onEditSchedule
             )
 
-            // Reminder Frequency
+            // Reminder Frequency (Read-only)
             InfoRow(
                 icon = Icons.Default.Notifications,
                 label = "Reminders",
                 value = "Every ${userProfile.reminderInterval} minutes"
             )
-        }
-    }
-}
-
-/**
- * Personal Information Card
- */
-@Composable
-fun PersonalInformationCard(
-    userProfile: UserProfile,
-    onEdit: () -> Unit
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(
-            modifier = Modifier.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "Personal Information",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
-                )
-
-                IconButton(onClick = onEdit) {
-                    Icon(
-                        imageVector = Icons.Default.Edit,
-                        contentDescription = "Edit Personal Info"
-                    )
-                }
-            }
-
-            InfoRow(
-                icon = Icons.Default.Person,
-                label = "Gender",
-                value = userProfile.gender.getDisplayName()
-            )
-
-            InfoRow(
-                icon = Icons.Default.Cake,
-                label = "Age Group",
-                value = userProfile.ageGroup.getDisplayName()
-            )
-
-            if (userProfile.weight != null) {
-                InfoRow(
-                    icon = Icons.Default.MonitorWeight,
-                    label = "Weight",
-                    value = "${userProfile.weight!!.toInt()} kg"
-                )
-            }
         }
     }
 }
@@ -292,7 +264,7 @@ fun StatisticsCard(
 
                     StatCard(
                         modifier = Modifier.weight(1f),
-                        icon = Icons.Default.TrendingUp,
+                        icon = Icons.AutoMirrored.Filled.TrendingUp,
                         title = "Daily Average",
                         value = WaterCalculator.formatWaterAmount(averageDailyIntake),
                         subtitle = "Last 30 days"

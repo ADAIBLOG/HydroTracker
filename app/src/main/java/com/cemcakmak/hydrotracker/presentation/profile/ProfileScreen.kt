@@ -11,6 +11,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import com.cemcakmak.hydrotracker.data.models.UserProfile
@@ -18,6 +19,10 @@ import com.cemcakmak.hydrotracker.data.repository.UserRepository
 import com.cemcakmak.hydrotracker.data.database.repository.WaterIntakeRepository
 import com.cemcakmak.hydrotracker.data.database.repository.TodayStatistics
 import com.cemcakmak.hydrotracker.utils.WaterCalculator
+import com.cemcakmak.hydrotracker.data.models.ActivityLevel
+import com.cemcakmak.hydrotracker.data.models.AgeGroup
+import com.cemcakmak.hydrotracker.data.models.Gender
+import com.cemcakmak.hydrotracker.data.models.ReminderStyle
 import com.cemcakmak.hydrotracker.presentation.common.HydroSnackbarHost
 import com.cemcakmak.hydrotracker.presentation.common.showSuccessSnackbar
 
@@ -57,18 +62,6 @@ fun ProfileScreen(
 
     LaunchedEffect(Unit) {
         isVisible = true
-    }
-
-    // Calculate additional statistics
-    val totalWaterLogged = remember(last30DaysEntries) {
-        last30DaysEntries.sumOf { it.amount }
-    }
-
-    val averageDailyIntake = remember(last30DaysEntries) {
-        if (last30DaysEntries.isNotEmpty()) {
-            val days = last30DaysEntries.groupBy { it.date }.size
-            if (days > 0) totalWaterLogged / days else 0.0
-        } else 0.0
     }
 
     fun updateUserProfile(updatedProfile: UserProfile) {
@@ -129,7 +122,7 @@ fun ProfileScreen(
                 )
             }
 
-            // Your Hydration Plan Section
+            // Personal Information Section
             AnimatedVisibility(
                 visible = isVisible,
                 enter = slideInVertically(
@@ -140,47 +133,12 @@ fun ProfileScreen(
                     )
                 ) + fadeIn(animationSpec = tween(600, delayMillis = 200))
             ) {
-                HydrationPlanCard(
+                PersonalInformationCard(
                     userProfile = userProfile,
                     onEditGoal = { showGoalDialog = true },
                     onEditActivity = { showActivityDialog = true },
-                    onEditSchedule = { showScheduleDialog = true }
-                )
-            }
-
-            // Personal Information Section
-            AnimatedVisibility(
-                visible = isVisible,
-                enter = slideInVertically(
-                    initialOffsetY = { it / 3 },
-                    animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioMediumBouncy,
-                        stiffness = Spring.StiffnessMedium
-                    )
-                ) + fadeIn(animationSpec = tween(600, delayMillis = 300))
-            ) {
-                PersonalInformationCard(
-                    userProfile = userProfile,
-                    onEdit = { showPersonalInfoDialog = true }
-                )
-            }
-
-            // Statistics & Achievements Section
-            AnimatedVisibility(
-                visible = isVisible,
-                enter = slideInVertically(
-                    initialOffsetY = { it / 3 },
-                    animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioMediumBouncy,
-                        stiffness = Spring.StiffnessMedium
-                    )
-                ) + fadeIn(animationSpec = tween(600, delayMillis = 400))
-            ) {
-                StatisticsCard(
-                    todayStatistics = todayStatistics,
-                    totalWaterLogged = totalWaterLogged,
-                    averageDailyIntake = averageDailyIntake,
-                    totalEntries = last30DaysEntries.size
+                    onEditSchedule = { showScheduleDialog = true },
+                    onEditPersonalInfo = { showPersonalInfoDialog = true }
                 )
             }
 
@@ -271,4 +229,49 @@ fun ProfileScreen(
             }
         )
     }
+}
+
+@Preview
+@Composable
+fun ProfileScreenPreview() {
+    val userProfile = UserProfile(
+        gender = Gender.MALE,
+        ageGroup = AgeGroup.YOUNG_ADULT_18_30,
+        activityLevel = ActivityLevel.MODERATE,
+        wakeUpTime = "07:00",
+        sleepTime = "23:00",
+        dailyWaterGoal = 2500.0,
+        reminderInterval = 60,
+        reminderStyle = ReminderStyle.GENTLE
+    )
+    val userRepository = UserRepository(androidx.compose.ui.platform.LocalContext.current)
+    val waterIntakeRepository = WaterIntakeRepository(
+        waterIntakeDao = object : com.cemcakmak.hydrotracker.data.database.dao.WaterIntakeDao {
+            override suspend fun insertEntry(entry: com.cemcakmak.hydrotracker.data.database.entities.WaterIntakeEntry): Long = 0
+            override suspend fun insertEntries(entries: List<com.cemcakmak.hydrotracker.data.database.entities.WaterIntakeEntry>) {}
+            override fun getEntriesForDate(date: String): kotlinx.coroutines.flow.Flow<List<com.cemcakmak.hydrotracker.data.database.entities.WaterIntakeEntry>> = kotlinx.coroutines.flow.flowOf(emptyList())
+            override fun getEntriesForDateRange(startDate: String, endDate: String): kotlinx.coroutines.flow.Flow<List<com.cemcakmak.hydrotracker.data.database.entities.WaterIntakeEntry>> = kotlinx.coroutines.flow.flowOf(emptyList())
+            override fun getTotalIntakeForDate(date: String): kotlinx.coroutines.flow.Flow<Double> = kotlinx.coroutines.flow.flowOf(0.0)
+            override suspend fun getEntryCountForDate(date: String): Int = 0
+            override fun getLast30DaysEntries(): kotlinx.coroutines.flow.Flow<List<com.cemcakmak.hydrotracker.data.database.entities.WaterIntakeEntry>> = kotlinx.coroutines.flow.flowOf(emptyList())
+            override suspend fun updateEntry(entry: com.cemcakmak.hydrotracker.data.database.entities.WaterIntakeEntry) {}
+            override suspend fun deleteEntry(entry: com.cemcakmak.hydrotracker.data.database.entities.WaterIntakeEntry) {}
+            override suspend fun deleteEntryById(entryId: Long) {}
+            override suspend fun deleteAllEntries() {}
+            override suspend fun getDailyTotals(startDate: String, endDate: String): List<com.cemcakmak.hydrotracker.data.database.dao.DailyTotal> = emptyList()
+        },
+        dailySummaryDao = object : com.cemcakmak.hydrotracker.data.database.dao.DailySummaryDao {
+            override suspend fun insertSummary(summary: com.cemcakmak.hydrotracker.data.database.entities.DailySummary) {}
+            override suspend fun insertSummaries(summaries: List<com.cemcakmak.hydrotracker.data.database.entities.DailySummary>) {}
+            override fun getSummaryForDate(date: String): kotlinx.coroutines.flow.Flow<com.cemcakmak.hydrotracker.data.database.entities.DailySummary?> = kotlinx.coroutines.flow.flowOf(null)
+            override fun getSummariesForRange(startDate: String, endDate: String): kotlinx.coroutines.flow.Flow<List<com.cemcakmak.hydrotracker.data.database.entities.DailySummary>> = kotlinx.coroutines.flow.flowOf(emptyList())
+            override fun getLast30DaysSummaries(): kotlinx.coroutines.flow.Flow<List<com.cemcakmak.hydrotracker.data.database.entities.DailySummary>> = kotlinx.coroutines.flow.flowOf(emptyList())
+            override suspend fun updateSummary(summary: com.cemcakmak.hydrotracker.data.database.entities.DailySummary) {}
+            override suspend fun deleteSummaryForDate(date: String) {}
+            override suspend fun deleteAllSummaries() {}
+        },
+        userRepository = userRepository,
+        context = androidx.compose.ui.platform.LocalContext.current
+    )
+    ProfileScreen(userProfile = userProfile, userRepository = userRepository, waterIntakeRepository = waterIntakeRepository)
 }
