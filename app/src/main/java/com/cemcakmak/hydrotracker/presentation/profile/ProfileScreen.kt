@@ -65,11 +65,13 @@ fun ProfileScreen(
     val coroutineScope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // Dialog states
-    var showGoalDialog by remember { mutableStateOf(false) }
-    var showActivityDialog by remember { mutableStateOf(false) }
-    var showScheduleDialog by remember { mutableStateOf(false) }
-    var showPersonalInfoDialog by remember { mutableStateOf(false) }
+    // Bottom sheet states
+    var showGoalBottomSheet by remember { mutableStateOf(false) }
+    var showActivityBottomSheet by remember { mutableStateOf(false) }
+    var showScheduleBottomSheet by remember { mutableStateOf(false) }
+    var showGenderBottomSheet by remember { mutableStateOf(false) }
+    var showAgeGroupBottomSheet by remember { mutableStateOf(false) }
+    var showWeightBottomSheet by remember { mutableStateOf(false) }
     var showUsernameDialog by remember { mutableStateOf(false) }
     var showProfilePictureBottomSheet by remember { mutableStateOf(false) }
 
@@ -140,7 +142,7 @@ fun ProfileScreen(
                 )
             }
 
-            // Personal Information Section
+            // Profile Details Section
             AnimatedVisibility(
                 visible = isVisible,
                 enter = slideInVertically(
@@ -151,12 +153,46 @@ fun ProfileScreen(
                     )
                 ) + fadeIn(animationSpec = tween(600, delayMillis = 200))
             ) {
-                PersonalInformationCard(
+                ProfileDetailsCard(
                     userProfile = userProfile,
-                    onEditGoal = { showGoalDialog = true },
-                    onEditActivity = { showActivityDialog = true },
-                    onEditSchedule = { showScheduleDialog = true },
-                    onEditPersonalInfo = { showPersonalInfoDialog = true }
+                    onEditGender = { showGenderBottomSheet = true },
+                    onEditAgeGroup = { showAgeGroupBottomSheet = true },
+                    onEditWeight = { showWeightBottomSheet = true }
+                )
+            }
+
+            // Daily Goals Section
+            AnimatedVisibility(
+                visible = isVisible,
+                enter = slideInVertically(
+                    initialOffsetY = { it / 3 },
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessMedium
+                    )
+                ) + fadeIn(animationSpec = tween(600, delayMillis = 300))
+            ) {
+                DailyGoalsCard(
+                    userProfile = userProfile,
+                    onEditGoal = { showGoalBottomSheet = true },
+                    onEditActivity = { showActivityBottomSheet = true }
+                )
+            }
+
+            // Active Schedule Section
+            AnimatedVisibility(
+                visible = isVisible,
+                enter = slideInVertically(
+                    initialOffsetY = { it / 3 },
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessMedium
+                    )
+                ) + fadeIn(animationSpec = tween(600, delayMillis = 400))
+            ) {
+                ActiveScheduleCard(
+                    userProfile = userProfile,
+                    onEditSchedule = { showScheduleBottomSheet = true }
                 )
             }
 
@@ -164,89 +200,127 @@ fun ProfileScreen(
         }
     }
 
-    // Dialogs
-    if (showGoalDialog) {
-        GoalEditDialog(
-            currentGoal = userProfile.dailyWaterGoal,
-            onDismiss = { showGoalDialog = false },
-            onConfirm = { newGoal ->
-                updateUserProfile(userProfile.copy(dailyWaterGoal = newGoal))
-                showGoalDialog = false
-            }
-        )
-    }
+    // Bottom Sheets
+    GoalEditBottomSheet(
+        showBottomSheet = showGoalBottomSheet,
+        currentGoal = userProfile.dailyWaterGoal,
+        onDismiss = { showGoalBottomSheet = false },
+        onConfirm = { newGoal ->
+            updateUserProfile(userProfile.copy(dailyWaterGoal = newGoal))
+            showGoalBottomSheet = false
+        }
+    )
 
-    if (showActivityDialog) {
-        ActivityLevelDialog(
-            currentLevel = userProfile.activityLevel,
-            onDismiss = { showActivityDialog = false },
-            onConfirm = { newLevel ->
-                // Recalculate goal with new activity level
-                val newGoal = WaterCalculator.calculateDailyWaterGoal(
-                    gender = userProfile.gender,
-                    ageGroup = userProfile.ageGroup,
+    ActivityLevelBottomSheet(
+        showBottomSheet = showActivityBottomSheet,
+        currentLevel = userProfile.activityLevel,
+        onDismiss = { showActivityBottomSheet = false },
+        onConfirm = { newLevel ->
+            // Recalculate goal with new activity level
+            val newGoal = WaterCalculator.calculateDailyWaterGoal(
+                gender = userProfile.gender,
+                ageGroup = userProfile.ageGroup,
+                activityLevel = newLevel,
+                weight = userProfile.weight
+            )
+            updateUserProfile(
+                userProfile.copy(
                     activityLevel = newLevel,
-                    weight = userProfile.weight
+                    dailyWaterGoal = newGoal
                 )
-                updateUserProfile(
-                    userProfile.copy(
-                        activityLevel = newLevel,
-                        dailyWaterGoal = newGoal
-                    )
-                )
-                showActivityDialog = false
-            }
-        )
-    }
+            )
+            showActivityBottomSheet = false
+        }
+    )
 
-    if (showScheduleDialog) {
-        ScheduleEditDialog(
-            currentWakeUpTime = userProfile.wakeUpTime,
-            currentSleepTime = userProfile.sleepTime,
-            onDismiss = { showScheduleDialog = false },
-            onConfirm = { wakeUp, sleep ->
-                // Recalculate reminder interval
-                val newInterval = WaterCalculator.calculateReminderInterval(
+    ScheduleEditBottomSheet(
+        showBottomSheet = showScheduleBottomSheet,
+        currentWakeUpTime = userProfile.wakeUpTime,
+        currentSleepTime = userProfile.sleepTime,
+        onDismiss = { showScheduleBottomSheet = false },
+        onConfirm = { wakeUp, sleep ->
+            // Recalculate reminder interval
+            val newInterval = WaterCalculator.calculateReminderInterval(
+                wakeUpTime = wakeUp,
+                sleepTime = sleep,
+                dailyGoal = userProfile.dailyWaterGoal
+            )
+            updateUserProfile(
+                userProfile.copy(
                     wakeUpTime = wakeUp,
                     sleepTime = sleep,
-                    dailyGoal = userProfile.dailyWaterGoal
+                    reminderInterval = newInterval
                 )
-                updateUserProfile(
-                    userProfile.copy(
-                        wakeUpTime = wakeUp,
-                        sleepTime = sleep,
-                        reminderInterval = newInterval
-                    )
-                )
-                showScheduleDialog = false
-            }
-        )
-    }
+            )
+            showScheduleBottomSheet = false
+        }
+    )
 
-    if (showPersonalInfoDialog) {
-        PersonalInfoDialog(
-            userProfile = userProfile,
-            onDismiss = { showPersonalInfoDialog = false },
-            onConfirm = { gender, ageGroup, weight ->
-                // Recalculate goal with new personal info
-                val newGoal = WaterCalculator.calculateDailyWaterGoal(
-                    gender = gender,
-                    ageGroup = ageGroup,
-                    activityLevel = userProfile.activityLevel,
-                    weight = weight
+    GenderEditBottomSheet(
+        showBottomSheet = showGenderBottomSheet,
+        currentGender = userProfile.gender,
+        onDismiss = { showGenderBottomSheet = false },
+        onConfirm = { newGender ->
+            // Recalculate goal with new gender
+            val newGoal = WaterCalculator.calculateDailyWaterGoal(
+                gender = newGender,
+                ageGroup = userProfile.ageGroup,
+                activityLevel = userProfile.activityLevel,
+                weight = userProfile.weight
+            )
+            updateUserProfile(
+                userProfile.copy(
+                    gender = newGender,
+                    dailyWaterGoal = newGoal
                 )
-                updateUserProfile(
-                    userProfile.copy(
-                        gender = gender,
-                        ageGroup = ageGroup,
-                        weight = weight,
-                        dailyWaterGoal = newGoal
-                    )
+            )
+            showGenderBottomSheet = false
+        }
+    )
+
+    AgeGroupEditBottomSheet(
+        showBottomSheet = showAgeGroupBottomSheet,
+        currentAgeGroup = userProfile.ageGroup,
+        onDismiss = { showAgeGroupBottomSheet = false },
+        onConfirm = { newAgeGroup ->
+            // Recalculate goal with new age group
+            val newGoal = WaterCalculator.calculateDailyWaterGoal(
+                gender = userProfile.gender,
+                ageGroup = newAgeGroup,
+                activityLevel = userProfile.activityLevel,
+                weight = userProfile.weight
+            )
+            updateUserProfile(
+                userProfile.copy(
+                    ageGroup = newAgeGroup,
+                    dailyWaterGoal = newGoal
                 )
-                showPersonalInfoDialog = false
-            }
-        )
-    }
+            )
+            showAgeGroupBottomSheet = false
+        }
+    )
+
+    WeightEditBottomSheet(
+        showBottomSheet = showWeightBottomSheet,
+        currentWeight = userProfile.weight,
+        onDismiss = { showWeightBottomSheet = false },
+        onConfirm = { newWeight ->
+            // Recalculate goal with new weight
+            val newGoal = WaterCalculator.calculateDailyWaterGoal(
+                gender = userProfile.gender,
+                ageGroup = userProfile.ageGroup,
+                activityLevel = userProfile.activityLevel,
+                weight = newWeight
+            )
+            updateUserProfile(
+                userProfile.copy(
+                    weight = newWeight,
+                    dailyWaterGoal = newGoal
+                )
+            )
+            showWeightBottomSheet = false
+        }
+    )
     
     // Profile Picture Bottom Sheet and Username Dialog
     ProfilePictureBottomSheet(

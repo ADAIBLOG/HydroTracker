@@ -1,52 +1,66 @@
 package com.cemcakmak.hydrotracker.presentation.profile
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
 import com.cemcakmak.hydrotracker.data.models.ActivityLevel
 import com.cemcakmak.hydrotracker.data.models.Gender
 import com.cemcakmak.hydrotracker.data.models.AgeGroup
 import com.cemcakmak.hydrotracker.data.models.UserProfile
+import java.util.Locale
 
 /**
- * Profile Edit Dialogs
- * Material 3 dialogs for editing profile information
+ * Profile Edit Bottom Sheets
+ * Material 3 ModalBottomSheet components for editing profile information
  */
 
 /**
- * Dialog for editing daily water goal
+ * Bottom Sheet for editing daily water goal
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun GoalEditDialog(
+fun GoalEditBottomSheet(
+    showBottomSheet: Boolean,
     currentGoal: Double,
     onDismiss: () -> Unit,
     onConfirm: (Double) -> Unit
 ) {
-    var goalText by remember { mutableStateOf(String.format("%.2f", currentGoal / 1000)) }
+    val bottomSheetState = rememberModalBottomSheetState()
+    var sliderValue by remember(currentGoal) { mutableFloatStateOf(currentGoal.toFloat() / 1000f) }
+    var goalText by remember(currentGoal) { mutableStateOf(String.format(Locale.getDefault(), "%.2f", currentGoal / 1000)) }
     var isError by remember { mutableStateOf(false) }
 
-    Dialog(onDismissRequest = onDismiss) {
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = MaterialTheme.shapes.extraLarge
+    // Update text when slider changes
+    LaunchedEffect(sliderValue) {
+        goalText = String.format(Locale.getDefault(), "%.2f", sliderValue)
+    }
+
+    if (showBottomSheet) {
+        ModalBottomSheet(
+            onDismissRequest = onDismiss,
+            sheetState = bottomSheetState,
+            dragHandle = { BottomSheetDefaults.DragHandle() }
         ) {
             Column(
-                modifier = Modifier.padding(24.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp)
+                    .padding(bottom = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(24.dp)
             ) {
                 Text(
                     text = "Edit Daily Goal",
                     style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(top = 8.dp)
                 )
 
                 Text(
@@ -55,73 +69,141 @@ fun GoalEditDialog(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
-                OutlinedTextField(
-                    value = goalText,
-                    onValueChange = {
-                        goalText = it
-                        isError = false
-                    },
-                    label = { Text("Daily Goal (Liters)") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    isError = isError,
-                    supportingText = if (isError) {
-                        { Text("Please enter a valid amount (0.5-10 L)") }
-                    } else {
-                        { Text("Recommended: 1.5 - 4.0 liters per day") }
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                )
+                // Slider Control
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Text(
+                        text = "Use slider to adjust: ${String.format(Locale.getDefault(), "%.2f", sliderValue)} L",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    
+                    Slider(
+                        value = sliderValue.coerceIn(1.0f, 5.0f),
+                        onValueChange = { newValue ->
+                            sliderValue = newValue
+                            isError = false
+                        },
+                        valueRange = 1.0f..5.0f,
+                        steps = 15, // 0.25L increments: (5.0 - 1.0) / 0.25 - 1
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = "1.0L",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = "5.0L",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                // Text Input (Alternative)
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = "Or enter manually:",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    
+                    OutlinedTextField(
+                        value = goalText,
+                        onValueChange = { newText ->
+                            goalText = newText
+                            isError = false
+                            // Update slider when text changes (only if within slider range)
+                            newText.toDoubleOrNull()?.let { value ->
+                                if (value in 1.0..5.0) {
+                                    sliderValue = value.toFloat()
+                                }
+                            }
+                        },
+                        label = { Text("Daily Goal (Liters)") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        isError = isError,
+                        supportingText = if (isError) {
+                            { Text("Please enter a valid amount (0.5-10 L)") }
+                        } else {
+                            { Text("Recommended: 1.5 - 4.0 liters per day") }
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    TextButton(onClick = onDismiss) {
+                    OutlinedButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.weight(1f)
+                    ) {
                         Text("Cancel")
                     }
 
-                    Spacer(modifier = Modifier.width(8.dp))
-
                     Button(
                         onClick = {
-                            val goalLiters = goalText.toDoubleOrNull()
-                            if (goalLiters != null && goalLiters >= 0.5 && goalLiters <= 10.0) {
+                            val goalLiters = sliderValue.toDouble()
+                            if (goalLiters >= 0.5 && goalLiters <= 10.0) {
                                 onConfirm(goalLiters * 1000) // Convert to ml
                             } else {
                                 isError = true
                             }
-                        }
+                        },
+                        modifier = Modifier.weight(1f)
                     ) {
                         Text("Save")
                     }
                 }
+                
+                Spacer(modifier = Modifier.height(16.dp))
             }
         }
     }
 }
 
 /**
- * Dialog for selecting activity level
+ * Bottom Sheet for selecting activity level
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ActivityLevelDialog(
+fun ActivityLevelBottomSheet(
+    showBottomSheet: Boolean,
     currentLevel: ActivityLevel,
     onDismiss: () -> Unit,
     onConfirm: (ActivityLevel) -> Unit
 ) {
-    Dialog(onDismissRequest = onDismiss) {
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = MaterialTheme.shapes.extraLarge
+    val bottomSheetState = rememberModalBottomSheetState()
+
+    if (showBottomSheet) {
+        ModalBottomSheet(
+            onDismissRequest = onDismiss,
+            sheetState = bottomSheetState,
+            dragHandle = { BottomSheetDefaults.DragHandle() }
         ) {
             Column(
-                modifier = Modifier.padding(24.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp)
+                    .padding(bottom = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(24.dp)
             ) {
                 Text(
                     text = "Activity Level",
                     style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(top = 8.dp)
                 )
 
                 Text(
@@ -131,91 +213,101 @@ fun ActivityLevelDialog(
                 )
 
                 Column(
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    ActivityLevel.values().forEach { level ->
+                    ActivityLevel.entries.forEach { level ->
                         Card(
                             onClick = { onConfirm(level) },
                             colors = CardDefaults.cardColors(
                                 containerColor = if (level == currentLevel) {
                                     MaterialTheme.colorScheme.primaryContainer
                                 } else {
-                                    MaterialTheme.colorScheme.surface
+                                    MaterialTheme.colorScheme.surfaceVariant
                                 }
-                            )
+                            ),
+                            modifier = Modifier.fillMaxWidth()
                         ) {
                             Column(
-                                modifier = Modifier.padding(16.dp)
+                                modifier = Modifier.padding(20.dp)
                             ) {
                                 Text(
                                     text = level.getDisplayName(),
                                     style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Medium
+                                    fontWeight = FontWeight.SemiBold
                                 )
+                                Spacer(modifier = Modifier.height(4.dp))
                                 Text(
                                     text = level.getDescription(),
-                                    style = MaterialTheme.typography.bodySmall,
+                                    style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }
                     }
                 }
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
-                ) {
-                    TextButton(onClick = onDismiss) {
-                        Text("Cancel")
-                    }
-                }
+                
+                Spacer(modifier = Modifier.height(16.dp))
             }
         }
     }
 }
 
 /**
- * Dialog for editing wake/sleep schedule
+ * Bottom Sheet for editing wake/sleep schedule
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ScheduleEditDialog(
+fun ScheduleEditBottomSheet(
+    showBottomSheet: Boolean,
     currentWakeUpTime: String,
     currentSleepTime: String,
     onDismiss: () -> Unit,
     onConfirm: (String, String) -> Unit
 ) {
-    var wakeUpTime by remember { mutableStateOf(currentWakeUpTime) }
-    var sleepTime by remember { mutableStateOf(currentSleepTime) }
-    var isWakeUpError by remember { mutableStateOf(false) }
-    var isSleepError by remember { mutableStateOf(false) }
+    val bottomSheetState = rememberModalBottomSheetState()
+    
+    // Parse current times
+    val wakeUpParts = currentWakeUpTime.split(":")
+    val sleepParts = currentSleepTime.split(":")
+    
+    var wakeUpHour by remember(currentWakeUpTime) { mutableIntStateOf(wakeUpParts[0].toIntOrNull() ?: 7) }
+    var wakeUpMinute by remember(currentWakeUpTime) { mutableIntStateOf(wakeUpParts[1].toIntOrNull() ?: 0) }
+    var sleepHour by remember(currentSleepTime) { mutableIntStateOf(sleepParts[0].toIntOrNull() ?: 23) }
+    var sleepMinute by remember(currentSleepTime) { mutableIntStateOf(sleepParts[1].toIntOrNull() ?: 0) }
+    
+    var showWakeUpTimePicker by remember { mutableStateOf(false) }
+    var showSleepTimePicker by remember { mutableStateOf(false) }
 
-    fun validateTime(time: String): Boolean {
-        return try {
-            val parts = time.split(":")
-            if (parts.size != 2) return false
-            val hour = parts[0].toInt()
-            val minute = parts[1].toInt()
-            hour in 0..23 && minute in 0..59
-        } catch (e: Exception) {
-            false
-        }
-    }
+    val wakeUpTimeState = rememberTimePickerState(
+        initialHour = wakeUpHour,
+        initialMinute = wakeUpMinute,
+        is24Hour = true
+    )
+    
+    val sleepTimeState = rememberTimePickerState(
+        initialHour = sleepHour,
+        initialMinute = sleepMinute,
+        is24Hour = true
+    )
 
-    Dialog(onDismissRequest = onDismiss) {
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = MaterialTheme.shapes.extraLarge
+    if (showBottomSheet) {
+        ModalBottomSheet(
+            onDismissRequest = onDismiss,
+            sheetState = bottomSheetState,
+            dragHandle = { BottomSheetDefaults.DragHandle() }
         ) {
             Column(
-                modifier = Modifier.padding(24.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp)
+                    .padding(bottom = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(24.dp)
             ) {
                 Text(
                     text = "Edit Schedule",
                     style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(top = 8.dp)
                 )
 
                 Text(
@@ -224,190 +316,396 @@ fun ScheduleEditDialog(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
-                OutlinedTextField(
-                    value = wakeUpTime,
-                    onValueChange = {
-                        wakeUpTime = it
-                        isWakeUpError = false
-                    },
-                    label = { Text("Wake Up Time (HH:MM)") },
-                    isError = isWakeUpError,
-                    supportingText = if (isWakeUpError) {
-                        { Text("Please enter a valid time (e.g., 07:30)") }
-                    } else null,
-                    modifier = Modifier.fillMaxWidth()
-                )
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(20.dp)
+                ) {
+                    // Wake Up Time Picker
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Text(
+                            text = "Wake Up Time",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        
+                        Card(
+                            onClick = { showWakeUpTimePicker = true },
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant
+                            ),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(20.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.WbSunny,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                    Text(
+                                        text = String.format(Locale.getDefault(), "%02d:%02d", wakeUpHour, wakeUpMinute),
+                                        style = MaterialTheme.typography.headlineSmall,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                                Icon(
+                                    imageVector = Icons.Default.ChevronRight,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
 
-                OutlinedTextField(
-                    value = sleepTime,
-                    onValueChange = {
-                        sleepTime = it
-                        isSleepError = false
-                    },
-                    label = { Text("Sleep Time (HH:MM)") },
-                    isError = isSleepError,
-                    supportingText = if (isSleepError) {
-                        { Text("Please enter a valid time (e.g., 23:00)") }
-                    } else null,
-                    modifier = Modifier.fillMaxWidth()
-                )
+                    // Sleep Time Picker
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Text(
+                            text = "Sleep Time",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        
+                        Card(
+                            onClick = { showSleepTimePicker = true },
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant
+                            ),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(20.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.NightsStay,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                    Text(
+                                        text = String.format(Locale.getDefault(), "%02d:%02d", sleepHour, sleepMinute),
+                                        style = MaterialTheme.typography.headlineSmall,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                                Icon(
+                                    imageVector = Icons.Default.ChevronRight,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                }
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    TextButton(onClick = onDismiss) {
+                    OutlinedButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.weight(1f)
+                    ) {
                         Text("Cancel")
                     }
 
-                    Spacer(modifier = Modifier.width(8.dp))
-
                     Button(
                         onClick = {
-                            val wakeUpValid = validateTime(wakeUpTime)
-                            val sleepValid = validateTime(sleepTime)
-
-                            isWakeUpError = !wakeUpValid
-                            isSleepError = !sleepValid
-
-                            if (wakeUpValid && sleepValid) {
-                                onConfirm(wakeUpTime, sleepTime)
-                            }
-                        }
+                            val wakeUpFormatted = String.format(Locale.getDefault(), "%02d:%02d", wakeUpHour, wakeUpMinute)
+                            val sleepFormatted = String.format(Locale.getDefault(), "%02d:%02d", sleepHour, sleepMinute)
+                            onConfirm(wakeUpFormatted, sleepFormatted)
+                        },
+                        modifier = Modifier.weight(1f)
                     ) {
                         Text("Save")
                     }
                 }
+                
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+        }
+    }
+
+    // Wake Up Time Picker Dialog
+    if (showWakeUpTimePicker) {
+        TimePickerDialog(
+            onDismissRequest = { showWakeUpTimePicker = false },
+            onConfirm = {
+                wakeUpHour = wakeUpTimeState.hour
+                wakeUpMinute = wakeUpTimeState.minute
+                showWakeUpTimePicker = false
+            }
+        ) {
+            TimePicker(state = wakeUpTimeState)
+        }
+    }
+
+    // Sleep Time Picker Dialog
+    if (showSleepTimePicker) {
+        TimePickerDialog(
+            onDismissRequest = { showSleepTimePicker = false },
+            onConfirm = {
+                sleepHour = sleepTimeState.hour
+                sleepMinute = sleepTimeState.minute
+                showSleepTimePicker = false
+            }
+        ) {
+            TimePicker(state = sleepTimeState)
+        }
+    }
+}
+
+/**
+ * Time Picker Dialog Component
+ */
+@Composable
+fun TimePickerDialog(
+    onDismissRequest: () -> Unit,
+    onConfirm: () -> Unit,
+    content: @Composable () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismissRequest,
+        confirmButton = {
+            TextButton(onClick = onConfirm) {
+                Text("OK")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismissRequest) {
+                Text("Cancel")
+            }
+        },
+        text = { content() }
+    )
+}
+
+/**
+ * Bottom Sheet for editing gender
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun GenderEditBottomSheet(
+    showBottomSheet: Boolean,
+    currentGender: Gender,
+    onDismiss: () -> Unit,
+    onConfirm: (Gender) -> Unit
+) {
+    val bottomSheetState = rememberModalBottomSheetState()
+
+    if (showBottomSheet) {
+        ModalBottomSheet(
+            onDismissRequest = onDismiss,
+            sheetState = bottomSheetState,
+            dragHandle = { BottomSheetDefaults.DragHandle() }
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp)
+                    .padding(bottom = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(24.dp)
+            ) {
+                Text(
+                    text = "Select Gender",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(top = 8.dp)
+                )
+
+                Text(
+                    text = "Gender helps us calculate more accurate hydration recommendations based on physiological differences.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Gender.entries.forEach { gender ->
+                        Card(
+                            onClick = { onConfirm(gender) },
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (gender == currentGender) {
+                                    MaterialTheme.colorScheme.primaryContainer
+                                } else {
+                                    MaterialTheme.colorScheme.surfaceVariant
+                                }
+                            ),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                text = gender.getDisplayName(),
+                                modifier = Modifier.padding(20.dp),
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = if (gender == currentGender) FontWeight.SemiBold else FontWeight.Normal
+                            )
+                        }
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(16.dp))
             }
         }
     }
 }
 
 /**
- * Dialog for editing personal information
+ * Bottom Sheet for editing age group
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PersonalInfoDialog(
-    userProfile: UserProfile,
+fun AgeGroupEditBottomSheet(
+    showBottomSheet: Boolean,
+    currentAgeGroup: AgeGroup,
     onDismiss: () -> Unit,
-    onConfirm: (Gender, AgeGroup, Double?) -> Unit
+    onConfirm: (AgeGroup) -> Unit
 ) {
-    var selectedGender by remember { mutableStateOf(userProfile.gender) }
-    var selectedAgeGroup by remember { mutableStateOf(userProfile.ageGroup) }
-    var weightText by remember { mutableStateOf(userProfile.weight?.toString() ?: "") }
-    var isWeightError by remember { mutableStateOf(false) }
+    val bottomSheetState = rememberModalBottomSheetState()
 
-    Dialog(onDismissRequest = onDismiss) {
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = MaterialTheme.shapes.extraLarge
+    if (showBottomSheet) {
+        ModalBottomSheet(
+            onDismissRequest = onDismiss,
+            sheetState = bottomSheetState,
+            dragHandle = { BottomSheetDefaults.DragHandle() }
         ) {
             Column(
                 modifier = Modifier
-                    .padding(24.dp)
-                    .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp)
+                    .padding(bottom = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(24.dp)
             ) {
                 Text(
-                    text = "Personal Information",
+                    text = "Select Age Group",
                     style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(top = 8.dp)
                 )
 
                 Text(
-                    text = "Your personal information helps us calculate a more accurate daily water goal based on scientific recommendations.",
+                    text = "Age affects your daily water needs. Different age groups have varying hydration requirements.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
-                // Gender Selection
-                Text(
-                    text = "Gender",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Medium
-                )
-
                 Column(
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Gender.values().forEach { gender ->
+                    AgeGroup.entries.forEach { ageGroup ->
                         Card(
-                            onClick = { selectedGender = gender },
+                            onClick = { onConfirm(ageGroup) },
                             colors = CardDefaults.cardColors(
-                                containerColor = if (gender == selectedGender) {
+                                containerColor = if (ageGroup == currentAgeGroup) {
                                     MaterialTheme.colorScheme.primaryContainer
                                 } else {
-                                    MaterialTheme.colorScheme.surface
+                                    MaterialTheme.colorScheme.surfaceVariant
                                 }
-                            )
-                        ) {
-                            Text(
-                                text = gender.getDisplayName(),
-                                modifier = Modifier.padding(12.dp),
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                        }
-                    }
-                }
-
-                // Age Group Selection
-                Text(
-                    text = "Age Group",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Medium
-                )
-
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    AgeGroup.values().forEach { ageGroup ->
-                        Card(
-                            onClick = { selectedAgeGroup = ageGroup },
-                            colors = CardDefaults.cardColors(
-                                containerColor = if (ageGroup == selectedAgeGroup) {
-                                    MaterialTheme.colorScheme.primaryContainer
-                                } else {
-                                    MaterialTheme.colorScheme.surface
-                                }
-                            )
+                            ),
+                            modifier = Modifier.fillMaxWidth()
                         ) {
                             Text(
                                 text = ageGroup.getDisplayName(),
-                                modifier = Modifier.padding(12.dp),
-                                style = MaterialTheme.typography.bodyMedium
+                                modifier = Modifier.padding(20.dp),
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = if (ageGroup == currentAgeGroup) FontWeight.SemiBold else FontWeight.Normal
                             )
                         }
                     }
                 }
+                
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+        }
+    }
+}
 
-                // Weight Input (Optional)
+/**
+ * Bottom Sheet for editing weight
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun WeightEditBottomSheet(
+    showBottomSheet: Boolean,
+    currentWeight: Double?,
+    onDismiss: () -> Unit,
+    onConfirm: (Double?) -> Unit
+) {
+    val bottomSheetState = rememberModalBottomSheetState()
+    var weightText by remember(currentWeight) { mutableStateOf(currentWeight?.toString() ?: "") }
+    var isWeightError by remember { mutableStateOf(false) }
+
+    if (showBottomSheet) {
+        ModalBottomSheet(
+            onDismissRequest = onDismiss,
+            sheetState = bottomSheetState,
+            dragHandle = { BottomSheetDefaults.DragHandle() }
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp)
+                    .padding(bottom = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(24.dp)
+            ) {
+                Text(
+                    text = "Enter Weight",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(top = 8.dp)
+                )
+
+                Text(
+                    text = "Adding your weight helps us provide more accurate hydration recommendations. This information is optional and stored locally.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                
                 OutlinedTextField(
                     value = weightText,
                     onValueChange = {
                         weightText = it
                         isWeightError = false
                     },
-                    label = { Text("Weight (kg) - Optional") },
+                    label = { Text("Weight (kg)") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     isError = isWeightError,
                     supportingText = if (isWeightError) {
                         { Text("Please enter a valid weight (30-300 kg)") }
                     } else {
-                        { Text("Adding weight provides more accurate goal calculations") }
+                        { Text("Leave empty if you prefer not to share") }
                     },
                     modifier = Modifier.fillMaxWidth()
                 )
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    TextButton(onClick = onDismiss) {
+                    OutlinedButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.weight(1f)
+                    ) {
                         Text("Cancel")
                     }
-
-                    Spacer(modifier = Modifier.width(8.dp))
 
                     Button(
                         onClick = {
@@ -420,13 +718,16 @@ fun PersonalInfoDialog(
                             if (weight != null && (weight < 30 || weight > 300)) {
                                 isWeightError = true
                             } else {
-                                onConfirm(selectedGender, selectedAgeGroup, weight)
+                                onConfirm(weight)
                             }
-                        }
+                        },
+                        modifier = Modifier.weight(1f)
                     ) {
                         Text("Save")
                     }
                 }
+                
+                Spacer(modifier = Modifier.height(16.dp))
             }
         }
     }

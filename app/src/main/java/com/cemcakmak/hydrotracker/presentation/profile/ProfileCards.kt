@@ -229,25 +229,25 @@ private fun getTimeBasedGreeting(): String {
 
 
 /**
- * Personal Information Card with all user customizable settings from onboarding
+ * Profile Details Card - Personal information
  */
 @Composable
-fun PersonalInformationCard(
+fun ProfileDetailsCard(
     userProfile: UserProfile,
-    onEditGoal: () -> Unit,
-    onEditActivity: () -> Unit,
-    onEditSchedule: () -> Unit,
-    onEditPersonalInfo: () -> Unit
+    onEditGender: () -> Unit,
+    onEditAgeGroup: () -> Unit,
+    onEditWeight: () -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.secondaryContainer
-        )
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
-            modifier = Modifier.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            modifier = Modifier.padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -255,7 +255,7 @@ fun PersonalInformationCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Personal Information",
+                    text = "Profile Details",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold
                 )
@@ -263,66 +263,160 @@ fun PersonalInformationCard(
                 Icon(
                     imageVector = Icons.Default.Person,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(24.dp)
                 )
             }
 
-            // Gender
-            EditableInfoRow(
-                icon = Icons.Default.Person,
-                label = "Gender",
-                value = userProfile.gender.getDisplayName(),
-                onClick = onEditPersonalInfo
-            )
+            Column(
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // Gender
+                EditableInfoRow(
+                    icon = Icons.Default.Person,
+                    label = "Gender",
+                    value = userProfile.gender.getDisplayName(),
+                    onClick = onEditGender
+                )
 
-            // Age Group
-            EditableInfoRow(
-                icon = Icons.Default.Cake,
-                label = "Age Group", 
-                value = userProfile.ageGroup.getDisplayName(),
-                onClick = onEditPersonalInfo
-            )
+                // Age Group
+                EditableInfoRow(
+                    icon = Icons.Default.Cake,
+                    label = "Age Group", 
+                    value = userProfile.ageGroup.getDisplayName(),
+                    onClick = onEditAgeGroup
+                )
 
-            // Weight (if available)
-            if (userProfile.weight != null) {
+                // Weight
                 EditableInfoRow(
                     icon = Icons.Default.MonitorWeight,
                     label = "Weight",
-                    value = "${userProfile.weight!!.toInt()} kg",
-                    onClick = onEditPersonalInfo
+                    value = if (userProfile.weight != null) "${userProfile.weight!!.toInt()} kg" else "Not set",
+                    onClick = onEditWeight
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Daily Goals Card - Water goals and activity level
+ */
+@Composable
+fun DailyGoalsCard(
+    userProfile: UserProfile,
+    onEditGoal: () -> Unit,
+    onEditActivity: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.secondaryContainer
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Daily Goals",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Icon(
+                    imageVector = Icons.Default.Flag,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.secondary,
+                    modifier = Modifier.size(24.dp)
                 )
             }
 
-            // Daily Goal
-            EditableInfoRow(
-                icon = Icons.Default.Flag,
-                label = "Daily Goal",
-                value = WaterCalculator.formatWaterAmount(userProfile.dailyWaterGoal),
-                onClick = onEditGoal
-            )
+            Column(
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // Daily Goal
+                EditableInfoRow(
+                    icon = Icons.Default.WaterDrop,
+                    label = "Daily Water Goal",
+                    value = WaterCalculator.formatWaterAmount(userProfile.dailyWaterGoal),
+                    onClick = onEditGoal
+                )
 
-            // Activity Level
-            EditableInfoRow(
-                icon = Icons.Default.FitnessCenter,
-                label = "Activity Level",
-                value = userProfile.activityLevel.getDisplayName(),
-                onClick = onEditActivity
-            )
+                // Activity Level
+                EditableInfoRow(
+                    icon = Icons.Default.FitnessCenter,
+                    label = "Activity Level",
+                    value = userProfile.activityLevel.getDisplayName(),
+                    onClick = onEditActivity
+                )
+            }
+        }
+    }
+}
 
-            // Schedule
-            EditableInfoRow(
-                icon = Icons.Default.Schedule,
-                label = "Active Hours",
-                value = "${userProfile.wakeUpTime} - ${userProfile.sleepTime}",
-                onClick = onEditSchedule
-            )
+/**
+ * Active Schedule Card - Wake/sleep times and reminders
+ */
+@Composable
+fun ActiveScheduleCard(
+    userProfile: UserProfile,
+    onEditSchedule: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.tertiaryContainer
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Active Schedule",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
 
-            // Reminder Frequency (Read-only)
-            InfoRow(
-                icon = Icons.Default.Notifications,
-                label = "Reminders",
-                value = "Every ${userProfile.reminderInterval} minutes"
-            )
+                Icon(
+                    imageVector = Icons.Default.Schedule,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.tertiary,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+
+            Column(
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // Schedule
+                EditableInfoRow(
+                    icon = Icons.Default.AccessTime,
+                    label = "Active Hours",
+                    value = "${userProfile.wakeUpTime} - ${userProfile.sleepTime}",
+                    onClick = onEditSchedule
+                )
+
+                // Reminder Frequency (Read-only)
+                InfoRow(
+                    icon = Icons.Default.Notifications,
+                    label = "Reminder Interval",
+                    value = "Every ${userProfile.reminderInterval} minutes"
+                )
+            }
         }
     }
 }
