@@ -20,7 +20,6 @@ import com.cemcakmak.hydrotracker.ui.theme.HydroTypography
 @Composable
 fun WelcomeStep(
     onNext: () -> Unit,
-    onSkip: () -> Unit,
     isVisible: Boolean
 ) {
     val logoScale by animateFloatAsState(
@@ -160,16 +159,6 @@ fun WelcomeStep(
                         fontSize = 18.sp
                     )
                 }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                TextButton(onClick = onSkip) {
-                    Text(
-                        text = "Skip Setup",
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontSize = 16.sp
-                    )
-                }
             }
         }
     }
@@ -180,7 +169,6 @@ fun WelcomeStep(
 fun WelcomeStepPreview() {
     WelcomeStep(
         onNext = {},
-        onSkip = {},
         isVisible = true
     )
 }

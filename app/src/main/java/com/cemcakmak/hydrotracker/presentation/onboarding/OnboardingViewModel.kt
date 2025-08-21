@@ -218,37 +218,6 @@ class OnboardingViewModel(
         }
     }
 
-    /** Skip onboarding with default values */
-    fun skipOnboarding() {
-        println("DEBUG: OnboardingViewModel.skipOnboarding() called")
-
-        viewModelScope.launch {
-            calculateWaterGoal()
-            val skippedProfile = _userProfile.value.copy(
-                isOnboardingCompleted = true
-            )
-
-            println("DEBUG: Saving skipped profile to repository.")
-            // Save to shared repository
-            userRepository.saveUserProfile(skippedProfile)
-
-            // Update local state
-            _userProfile.value = skippedProfile
-            _isCompleted.value = true
-
-            println("DEBUG: OnboardingViewModel - isCompleted set to: ${_isCompleted.value}")
-            println("DEBUG: OnboardingViewModel - Profile completion status: ${skippedProfile.isOnboardingCompleted}")
-
-            // NEW: Start notifications if permission is granted
-            val context = getApplication<Application>()
-            if (NotificationPermissionManager.hasNotificationPermission(context)) {
-                println("DEBUG: Starting notifications after onboarding skip")
-                HydroNotificationScheduler.startNotifications(context, skippedProfile)
-            } else {
-                println("DEBUG: Notification permission not granted, skipping notification startup")
-            }
-        }
-    }
 
     /** Update navigation state based on current step and user input */
     private fun updateNavigationState() {

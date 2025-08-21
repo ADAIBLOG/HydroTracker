@@ -16,7 +16,8 @@
     ],
     "deny": [],
     "additionalDirectories": [
-      "C:\\c\\Users\\alice\\AndroidStudioProjects"
+      "C:\\c\\Users\\alice\\AndroidStudioProjects",
+      "C:\\mnt\\c\\Users\\alice\\AndroidStudioProjects"
     ]
   }
 }

@@ -163,10 +163,6 @@ fun OnboardingScreen(
                 when (step) {
                     OnboardingStep.WELCOME -> WelcomeStep(
                         onNext = { viewModel.nextStep() },
-                        onSkip = {
-                            viewModel.skipOnboarding()
-                            // Skip will trigger isCompleted, which will trigger navigation via LaunchedEffect
-                        },
                         isVisible = isVisible
                     )
                     OnboardingStep.GENDER -> GenderStep(
@@ -226,18 +222,8 @@ fun OnboardingScreen(
                         .align(Alignment.BottomCenter)
                         .fillMaxWidth()
                         .padding(24.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    horizontalArrangement = Arrangement.End
                 ) {
-                    // Skip button
-                    TextButton(
-                        onClick = {
-                            viewModel.skipOnboarding()
-                        },
-                        enabled = !isAnimating
-                    ) {
-                        Text("Skip")
-                    }
-
                     // Next button
                     Button(
                         shapes = ButtonDefaults.shapes(),
