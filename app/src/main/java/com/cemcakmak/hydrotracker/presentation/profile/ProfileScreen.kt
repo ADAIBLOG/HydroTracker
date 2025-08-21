@@ -3,6 +3,7 @@ package com.cemcakmak.hydrotracker.presentation.profile
 import android.Manifest
 import android.content.pm.PackageManager
 import android.net.Uri
+import androidx.core.net.toUri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
@@ -119,7 +120,7 @@ fun ProfileScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp)
                 .padding(bottom = 80.dp), // Add bottom padding for navigation bar
-            verticalArrangement = Arrangement.spacedBy(24.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
 
             // Profile Header Section
@@ -358,7 +359,7 @@ fun ProfileScreenPreview() {
         reminderInterval = 60,
         reminderStyle = ReminderStyle.GENTLE
     )
-    val userRepository = UserRepository(androidx.compose.ui.platform.LocalContext.current)
+    val userRepository = UserRepository(LocalContext.current)
     val waterIntakeRepository = WaterIntakeRepository(
         waterIntakeDao = object : com.cemcakmak.hydrotracker.data.database.dao.WaterIntakeDao {
             override suspend fun insertEntry(entry: com.cemcakmak.hydrotracker.data.database.entities.WaterIntakeEntry): Long = 0
@@ -385,7 +386,7 @@ fun ProfileScreenPreview() {
             override suspend fun deleteAllSummaries() {}
         },
         userRepository = userRepository,
-        context = androidx.compose.ui.platform.LocalContext.current
+        context = LocalContext.current
     )
     ProfileScreen(userProfile = userProfile, userRepository = userRepository, waterIntakeRepository = waterIntakeRepository)
 }
@@ -406,10 +407,8 @@ fun ProfilePictureBottomSheet(
     // Camera permission launcher
     val cameraPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
-        if (!isGranted) {
-            // Handle permission denied - could show a snackbar
-        }
+    ) { _ ->
+        // Handle permission denied if needed
     }
     
     // Image picker launcher
@@ -420,7 +419,7 @@ fun ProfilePictureBottomSheet(
             // Save the image to local storage
             val savedPath = ImageUtils.saveProfileImage(context, selectedUri)
             if (savedPath != null) {
-                onImageSelected(Uri.parse(savedPath))
+                onImageSelected(savedPath.toUri())
             }
         }
     }
@@ -435,7 +434,7 @@ fun ProfilePictureBottomSheet(
             if (tempFile.exists()) {
                 val savedPath = ImageUtils.saveProfileImage(context, Uri.fromFile(tempFile))
                 if (savedPath != null) {
-                    onImageSelected(Uri.parse(savedPath))
+                    onImageSelected(savedPath.toUri())
                 }
                 tempFile.delete() // Clean up temp file
             }
@@ -456,7 +455,7 @@ fun ProfilePictureBottomSheet(
                 Text(
                     text = "Update Profile Photo",
                     style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold
+                    fontWeight = FontWeight.SemiBold
                 )
                 
                 // Gallery option
@@ -485,7 +484,7 @@ fun ProfilePictureBottomSheet(
                             Text(
                                 text = "Choose from Gallery",
                                 style = MaterialTheme.typography.titleMedium,
-                                fontWeight = androidx.compose.ui.text.font.FontWeight.Medium
+                                fontWeight = FontWeight.Medium
                             )
                             Text(
                                 text = "Select an existing photo",
@@ -508,7 +507,7 @@ fun ProfilePictureBottomSheet(
                                     val photoFile = File(context.cacheDir, "temp_profile_photo.jpg")
                                     val photoUri = androidx.core.content.FileProvider.getUriForFile(
                                         context,
-                                        "${context.packageName}.fileprovider",
+                                        "${context.packageName}.fileProvider",
                                         photoFile
                                     )
                                     cameraLauncher.launch(photoUri)
@@ -539,7 +538,7 @@ fun ProfilePictureBottomSheet(
                             Text(
                                 text = "Take Photo",
                                 style = MaterialTheme.typography.titleMedium,
-                                fontWeight = androidx.compose.ui.text.font.FontWeight.Medium
+                                fontWeight = FontWeight.Medium
                             )
                             Text(
                                 text = "Use your camera to take a new photo",
@@ -579,7 +578,7 @@ fun ProfilePictureBottomSheet(
                             Text(
                                 text = "Remove Photo",
                                 style = MaterialTheme.typography.titleMedium,
-                                fontWeight = androidx.compose.ui.text.font.FontWeight.Medium,
+                                fontWeight = FontWeight.Medium,
                                 color = MaterialTheme.colorScheme.error
                             )
                             Text(

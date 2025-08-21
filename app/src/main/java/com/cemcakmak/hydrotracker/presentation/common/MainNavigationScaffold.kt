@@ -3,8 +3,12 @@
 
 package com.cemcakmak.hydrotracker.presentation.common
 
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Analytics
 import androidx.compose.material.icons.filled.Home
@@ -18,18 +22,32 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
+import com.cemcakmak.hydrotracker.utils.ImageUtils
+import java.io.File
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun MainNavigationScaffold(
     navController: NavController,
     currentRoute: String,
+    userProfileImagePath: String? = null,
     content: @Composable (PaddingValues) -> Unit
 ) {
     val shouldShowBottomBar = when (currentRoute) {
@@ -42,7 +60,8 @@ fun MainNavigationScaffold(
             if (shouldShowBottomBar) {
                 HydroNavigationBar(
                     navController = navController,
-                    currentRoute = currentRoute
+                    currentRoute = currentRoute,
+                    userProfileImagePath = userProfileImagePath
                 )
             }
         },
@@ -53,7 +72,8 @@ fun MainNavigationScaffold(
 @Composable
 private fun HydroNavigationBar(
     navController: NavController,
-    currentRoute: String
+    currentRoute: String,
+    userProfileImagePath: String? = null
 ) {
     NavigationBar(
         containerColor = MaterialTheme.colorScheme.surfaceContainerHighest
@@ -63,11 +83,19 @@ private fun HydroNavigationBar(
 
             NavigationBarItem(
                 icon = {
-                    Icon(
-                        imageVector = if (isSelected) item.selectedIcon else item.icon,
-                        contentDescription = item.label,
-                        modifier = Modifier.size(24.dp)
-                    )
+                    if (item == NavigationItem.PROFILE) {
+                        ProfileIcon(
+                            profileImagePath = userProfileImagePath,
+                            isSelected = isSelected,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    } else {
+                        Icon(
+                            imageVector = if (isSelected) item.selectedIcon else item.icon,
+                            contentDescription = item.label,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
                 },
                 label = {
                     Text(
@@ -146,6 +174,61 @@ fun HydroNavigationBarPreview() {
     val navController = rememberNavController()
     HydroNavigationBar(
         navController = navController,
-        currentRoute = NavigationRoutes.HOME
+        currentRoute = NavigationRoutes.HOME,
+        userProfileImagePath = null
     )
+}
+
+/**
+ * Profile Icon that shows user's profile picture or default icon
+ */
+@Composable
+fun ProfileIcon(
+    profileImagePath: String?,
+    isSelected: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
+    var profileBitmap by remember(profileImagePath) { mutableStateOf<android.graphics.Bitmap?>(null) }
+    
+    // Load the image when profileImagePath changes
+    LaunchedEffect(profileImagePath) {
+        profileBitmap = if (profileImagePath != null && File(profileImagePath).exists()) {
+            ImageUtils.loadProfileImageBitmap(context)
+        } else {
+            null
+        }
+    }
+    
+    if (profileBitmap != null) {
+        // Show profile picture
+        Box(
+            modifier = modifier,
+            contentAlignment = Alignment.Center
+        ) {
+            Image(
+                bitmap = profileBitmap!!.asImageBitmap(),
+                contentDescription = "Profile Photo",
+                modifier = Modifier
+                    .size(24.dp)
+                    .clip(CircleShape)
+                    .background(
+                        if (isSelected) {
+                            MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.1f)
+                        } else {
+                            MaterialTheme.colorScheme.surface
+                        },
+                        CircleShape
+                    ),
+                contentScale = ContentScale.Crop
+            )
+        }
+    } else {
+        // Fall back to default icon
+        Icon(
+            imageVector = Icons.Filled.Person,
+            contentDescription = "Profile",
+            modifier = modifier
+        )
+    }
 }

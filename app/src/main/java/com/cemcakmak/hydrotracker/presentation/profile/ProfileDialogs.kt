@@ -8,13 +8,14 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.cemcakmak.hydrotracker.data.models.ActivityLevel
 import com.cemcakmak.hydrotracker.data.models.Gender
 import com.cemcakmak.hydrotracker.data.models.AgeGroup
-import com.cemcakmak.hydrotracker.data.models.UserProfile
 import java.util.Locale
 
 /**
@@ -69,6 +70,17 @@ fun GoalEditBottomSheet(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
+                // Haptics
+                val haptics = LocalHapticFeedback.current
+
+                // Track last indices so we only fire once per step
+                val minL = 1.0f
+                val smallStep = 0.1f         // frequent tick every 0.1 L
+                val majorStep = 0.50f         // stronger tick every 0.5 L
+
+                var lastSmallIdx by remember { mutableIntStateOf(((sliderValue - minL) / smallStep).toInt()) }
+                var lastMajorIdx by remember { mutableIntStateOf(((sliderValue - minL) / majorStep).toInt()) }
+
                 // Slider Control
                 Column(
                     verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -82,11 +94,28 @@ fun GoalEditBottomSheet(
                     Slider(
                         value = sliderValue.coerceIn(1.0f, 5.0f),
                         onValueChange = { newValue ->
+                            // compute step indices
+                            val smallIdx = ((newValue - minL) / smallStep).toInt()
+                            val majorIdx = ((newValue - minL) / majorStep).toInt()
+
+                            // fire a stronger tick at major marks, else a light tick at each step
+                            if (majorIdx != lastMajorIdx) {
+                                haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                                lastMajorIdx = majorIdx
+                            } else if (smallIdx != lastSmallIdx) {
+                                haptics.performHapticFeedback(HapticFeedbackType.SegmentFrequentTick)
+                            }
+                            lastSmallIdx = smallIdx
+
                             sliderValue = newValue
                             isError = false
                         },
+                        onValueChangeFinished = {
+                            // nice end-of-gesture pulse (optional)
+                            haptics.performHapticFeedback(HapticFeedbackType.GestureEnd)
+                        },
                         valueRange = 1.0f..5.0f,
-                        steps = 15, // 0.25L increments: (5.0 - 1.0) / 0.25 - 1
+                        steps = 39, // 0.1L increments: (5.0 - 1.0) / 0.25 - 1
                         modifier = Modifier.fillMaxWidth()
                     )
                     
@@ -146,14 +175,18 @@ fun GoalEditBottomSheet(
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     OutlinedButton(
-                        onClick = onDismiss,
+                        shapes = ButtonDefaults.shapes(),
+                        onClick = { haptics.performHapticFeedback(HapticFeedbackType.ContextClick)
+                            onDismiss },
                         modifier = Modifier.weight(1f)
                     ) {
                         Text("Cancel")
                     }
 
                     Button(
+                        shapes = ButtonDefaults.shapes(),
                         onClick = {
+                            haptics.performHapticFeedback(HapticFeedbackType.ContextClick)
                             val goalLiters = sliderValue.toDouble()
                             if (goalLiters >= 0.5 && goalLiters <= 10.0) {
                                 onConfirm(goalLiters * 1000) // Convert to ml
@@ -212,12 +245,14 @@ fun ActivityLevelBottomSheet(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
+                val haptics = LocalHapticFeedback.current
                 Column(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     ActivityLevel.entries.forEach { level ->
                         Card(
-                            onClick = { onConfirm(level) },
+                            onClick = { haptics.performHapticFeedback(HapticFeedbackType.ContextClick)
+                                onConfirm(level) },
                             colors = CardDefaults.cardColors(
                                 containerColor = if (level == currentLevel) {
                                     MaterialTheme.colorScheme.primaryContainer
@@ -416,19 +451,24 @@ fun ScheduleEditBottomSheet(
                     }
                 }
 
+                val haptics = LocalHapticFeedback.current
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     OutlinedButton(
-                        onClick = onDismiss,
+                        shapes = ButtonDefaults.shapes(),
+                        onClick = { haptics.performHapticFeedback(HapticFeedbackType.ContextClick)
+                            onDismiss },
                         modifier = Modifier.weight(1f)
                     ) {
                         Text("Cancel")
                     }
 
                     Button(
+                        shapes = ButtonDefaults.shapes(),
                         onClick = {
+                            haptics.performHapticFeedback(HapticFeedbackType.ContextClick)
                             val wakeUpFormatted = String.format(Locale.getDefault(), "%02d:%02d", wakeUpHour, wakeUpMinute)
                             val sleepFormatted = String.format(Locale.getDefault(), "%02d:%02d", sleepHour, sleepMinute)
                             onConfirm(wakeUpFormatted, sleepFormatted)
@@ -537,12 +577,14 @@ fun GenderEditBottomSheet(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
+                val haptics = LocalHapticFeedback.current
                 Column(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Gender.entries.forEach { gender ->
                         Card(
-                            onClick = { onConfirm(gender) },
+                            onClick = { haptics.performHapticFeedback(HapticFeedbackType.ContextClick)
+                                onConfirm(gender) },
                             colors = CardDefaults.cardColors(
                                 containerColor = if (gender == currentGender) {
                                     MaterialTheme.colorScheme.primaryContainer
@@ -607,12 +649,14 @@ fun AgeGroupEditBottomSheet(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
+                val haptics = LocalHapticFeedback.current
                 Column(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     AgeGroup.entries.forEach { ageGroup ->
                         Card(
-                            onClick = { onConfirm(ageGroup) },
+                            onClick = { haptics.performHapticFeedback(HapticFeedbackType.ContextClick)
+                                onConfirm(ageGroup) },
                             colors = CardDefaults.cardColors(
                                 containerColor = if (ageGroup == currentAgeGroup) {
                                     MaterialTheme.colorScheme.primaryContainer
@@ -696,19 +740,24 @@ fun WeightEditBottomSheet(
                     modifier = Modifier.fillMaxWidth()
                 )
 
+                val haptics = LocalHapticFeedback.current
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     OutlinedButton(
-                        onClick = onDismiss,
+                        shapes = ButtonDefaults.shapes(),
+                        onClick = { haptics.performHapticFeedback(HapticFeedbackType.ContextClick)
+                            onDismiss },
                         modifier = Modifier.weight(1f)
                     ) {
                         Text("Cancel")
                     }
 
                     Button(
+                        shapes = ButtonDefaults.shapes(),
                         onClick = {
+                            haptics.performHapticFeedback(HapticFeedbackType.ContextClick)
                             val weight = if (weightText.isBlank()) {
                                 null
                             } else {

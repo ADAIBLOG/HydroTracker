@@ -101,7 +101,11 @@ fun HydroTrackerApp(
             val currentRoute by navController.currentBackStackEntryAsState()
             val route = currentRoute?.destination?.route ?: startDestination
 
-            MainNavigationScaffold(navController = navController, currentRoute = route) { padding ->
+            MainNavigationScaffold(
+                navController = navController, 
+                currentRoute = route, 
+                userProfileImagePath = userProfile?.profileImagePath
+            ) { padding ->
                 NavHost(
                     navController = navController, 
                     startDestination = startDestination,
