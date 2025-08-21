@@ -1,15 +1,27 @@
 package com.cemcakmak.hydrotracker.presentation.profile
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.core.content.ContextCompat
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -25,6 +37,8 @@ import com.cemcakmak.hydrotracker.data.models.Gender
 import com.cemcakmak.hydrotracker.data.models.ReminderStyle
 import com.cemcakmak.hydrotracker.presentation.common.HydroSnackbarHost
 import com.cemcakmak.hydrotracker.presentation.common.showSuccessSnackbar
+import com.cemcakmak.hydrotracker.utils.ImageUtils
+import java.io.File
 
 /**
  * Main Profile Screen with Material 3 Expressive Design
@@ -56,6 +70,8 @@ fun ProfileScreen(
     var showActivityDialog by remember { mutableStateOf(false) }
     var showScheduleDialog by remember { mutableStateOf(false) }
     var showPersonalInfoDialog by remember { mutableStateOf(false) }
+    var showUsernameDialog by remember { mutableStateOf(false) }
+    var showProfilePictureBottomSheet by remember { mutableStateOf(false) }
 
     // Animation state
     var isVisible by remember { mutableStateOf(false) }
@@ -118,7 +134,9 @@ fun ProfileScreen(
                 ProfileHeaderCard(
                     userProfile = userProfile,
                     todayStatistics = todayStatistics,
-                    totalDaysTracked = last30DaysEntries.groupBy { it.date }.size
+                    totalDaysTracked = last30DaysEntries.groupBy { it.date }.size,
+                    onEditProfilePicture = { showProfilePictureBottomSheet = true },
+                    onEditUsername = { showUsernameDialog = true }
                 )
             }
 
@@ -229,12 +247,34 @@ fun ProfileScreen(
             }
         )
     }
+    
+    // Profile Picture Bottom Sheet and Username Dialog
+    ProfilePictureBottomSheet(
+        showBottomSheet = showProfilePictureBottomSheet,
+        onDismiss = { showProfilePictureBottomSheet = false },
+        onImageSelected = { uri ->
+            updateUserProfile(userProfile.copy(profileImagePath = uri?.toString()))
+            showProfilePictureBottomSheet = false
+        }
+    )
+    
+    if (showUsernameDialog) {
+        UsernameEditDialog(
+            currentName = userProfile.name,
+            onDismiss = { showUsernameDialog = false },
+            onConfirm = { newName ->
+                updateUserProfile(userProfile.copy(name = newName))
+                showUsernameDialog = false
+            }
+        )
+    }
 }
 
 @Preview
 @Composable
 fun ProfileScreenPreview() {
     val userProfile = UserProfile(
+        name = "Preview User",
         gender = Gender.MALE,
         ageGroup = AgeGroup.YOUNG_ADULT_18_30,
         activityLevel = ActivityLevel.MODERATE,
@@ -274,4 +314,275 @@ fun ProfileScreenPreview() {
         context = androidx.compose.ui.platform.LocalContext.current
     )
     ProfileScreen(userProfile = userProfile, userRepository = userRepository, waterIntakeRepository = waterIntakeRepository)
+}
+
+/**
+ * Profile Picture Bottom Sheet Component
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ProfilePictureBottomSheet(
+    showBottomSheet: Boolean,
+    onDismiss: () -> Unit,
+    onImageSelected: (Uri?) -> Unit
+) {
+    val context = LocalContext.current
+    val bottomSheetState = rememberModalBottomSheetState()
+    
+    // Camera permission launcher
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (!isGranted) {
+            // Handle permission denied - could show a snackbar
+        }
+    }
+    
+    // Image picker launcher
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        uri?.let { selectedUri ->
+            // Save the image to local storage
+            val savedPath = ImageUtils.saveProfileImage(context, selectedUri)
+            if (savedPath != null) {
+                onImageSelected(Uri.parse(savedPath))
+            }
+        }
+    }
+    
+    // Camera launcher
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture()
+    ) { success ->
+        if (success) {
+            // The camera image was saved to a temporary file, now save it properly
+            val tempFile = File(context.cacheDir, "temp_profile_photo.jpg")
+            if (tempFile.exists()) {
+                val savedPath = ImageUtils.saveProfileImage(context, Uri.fromFile(tempFile))
+                if (savedPath != null) {
+                    onImageSelected(Uri.parse(savedPath))
+                }
+                tempFile.delete() // Clean up temp file
+            }
+        }
+    }
+    
+    if (showBottomSheet) {
+        ModalBottomSheet(
+            onDismissRequest = onDismiss,
+            sheetState = bottomSheetState
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(24.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Text(
+                    text = "Update Profile Photo",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold
+                )
+                
+                // Gallery option
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { imagePickerLauncher.launch("image/*") },
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(20.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.PhotoLibrary,
+                            contentDescription = null,
+                            modifier = Modifier.size(32.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Column {
+                            Text(
+                                text = "Choose from Gallery",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = androidx.compose.ui.text.font.FontWeight.Medium
+                            )
+                            Text(
+                                text = "Select an existing photo",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+                
+                // Camera option
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            // Check camera permission
+                            when (PackageManager.PERMISSION_GRANTED) {
+                                ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) -> {
+                                    // Create a temporary file for the camera image
+                                    val photoFile = File(context.cacheDir, "temp_profile_photo.jpg")
+                                    val photoUri = androidx.core.content.FileProvider.getUriForFile(
+                                        context,
+                                        "${context.packageName}.fileprovider",
+                                        photoFile
+                                    )
+                                    cameraLauncher.launch(photoUri)
+                                }
+                                else -> {
+                                    cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+                                }
+                            }
+                        },
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(20.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.CameraAlt,
+                            contentDescription = null,
+                            modifier = Modifier.size(32.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Column {
+                            Text(
+                                text = "Take Photo",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = androidx.compose.ui.text.font.FontWeight.Medium
+                            )
+                            Text(
+                                text = "Use your camera to take a new photo",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+                
+                // Remove photo option (if user has a profile picture)
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            ImageUtils.deleteProfileImage(context)
+                            onImageSelected(null)
+                        },
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f)
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(20.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = null,
+                            modifier = Modifier.size(32.dp),
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Column {
+                            Text(
+                                text = "Remove Photo",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = androidx.compose.ui.text.font.FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.error
+                            )
+                            Text(
+                                text = "Use default avatar",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                        }
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+        }
+    }
+}
+
+/**
+ * Username Edit Dialog Component
+ */
+@Composable
+fun UsernameEditDialog(
+    currentName: String,
+    onDismiss: () -> Unit,
+    onConfirm: (String) -> Unit
+) {
+    var name by remember { mutableStateOf(currentName) }
+    val isValidName = name.isNotBlank() && name.length <= 15
+    
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(text = "Edit Name")
+        },
+        text = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { newName ->
+                        if (newName.length <= 15) {
+                            name = newName
+                        }
+                    },
+                    label = { Text("Your name") },
+                    supportingText = { 
+                        Text("${name.length}/15 characters")
+                    },
+                    isError = !isValidName,
+                    keyboardOptions = KeyboardOptions(
+                        capitalization = KeyboardCapitalization.Words
+                    ),
+                    singleLine = true
+                )
+                
+                if (!isValidName) {
+                    Text(
+                        text = if (name.isBlank()) "Name cannot be empty" else "Name is too long",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onConfirm(name) },
+                enabled = isValidName
+            ) {
+                Text("Save")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
 }

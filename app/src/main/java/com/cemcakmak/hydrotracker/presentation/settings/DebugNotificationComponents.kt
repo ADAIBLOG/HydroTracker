@@ -125,6 +125,7 @@ fun DebugNotificationSection(
                             // Fallback if no user profile
                             val notificationService = HydroNotificationService(context)
                             val fallbackProfile = UserProfile(
+                                name = "Test User",
                                 gender = Gender.MALE,
                                 ageGroup = AgeGroup.ADULT_31_50,
                                 activityLevel = ActivityLevel.MODERATE,

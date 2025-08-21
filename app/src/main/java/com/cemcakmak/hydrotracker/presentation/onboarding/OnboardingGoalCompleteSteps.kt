@@ -415,6 +415,7 @@ private fun AgeGroup.displayName(): String = when (this) {
 @Composable
 fun GoalStepPreview() {
     val userProfile = UserProfile(
+        name = "Preview User",
         gender = Gender.FEMALE,
         ageGroup = AgeGroup.ADULT_31_50,
         activityLevel = ActivityLevel.MODERATE,
@@ -434,6 +435,7 @@ fun GoalStepPreview() {
 @Composable
 fun CompleteStepPreview() {
     val userProfile = UserProfile(
+        name = "Preview User",
         gender = Gender.MALE,
         ageGroup = AgeGroup.YOUNG_ADULT_18_30,
         activityLevel = ActivityLevel.ACTIVE,

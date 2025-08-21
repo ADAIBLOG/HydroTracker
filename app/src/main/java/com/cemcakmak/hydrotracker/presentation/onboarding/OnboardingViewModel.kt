@@ -31,6 +31,8 @@ class OnboardingViewModel(
     private val _userProfile = MutableStateFlow(
         UserProfile(
             id = 1,
+            name = "", // Will be set in profile setup
+            profileImagePath = null,
             gender = Gender.MALE, // Default values, will be updated
             ageGroup = AgeGroup.ADULT_31_50,
             activityLevel = ActivityLevel.MODERATE,
@@ -74,7 +76,8 @@ class OnboardingViewModel(
                 OnboardingStep.GENDER -> OnboardingStep.AGE
                 OnboardingStep.AGE -> OnboardingStep.ACTIVITY
                 OnboardingStep.ACTIVITY -> OnboardingStep.SCHEDULE
-                OnboardingStep.SCHEDULE -> OnboardingStep.GOAL
+                OnboardingStep.SCHEDULE -> OnboardingStep.PROFILE_SETUP
+                OnboardingStep.PROFILE_SETUP -> OnboardingStep.GOAL
                 OnboardingStep.GOAL -> OnboardingStep.COMPLETE
                 OnboardingStep.COMPLETE -> OnboardingStep.COMPLETE // Stay at final step
             }
@@ -106,7 +109,8 @@ class OnboardingViewModel(
                 OnboardingStep.AGE -> OnboardingStep.GENDER
                 OnboardingStep.ACTIVITY -> OnboardingStep.AGE
                 OnboardingStep.SCHEDULE -> OnboardingStep.ACTIVITY
-                OnboardingStep.GOAL -> OnboardingStep.SCHEDULE
+                OnboardingStep.PROFILE_SETUP -> OnboardingStep.SCHEDULE
+                OnboardingStep.GOAL -> OnboardingStep.PROFILE_SETUP
                 OnboardingStep.COMPLETE -> OnboardingStep.GOAL
             }
 
@@ -145,6 +149,18 @@ class OnboardingViewModel(
     /** Update sleep time */
     fun updateSleepTime(time: String) {
         _userProfile.value = _userProfile.value.copy(sleepTime = time)
+        updateNavigationState()
+    }
+
+    /** Update user's name */
+    fun updateName(name: String) {
+        _userProfile.value = _userProfile.value.copy(name = name)
+        updateNavigationState()
+    }
+
+    /** Update user's profile image */
+    fun updateProfileImage(uri: android.net.Uri?) {
+        _userProfile.value = _userProfile.value.copy(profileImagePath = uri?.toString())
         updateNavigationState()
     }
 
@@ -246,6 +262,7 @@ class OnboardingViewModel(
             OnboardingStep.AGE -> true // Age is always valid (has default)
             OnboardingStep.ACTIVITY -> true // Activity is always valid (has default)
             OnboardingStep.SCHEDULE -> true // Times are always valid (have defaults)
+            OnboardingStep.PROFILE_SETUP -> _userProfile.value.name.isNotBlank() // Name is required
             OnboardingStep.GOAL -> true
             OnboardingStep.COMPLETE -> false // No next step after complete
         }
@@ -255,12 +272,13 @@ class OnboardingViewModel(
     fun getProgress(): Float {
         return when (_currentStep.value) {
             OnboardingStep.WELCOME -> 0.0f
-            OnboardingStep.GENDER -> 1f / 6f      // ~16.7%
-            OnboardingStep.AGE -> 2f / 6f          // ~33.3%
-            OnboardingStep.ACTIVITY -> 3f / 6f     // ~50.0%
-            OnboardingStep.SCHEDULE -> 4f / 6f     // ~66.7%
-            OnboardingStep.GOAL -> 5f / 6f         // ~83.3%
-            OnboardingStep.COMPLETE -> 1.0f        // 100%
+            OnboardingStep.GENDER -> 1f / 7f        // ~14.3%
+            OnboardingStep.AGE -> 2f / 7f            // ~28.6%
+            OnboardingStep.ACTIVITY -> 3f / 7f       // ~42.9%
+            OnboardingStep.SCHEDULE -> 4f / 7f       // ~57.1%
+            OnboardingStep.PROFILE_SETUP -> 5f / 7f  // ~71.4%
+            OnboardingStep.GOAL -> 6f / 7f           // ~85.7%
+            OnboardingStep.COMPLETE -> 1.0f          // 100%
         }
     }
 
@@ -272,6 +290,7 @@ class OnboardingViewModel(
             OnboardingStep.AGE -> "What's your age group?"
             OnboardingStep.ACTIVITY -> "How active are you?"
             OnboardingStep.SCHEDULE -> "When are you awake?"
+            OnboardingStep.PROFILE_SETUP -> "Complete Your Profile"
             OnboardingStep.GOAL -> "Your personalized goal"
             OnboardingStep.COMPLETE -> "You're all set!"
         }
@@ -285,6 +304,7 @@ class OnboardingViewModel(
             OnboardingStep.AGE -> "Select your age range."
             OnboardingStep.ACTIVITY -> "Pick your general daily activity level."
             OnboardingStep.SCHEDULE -> "Tell us your wake and sleep times."
+            OnboardingStep.PROFILE_SETUP -> "Add your name and a profile photo to personalize your experience."
             OnboardingStep.GOAL -> "Review your calculated goal."
             OnboardingStep.COMPLETE -> "Tap the button to start hydrating!"
         }

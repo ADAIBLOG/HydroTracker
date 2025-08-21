@@ -26,6 +26,7 @@ enum class OnboardingStep {
     AGE,
     ACTIVITY,
     SCHEDULE,
+    PROFILE_SETUP,
     GOAL,
     COMPLETE
 }
@@ -191,6 +192,14 @@ fun OnboardingScreen(
                         sleepTime = userProfile.sleepTime,
                         onWakeUpTimeChanged = { viewModel.updateWakeUpTime(it) },
                         onSleepTimeChanged = { viewModel.updateSleepTime(it) },
+                        title = viewModel.getStepTitle(),
+                        description = viewModel.getStepDescription()
+                    )
+                    OnboardingStep.PROFILE_SETUP -> ProfileSetupStep(
+                        name = userProfile.name,
+                        profileImageUri = userProfile.profileImagePath?.let { android.net.Uri.parse(it) },
+                        onNameChanged = { viewModel.updateName(it) },
+                        onImageSelected = { uri -> viewModel.updateProfileImage(uri) },
                         title = viewModel.getStepTitle(),
                         description = viewModel.getStepDescription()
                     )

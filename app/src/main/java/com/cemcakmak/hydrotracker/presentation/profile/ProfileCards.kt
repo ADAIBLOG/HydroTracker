@@ -1,6 +1,8 @@
 package com.cemcakmak.hydrotracker.presentation.profile
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
@@ -8,9 +10,18 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.cemcakmak.hydrotracker.utils.ImageUtils
+import java.io.File
+import java.time.LocalTime
+import java.time.format.DateTimeFormatter
 import com.cemcakmak.hydrotracker.data.models.UserProfile
 import com.cemcakmak.hydrotracker.data.database.repository.TodayStatistics
 import com.cemcakmak.hydrotracker.utils.WaterCalculator
@@ -22,7 +33,9 @@ import com.cemcakmak.hydrotracker.utils.WaterCalculator
 fun ProfileHeaderCard(
     userProfile: UserProfile,
     todayStatistics: TodayStatistics,
-    totalDaysTracked: Int
+    totalDaysTracked: Int,
+    onEditProfilePicture: () -> Unit = {},
+    onEditUsername: () -> Unit = {}
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -37,31 +50,48 @@ fun ProfileHeaderCard(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // Profile Avatar
-            Surface(
-                modifier = Modifier.size(80.dp),
-                shape = MaterialTheme.shapes.extraLarge,
-                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+            ProfileAvatar(
+                profileImagePath = userProfile.profileImagePath,
+                name = userProfile.name,
+                size = 80.dp,
+                onClick = onEditProfilePicture
+            )
+
+            // Personalized Greeting
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                Box(
-                    contentAlignment = Alignment.Center
+                Text(
+                    text = getTimeBasedGreeting(),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
+                    textAlign = TextAlign.Center
+                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Person,
-                        contentDescription = "Profile",
-                        modifier = Modifier.size(40.dp),
-                        tint = MaterialTheme.colorScheme.primary
+                    Text(
+                        text = userProfile.name,
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
+                    IconButton(
+                        onClick = onEditUsername,
+                        modifier = Modifier.size(24.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = "Edit Name",
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
                 }
             }
-
-            // Greeting
-            Text(
-                text = userProfile.gender.getPersonalizedGreeting(),
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center,
-                color = MaterialTheme.colorScheme.onPrimaryContainer
-            )
 
             // Quick Stats Row
             Row(
@@ -105,6 +135,95 @@ private fun QuickStatItem(
             color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
             textAlign = TextAlign.Center
         )
+    }
+}
+
+/**
+ * Profile Avatar Component with image support and fallback initials
+ */
+@Composable
+fun ProfileAvatar(
+    profileImagePath: String?,
+    name: String,
+    size: androidx.compose.ui.unit.Dp,
+    modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null
+) {
+    val context = LocalContext.current
+    var profileBitmap by remember(profileImagePath) { mutableStateOf<ImageBitmap?>(null) }
+    
+    // Load the image when profileImagePath changes
+    LaunchedEffect(profileImagePath) {
+        profileBitmap = if (profileImagePath != null && File(profileImagePath).exists()) {
+            ImageUtils.loadProfileImageBitmap(context)?.asImageBitmap()
+        } else {
+            null
+        }
+    }
+    
+    Surface(
+        modifier = modifier
+            .size(size)
+            .let { mod -> 
+                onClick?.let { mod.clickable { it() } } ?: mod 
+            },
+        shape = CircleShape,
+        color = if (profileBitmap != null) {
+            MaterialTheme.colorScheme.surface
+        } else {
+            MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+        },
+        border = if (profileBitmap != null) {
+            androidx.compose.foundation.BorderStroke(2.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+        } else null
+    ) {
+        Box(
+            contentAlignment = Alignment.Center
+        ) {
+            profileBitmap?.let { bitmap ->
+                androidx.compose.foundation.Image(
+                    bitmap = bitmap,
+                    contentDescription = "Profile Photo",
+                    modifier = Modifier
+                        .size(size)
+                        .clip(CircleShape),
+                    contentScale = ContentScale.Crop
+                )
+            } ?: run {
+                // Show initials as fallback
+                Text(
+                    text = getInitials(name),
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Get user's initials from their name
+ */
+private fun getInitials(name: String): String {
+    return name.trim()
+        .split(" ")
+        .take(2)
+        .mapNotNull { it.firstOrNull()?.uppercaseChar() }
+        .joinToString("")
+        .ifEmpty { "U" } // Fallback to "U" for User
+}
+
+/**
+ * Get time-based greeting message
+ */
+private fun getTimeBasedGreeting(): String {
+    val currentHour = LocalTime.now().hour
+    return when (currentHour) {
+        in 5..11 -> "Good morning,"
+        in 12..16 -> "Good afternoon,"
+        in 17..21 -> "Good evening,"
+        else -> "Hello,"
     }
 }
 

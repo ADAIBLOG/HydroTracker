@@ -6,6 +6,8 @@ package com.cemcakmak.hydrotracker.data.models
  */
 data class UserProfile(
     val id: Int = 1,
+    val name: String, // Required user name (max 15 characters)
+    val profileImagePath: String? = null, // Optional local file path to profile image
     val gender: Gender,
     val ageGroup: AgeGroup,
     val weight: Double? = null, // in kg (optional for more precise calculation)

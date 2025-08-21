@@ -45,6 +45,7 @@ class UserRepository(context: Context) {
         println("UserRepository: Profile onboarding completed = ${profile.isOnboardingCompleted}")
 
         prefs.edit().apply {
+            putString("name", profile.name)
             putString("gender", profile.gender.name)
             putString("age_group", profile.ageGroup.name)
             putString("activity_level", profile.activityLevel.name)
@@ -58,6 +59,7 @@ class UserRepository(context: Context) {
             // Optional fields
             profile.weight?.let { putFloat("weight", it.toFloat()) }
             profile.preferredThemeColor?.let { putString("preferred_theme_color", it) }
+            profile.profileImagePath?.let { putString("profile_image_path", it) }
             putBoolean("use_system_theme", profile.useSystemTheme)
 
             apply()
@@ -91,6 +93,8 @@ class UserRepository(context: Context) {
 
                 if (genderName != null && ageGroupName != null && activityLevelName != null) {
                     val profile = UserProfile(
+                        name = prefs.getString("name", "User") ?: "User", // Default name for existing users
+                        profileImagePath = prefs.getString("profile_image_path", null),
                         gender = Gender.valueOf(genderName),
                         ageGroup = AgeGroup.valueOf(ageGroupName),
                         activityLevel = ActivityLevel.valueOf(activityLevelName),
