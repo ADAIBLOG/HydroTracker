@@ -27,12 +27,16 @@ import com.cemcakmak.hydrotracker.data.database.repository.WaterIntakeRepository
 import com.cemcakmak.hydrotracker.presentation.common.HydroSnackbarHost
 import com.cemcakmak.hydrotracker.ui.theme.HydroTrackerTheme
 import kotlinx.coroutines.launch
-import android.widget.Toast
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.clickable
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
+import android.content.Intent
+import android.net.Uri
+import androidx.compose.ui.res.painterResource
+import com.cemcakmak.hydrotracker.R
+import androidx.compose.ui.graphics.Color
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -41,7 +45,6 @@ fun SettingsScreen(
     userProfile: UserProfile? = null,
     userRepository: UserRepository? = null,
     waterIntakeRepository: WaterIntakeRepository? = null,
-    onThemeToggle: (Boolean) -> Unit = {},
     onDarkModeChange: (DarkModePreference) -> Unit = {},
     onColorSourceChange: (ColorSource) -> Unit = {},
     onWeekStartDayChange: (WeekStartDay) -> Unit = {},
@@ -116,9 +119,12 @@ fun SettingsScreen(
                     onColorSourceChange = onColorSourceChange,
                     onDarkModeChange = onDarkModeChange,
                     isDynamicColorAvailable = isDynamicColorAvailable,
-                    isVisible = isVisible
                 )
             }
+
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+            )
 
             // Display Section
             AnimatedVisibility(
@@ -137,11 +143,19 @@ fun SettingsScreen(
                 )
             }
 
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+            )
+
             // Notification Settings Section
             NotificationSettingsSection(
                 userProfile = userProfile,
                 onRequestPermission = onRequestNotificationPermission,
                 isVisible = isVisible
+            )
+
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
             )
 
             // Developer Options Section (only show if enabled and repositories available)
@@ -170,6 +184,11 @@ fun SettingsScreen(
                     )
                 }
             }
+            
+            // Support Section
+            SupportSection(
+                isVisible = isVisible
+            )
             
             // Footer with app info
             FooterSection(
@@ -213,16 +232,18 @@ private fun ThemeSection(
     onColorSourceChange: (ColorSource) -> Unit,
     onDarkModeChange: (DarkModePreference) -> Unit,
     isDynamicColorAvailable: Boolean,
-    isVisible: Boolean
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        )
     ) {
         Column(
             modifier = Modifier.padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-            // Color Theme Section
+            // Theme Mode Section
             Column(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
@@ -236,78 +257,7 @@ private fun ThemeSection(
                         tint = MaterialTheme.colorScheme.primary
                     )
                     Text(
-                        text = "Color Theme",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-
-                // Dynamic Colors Toggle
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text(
-                            text = "Dynamic Colors",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Medium,
-                            color = if (isDynamicColorAvailable) {
-                                MaterialTheme.colorScheme.onSurface
-                            } else {
-                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                            }
-                        )
-                        Text(
-                            text = if (isDynamicColorAvailable) {
-                                "Colors from your wallpaper"
-                            } else {
-                                "Requires Android 12+"
-                            },
-                            style = MaterialTheme.typography.bodySmall,
-                            color = if (isDynamicColorAvailable) {
-                                MaterialTheme.colorScheme.onSurfaceVariant
-                            } else {
-                                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                            }
-                        )
-                    }
-                    Switch(
-                        checked = themePreferences.colorSource == ColorSource.DYNAMIC_COLOR,
-                        onCheckedChange = { enabled ->
-                            if (isDynamicColorAvailable) {
-                                onColorSourceChange(
-                                    if (enabled) ColorSource.DYNAMIC_COLOR else ColorSource.HYDRO_THEME
-                                )
-                            }
-                        },
-                        enabled = isDynamicColorAvailable
-                    )
-                }
-            }
-            
-            HorizontalDivider(
-                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-            )
-
-            // Theme Mode Section
-            Column(
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.DarkMode,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                    Text(
-                        text = "Theme Mode",
+                        text = "Theme Settings",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -356,6 +306,59 @@ private fun ThemeSection(
                     }
                 }
             }
+
+            // Color Theme Section
+            Column(
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // Dynamic Colors Toggle with Icon
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(
+                            text = "Dynamic Colors",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = if (isDynamicColorAvailable) {
+                                "Colors from your wallpaper"
+                            } else {
+                                "Requires Android 12+"
+                            },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Switch(
+                        checked = themePreferences.colorSource == ColorSource.DYNAMIC_COLOR,
+                        onCheckedChange = { enabled ->
+                            if (isDynamicColorAvailable) {
+                                onColorSourceChange(
+                                    if (enabled) ColorSource.DYNAMIC_COLOR else ColorSource.HYDRO_THEME
+                                )
+                            }
+                        },
+                        enabled = isDynamicColorAvailable,
+                        thumbContent = if (themePreferences.colorSource == ColorSource.DYNAMIC_COLOR) {
+                            {
+                                Icon(
+                                    imageVector = Icons.Filled.Check,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(SwitchDefaults.IconSize),
+                                )
+                            }
+                        } else {
+                            null
+                        }
+                    )
+                }
+            }
         }
     }
 }
@@ -367,7 +370,10 @@ private fun DisplaySection(
     onWeekStartDayChange: (WeekStartDay) -> Unit
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        )
     ) {
         Column(
             modifier = Modifier.padding(20.dp),
@@ -383,19 +389,11 @@ private fun DisplaySection(
                     tint = MaterialTheme.colorScheme.primary
                 )
                 Text(
-                    text = "Calendar",
+                    text = "Week Start",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold
                 )
             }
-            
-            // Week Start Day Options  
-            Text(
-                text = "Week starts on",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp)
-            )
             
             // Connected Button Groups for Week Start Day
             val haptics = LocalHapticFeedback.current
@@ -618,6 +616,125 @@ private fun AsyncDebugActionButton(
 }
 
 @Composable
+private fun SupportSection(
+    isVisible: Boolean
+) {
+    val context = LocalContext.current
+    
+    AnimatedVisibility(
+        visible = isVisible,
+        enter = slideInVertically(
+            animationSpec = spring(
+                dampingRatio = Spring.DampingRatioMediumBouncy,
+                stiffness = Spring.StiffnessMedium
+            ),
+            initialOffsetY = { it / 2 }
+        ) + fadeIn(animationSpec = tween(600, delayMillis = 450))
+    ) {
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface
+            )
+        ) {
+            Column(
+                modifier = Modifier.padding(20.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Favorite,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Text(
+                        text = "Support Development",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                }
+                
+                Text(
+                    text = "If you like to support my work, you can donate me :)",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                    textAlign = TextAlign.Center
+                )
+                
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // PayPal Button
+                    FilledTonalButton(
+                        onClick = {
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.paypal.com/donate/?hosted_button_id=CQUZLNRM79CAU"))
+                            context.startActivity(intent)
+                        },
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.filledTonalButtonColors(
+                            containerColor = Color(0xFF003087)
+                        )
+                    ) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.paypal),
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp),
+                                tint = MaterialTheme.colorScheme.inverseOnSurface
+                            )
+                            Text(
+                                text = "PayPal",
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.inverseOnSurface
+                            )
+                        }
+                    }
+                    
+                    // Buy Me a Coffee Button
+                    FilledTonalButton(
+                        onClick = {
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://buymeacoffee.com/thegadgetgeek"))
+                            context.startActivity(intent)
+                        },
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.filledTonalButtonColors(
+                            containerColor = Color(0xFFFFDD00)
+                        )
+                    ) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.coffee),
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp),
+                                tint = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = "Buy Me Coffee",
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun FooterSection(
     onVersionTap: () -> Unit,
     isVisible: Boolean
@@ -635,7 +752,7 @@ private fun FooterSection(
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                containerColor = MaterialTheme.colorScheme.surface
             )
         ) {
             Column(

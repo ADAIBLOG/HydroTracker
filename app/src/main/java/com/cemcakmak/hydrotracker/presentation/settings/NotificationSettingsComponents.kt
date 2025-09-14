@@ -61,7 +61,7 @@ fun NotificationSettingsSection(
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant
+                containerColor = MaterialTheme.colorScheme.surface
             )
         ) {
             Column(
@@ -224,7 +224,18 @@ private fun NotificationControlsCard(
 
                 Switch(
                     checked = isEnabled,
-                    onCheckedChange = onToggleNotifications
+                    onCheckedChange = onToggleNotifications,
+                    thumbContent = if (isEnabled) {
+                        {
+                            Icon(
+                                imageVector = Icons.Filled.Check,
+                                contentDescription = null,
+                                modifier = Modifier.size(SwitchDefaults.IconSize),
+                            )
+                        }
+                    } else {
+                        null
+                    }
                 )
             }
 
