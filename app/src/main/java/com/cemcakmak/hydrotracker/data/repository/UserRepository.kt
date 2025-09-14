@@ -177,4 +177,18 @@ class UserRepository(context: Context) {
             )
         )
     }
+    
+    /**
+     * Save developer options enabled state
+     */
+    fun saveDeveloperOptionsEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean("developer_options_enabled", enabled).apply()
+    }
+    
+    /**
+     * Load developer options enabled state
+     */
+    fun loadDeveloperOptionsEnabled(): Boolean {
+        return prefs.getBoolean("developer_options_enabled", false)
+    }
 }

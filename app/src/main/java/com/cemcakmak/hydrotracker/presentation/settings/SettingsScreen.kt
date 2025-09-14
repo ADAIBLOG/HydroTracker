@@ -26,6 +26,10 @@ import com.cemcakmak.hydrotracker.data.database.repository.WaterIntakeRepository
 import com.cemcakmak.hydrotracker.presentation.common.HydroSnackbarHost
 import com.cemcakmak.hydrotracker.ui.theme.HydroTrackerTheme
 import kotlinx.coroutines.launch
+import android.widget.Toast
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.text.style.TextAlign
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -45,9 +49,19 @@ fun SettingsScreen(
 ) {
     // Animation states
     var isVisible by remember { mutableStateOf(false) }
+    
+    // Developer options state
+    var developerOptionsEnabled by remember { 
+        mutableStateOf(
+            userRepository?.loadDeveloperOptionsEnabled() ?: false
+        )
+    }
+    var tapCount by remember { mutableStateOf(0) }
+    var lastTapTime by remember { mutableStateOf(0L) }
 
     // Snackbar state for Material 3 Expressive feedback
     val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
         isVisible = true
@@ -127,8 +141,8 @@ fun SettingsScreen(
                 isVisible = isVisible
             )
 
-            // Debug Section (only show if both repositories are available)
-            if (userRepository != null && waterIntakeRepository != null) {
+            // Developer Options Section (only show if enabled and repositories available)
+            if (developerOptionsEnabled && userRepository != null && waterIntakeRepository != null) {
                 AnimatedVisibility(
                     visible = isVisible,
                     enter = slideInVertically(
@@ -139,22 +153,52 @@ fun SettingsScreen(
                         initialOffsetY = { it / 2 }
                     ) + fadeIn(animationSpec = tween(600, delayMillis = 400))
                 ) {
-                    DebugSection(
+                    DeveloperOptionsSection(
                         userRepository = userRepository,
                         waterIntakeRepository = waterIntakeRepository,
                         snackbarHostState = snackbarHostState,
-                        onNavigateToOnboarding = onNavigateToOnboarding
+                        onNavigateToOnboarding = onNavigateToOnboarding,
+                        onDisableDeveloperOptions = {
+                            developerOptionsEnabled = false
+                            userRepository.saveDeveloperOptionsEnabled(false)
+                        },
+                        userProfile = userProfile,
+                        isVisible = isVisible
                     )
                 }
-
-                // Debug Notification Section
-                DebugNotificationSection(
-                    userProfile = userProfile,
-                    waterIntakeRepository = waterIntakeRepository,
-                    snackbarHostState = snackbarHostState,
-                    isVisible = isVisible
-                )
             }
+            
+            // Footer with app info
+            FooterSection(
+                onVersionTap = {
+                    val currentTime = System.currentTimeMillis()
+                    
+                    // Reset counter if more than 3 seconds have passed
+                    if (currentTime - lastTapTime > 3000) {
+                        tapCount = 1
+                    } else {
+                        tapCount++
+                    }
+                    
+                    lastTapTime = currentTime
+                    
+                    // Activate developer options after 10 taps
+                    if (tapCount >= 10 && !developerOptionsEnabled) {
+                        developerOptionsEnabled = true
+                        userRepository?.saveDeveloperOptionsEnabled(true)
+                        
+                        coroutineScope.launch {
+                            snackbarHostState.showSnackbar(
+                                message = "Developer options activated",
+                                duration = SnackbarDuration.Short
+                            )
+                        }
+                        
+                        tapCount = 0
+                    }
+                },
+                isVisible = isVisible
+            )
         }
     }
 }
@@ -482,121 +526,6 @@ private fun WeekStartDayOption(
     }
 }
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
-@Composable
-private fun DebugSection(
-    userRepository: UserRepository,
-    waterIntakeRepository: WaterIntakeRepository,
-    snackbarHostState: SnackbarHostState,
-    onNavigateToOnboarding: () -> Unit
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.7f)
-        )
-    ) {
-        Column(
-            modifier = Modifier.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.BugReport,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.error
-                )
-                Text(
-                    text = "Debug Tools",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onErrorContainer
-                )
-            }
-
-            Text(
-                text = "These tools are for development and testing purposes only.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.8f)
-            )
-
-            // Reset Onboarding Button
-            DebugActionButton(
-                title = "Reset Onboarding",
-                description = "Clear user data and restart onboarding",
-                icon = Icons.Default.RestartAlt,
-                snackbarHostState = snackbarHostState,
-                onClick = {
-                    userRepository.resetOnboarding()
-                    onNavigateToOnboarding()
-                },
-                confirmationMessage = "Onboarding reset! Redirecting..."
-            )
-
-            // Clear All Data Button
-            AsyncDebugActionButton(
-                title = "Clear All Data",
-                description = "Remove all stored user preferences and water data",
-                icon = Icons.Default.DeleteForever,
-                snackbarHostState = snackbarHostState,
-                onClick = {
-                    userRepository.clearUserProfile()
-                    waterIntakeRepository.clearAllData()
-                },
-                confirmationMessage = "All data cleared!"
-            )
-
-            AsyncDebugActionButton(
-                title = "Inject 30-Day Data",
-                description = "Add realistic water intake data for past 30 days",
-                icon = Icons.Default.DataObject,
-                snackbarHostState = snackbarHostState,
-                onClick = {
-                    waterIntakeRepository.injectDebugData()
-                },
-                confirmationMessage = "30 days of realistic data injected! Check History screen."
-            )
-
-            // Show Current Status
-            val isOnboardingCompleted by userRepository.isOnboardingCompleted.collectAsState()
-            val userProfile by userRepository.userProfile.collectAsState()
-
-            Card(
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                )
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    Text(
-                        text = "Current Status",
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    Text(
-                        text = "Onboarding Completed: $isOnboardingCompleted",
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                    Text(
-                        text = "User Profile Exists: ${userProfile != null}",
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                    if (userProfile != null) {
-                        Text(
-                            text = "Daily Goal: ${userProfile!!.dailyWaterGoal.toInt()} ml",
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
 
 @Composable
 private fun DebugActionButton(
@@ -767,6 +696,227 @@ private fun AsyncDebugActionButton(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun FooterSection(
+    onVersionTap: () -> Unit,
+    isVisible: Boolean
+) {
+    AnimatedVisibility(
+        visible = isVisible,
+        enter = slideInVertically(
+            animationSpec = spring(
+                dampingRatio = Spring.DampingRatioMediumBouncy,
+                stiffness = Spring.StiffnessMedium
+            ),
+            initialOffsetY = { it / 2 }
+        ) + fadeIn(animationSpec = tween(600, delayMillis = 500))
+    ) {
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+            )
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = "HydroTracker",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center
+                )
+                
+                Text(
+                    text = "Version 1.0",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.clickable { onVersionTap() }
+                )
+                
+                Text(
+                    text = "Developed by Ali Cem Çakmak",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    textAlign = TextAlign.Center
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun DeveloperOptionsSection(
+    userRepository: UserRepository,
+    waterIntakeRepository: WaterIntakeRepository,
+    snackbarHostState: SnackbarHostState,
+    onNavigateToOnboarding: () -> Unit,
+    onDisableDeveloperOptions: () -> Unit,
+    userProfile: UserProfile?,
+    isVisible: Boolean
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.7f)
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.DeveloperMode,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error
+                )
+                Text(
+                    text = "Developer Options",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onErrorContainer
+                )
+            }
+
+            Text(
+                text = "These options are for development and testing purposes only.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.8f)
+            )
+            
+            // Disable Developer Options Toggle
+            Card(
+                onClick = onDisableDeveloperOptions,
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                )
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.VisibilityOff,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error
+                    )
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Disable Developer Options",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Text(
+                            text = "Hide developer options from settings",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+            
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.3f)
+            )
+
+            // Reset Onboarding Button
+            DebugActionButton(
+                title = "Reset Onboarding",
+                description = "Clear user data and restart onboarding",
+                icon = Icons.Default.RestartAlt,
+                snackbarHostState = snackbarHostState,
+                onClick = {
+                    userRepository.resetOnboarding()
+                    onNavigateToOnboarding()
+                },
+                confirmationMessage = "Onboarding reset! Redirecting..."
+            )
+
+            // Clear All Data Button
+            AsyncDebugActionButton(
+                title = "Clear All Data",
+                description = "Remove all stored user preferences and water data",
+                icon = Icons.Default.DeleteForever,
+                snackbarHostState = snackbarHostState,
+                onClick = {
+                    userRepository.clearUserProfile()
+                    waterIntakeRepository.clearAllData()
+                },
+                confirmationMessage = "All data cleared!"
+            )
+
+            AsyncDebugActionButton(
+                title = "Inject 30-Day Data",
+                description = "Add realistic water intake data for past 30 days",
+                icon = Icons.Default.DataObject,
+                snackbarHostState = snackbarHostState,
+                onClick = {
+                    waterIntakeRepository.injectDebugData()
+                },
+                confirmationMessage = "30 days of realistic data injected! Check History screen."
+            )
+
+            // Show Current Status
+            val isOnboardingCompleted by userRepository.isOnboardingCompleted.collectAsState()
+            val currentUserProfile by userRepository.userProfile.collectAsState()
+
+            Card(
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                )
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        text = "Current Status",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        text = "Onboarding Completed: $isOnboardingCompleted",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                    Text(
+                        text = "User Profile Exists: ${currentUserProfile != null}",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                    if (currentUserProfile != null) {
+                        Text(
+                            text = "Daily Goal: ${currentUserProfile!!.dailyWaterGoal.toInt()} ml",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
+            }
+            
+            // Debug Notification Section
+            DebugNotificationSection(
+                userProfile = userProfile,
+                waterIntakeRepository = waterIntakeRepository,
+                snackbarHostState = snackbarHostState,
+                isVisible = true
+            )
         }
     }
 }
