@@ -165,12 +165,12 @@ class UserRepository(context: Context) {
      */
     fun loadThemePreferences(): ThemePreferences {
         return ThemePreferences(
-            useDynamicColor = prefs.getBoolean("use_dynamic_color", false),
+            useDynamicColor = prefs.getBoolean("use_dynamic_color", true),
             darkMode = DarkModePreference.valueOf(
                 prefs.getString("dark_mode", DarkModePreference.SYSTEM.name) ?: DarkModePreference.SYSTEM.name
             ),
             colorSource = ColorSource.valueOf(
-                prefs.getString("color_source", ColorSource.HYDRO_THEME.name) ?: ColorSource.HYDRO_THEME.name
+                prefs.getString("color_source", ColorSource.DYNAMIC_COLOR.name) ?: ColorSource.DYNAMIC_COLOR.name
             ),
             weekStartDay = WeekStartDay.valueOf(
                 prefs.getString("week_start_day", WeekStartDay.MONDAY.name) ?: WeekStartDay.MONDAY.name

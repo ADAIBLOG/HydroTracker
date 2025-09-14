@@ -8,6 +8,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -30,6 +31,8 @@ import android.widget.Toast
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.clickable
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -111,12 +114,13 @@ fun SettingsScreen(
                 ThemeSection(
                     themePreferences = themePreferences,
                     onColorSourceChange = onColorSourceChange,
+                    onDarkModeChange = onDarkModeChange,
                     isDynamicColorAvailable = isDynamicColorAvailable,
                     isVisible = isVisible
                 )
             }
 
-            // Dark Mode Section
+            // Display Section
             AnimatedVisibility(
                 visible = isVisible,
                 enter = slideInVertically(
@@ -129,7 +133,6 @@ fun SettingsScreen(
             ) {
                 DisplaySection(
                     themePreferences = themePreferences,
-                    onDarkModeChange = onDarkModeChange,
                     onWeekStartDayChange = onWeekStartDayChange
                 )
             }
@@ -203,10 +206,12 @@ fun SettingsScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun ThemeSection(
     themePreferences: ThemePreferences,
     onColorSourceChange: (ColorSource) -> Unit,
+    onDarkModeChange: (DarkModePreference) -> Unit,
     isDynamicColorAvailable: Boolean,
     isVisible: Boolean
 ) {
@@ -215,131 +220,150 @@ private fun ThemeSection(
     ) {
         Column(
             modifier = Modifier.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Palette,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary
-                )
-                Text(
-                    text = "Color Theme",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
-            }
-
-            // HydroTracker Theme Option
-            ColorSourceOption(
-                title = "HydroTracker Blue",
-                description = "Beautiful water-themed blue palette",
-                isSelected = themePreferences.colorSource == ColorSource.HYDRO_THEME,
-                onClick = { onColorSourceChange(ColorSource.HYDRO_THEME) },
-                isVisible = isVisible
-            )
-
-            // Dynamic Color Option
-            ColorSourceOption(
-                title = "Dynamic Colors",
-                description = if (isDynamicColorAvailable) {
-                    "Colors from your wallpaper"
-                } else {
-                    "Requires Android 12+"
-                },
-                isSelected = themePreferences.colorSource == ColorSource.DYNAMIC_COLOR,
-                onClick = {
-                    if (isDynamicColorAvailable) {
-                        onColorSourceChange(ColorSource.DYNAMIC_COLOR)
-                    }
-                },
-                enabled = isDynamicColorAvailable,
-                isVisible = isVisible
-            )
-        }
-    }
-}
-
-@Composable
-private fun ColorSourceOption(
-    title: String,
-    description: String,
-    isSelected: Boolean,
-    onClick: () -> Unit,
-    enabled: Boolean = true,
-    isVisible: Boolean
-) {
-    val scale by animateFloatAsState(
-        targetValue = if (isSelected) 1.02f else 1f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMedium
-        ),
-        label = "option_scale"
-    )
-
-    Card(
-        onClick = onClick,
-        enabled = enabled,
-        modifier = Modifier
-            .fillMaxWidth()
-            .scale(scale),
-        colors = CardDefaults.cardColors(
-            containerColor = if (isSelected) {
-                MaterialTheme.colorScheme.primaryContainer
-            } else {
-                MaterialTheme.colorScheme.surface
-            }
-        )
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+            // Color Theme Section
             Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Medium,
-                    color = if (enabled) {
-                        MaterialTheme.colorScheme.onSurface
-                    } else {
-                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                    }
-                )
-                Text(
-                    text = description,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = if (enabled) {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                    }
-                )
-            }
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Palette,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        text = "Color Theme",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
 
-            RadioButton(
-                selected = isSelected,
-                onClick = onClick,
-                enabled = enabled
+                // Dynamic Colors Toggle
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(
+                            text = "Dynamic Colors",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Medium,
+                            color = if (isDynamicColorAvailable) {
+                                MaterialTheme.colorScheme.onSurface
+                            } else {
+                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                            }
+                        )
+                        Text(
+                            text = if (isDynamicColorAvailable) {
+                                "Colors from your wallpaper"
+                            } else {
+                                "Requires Android 12+"
+                            },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (isDynamicColorAvailable) {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                            }
+                        )
+                    }
+                    Switch(
+                        checked = themePreferences.colorSource == ColorSource.DYNAMIC_COLOR,
+                        onCheckedChange = { enabled ->
+                            if (isDynamicColorAvailable) {
+                                onColorSourceChange(
+                                    if (enabled) ColorSource.DYNAMIC_COLOR else ColorSource.HYDRO_THEME
+                                )
+                            }
+                        },
+                        enabled = isDynamicColorAvailable
+                    )
+                }
+            }
+            
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
             )
+
+            // Theme Mode Section
+            Column(
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.DarkMode,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        text = "Theme Mode",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+
+                // Connected Button Groups for Theme Mode
+                val haptics = LocalHapticFeedback.current
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    DarkModePreference.entries.forEach { preference ->
+                        val isSelected = themePreferences.darkMode == preference
+                        
+                        ToggleButton(
+                            checked = isSelected,
+                            onCheckedChange = { 
+                                onDarkModeChange(preference)
+                                haptics.performHapticFeedback(HapticFeedbackType.ToggleOn)
+                            },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = when (preference) {
+                                        DarkModePreference.SYSTEM -> if (isSelected) Icons.Filled.Settings else Icons.Outlined.Settings
+                                        DarkModePreference.LIGHT -> if (isSelected) Icons.Filled.LightMode else Icons.Outlined.LightMode
+                                        DarkModePreference.DARK -> if (isSelected) Icons.Filled.DarkMode else Icons.Outlined.DarkMode
+                                    },
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Text(
+                                    text = when (preference) {
+                                        DarkModePreference.SYSTEM -> "System"
+                                        DarkModePreference.LIGHT -> "Light"
+                                        DarkModePreference.DARK -> "Dark"
+                                    },
+                                    style = MaterialTheme.typography.labelLarge
+                                )
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }
+
 
 @Composable
 private fun DisplaySection(
     themePreferences: ThemePreferences,
-    onDarkModeChange: (DarkModePreference) -> Unit,
     onWeekStartDayChange: (WeekStartDay) -> Unit
 ) {
     Card(
@@ -354,39 +378,18 @@ private fun DisplaySection(
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Icon(
-                    imageVector = Icons.Default.Settings,
+                    imageVector = Icons.Default.CalendarToday,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary
                 )
                 Text(
-                    text = "Display",
+                    text = "Calendar",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold
                 )
             }
-
-            // Dark Mode Options
-            Text(
-                text = "Theme Mode",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp)
-            )
             
-            DarkModePreference.values().forEach { preference ->
-                DarkModeOption(
-                    preference = preference,
-                    isSelected = themePreferences.darkMode == preference,
-                    onClick = { onDarkModeChange(preference) }
-                )
-            }
-            
-            HorizontalDivider(
-                modifier = Modifier.padding(vertical = 8.dp),
-                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-            )
-            
-            // Week Start Day Options
+            // Week Start Day Options  
             Text(
                 text = "Week starts on",
                 style = MaterialTheme.typography.labelMedium,
@@ -394,137 +397,51 @@ private fun DisplaySection(
                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp)
             )
             
-            WeekStartDay.values().forEach { weekStartDay ->
-                WeekStartDayOption(
-                    weekStartDay = weekStartDay,
-                    isSelected = themePreferences.weekStartDay == weekStartDay,
-                    onClick = { onWeekStartDayChange(weekStartDay) }
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun DarkModeOption(
-    preference: DarkModePreference,
-    isSelected: Boolean,
-    onClick: () -> Unit
-) {
-    val icon = when (preference) {
-        DarkModePreference.SYSTEM -> Icons.Default.Settings
-        DarkModePreference.LIGHT -> Icons.Default.LightMode
-        DarkModePreference.DARK -> Icons.Default.DarkMode
-    }
-
-    Card(
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = if (isSelected) {
-                MaterialTheme.colorScheme.primaryContainer
-            } else {
-                MaterialTheme.colorScheme.surface
-            }
-        )
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+            // Connected Button Groups for Week Start Day
+            val haptics = LocalHapticFeedback.current
             Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Column {
-                    Text(
-                        text = preference.getDisplayName(),
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Medium
-                    )
-                    Text(
-                        text = preference.getDescription(),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                WeekStartDay.entries.forEach { weekStartDay ->
+                    val isSelected = themePreferences.weekStartDay == weekStartDay
+                    
+                    ToggleButton(
+                        checked = isSelected,
+                        onCheckedChange = { 
+                            onWeekStartDayChange(weekStartDay)
+                            haptics.performHapticFeedback(HapticFeedbackType.ToggleOn)
+                        },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = when (weekStartDay) {
+                                    WeekStartDay.SUNDAY -> if (isSelected) Icons.Filled.Weekend else Icons.Outlined.Weekend
+                                    WeekStartDay.MONDAY -> if (isSelected) Icons.Filled.Today else Icons.Outlined.Today
+                                },
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Text(
+                                text = when (weekStartDay) {
+                                    WeekStartDay.SUNDAY -> "Sunday"
+                                    WeekStartDay.MONDAY -> "Monday"
+                                },
+                                style = MaterialTheme.typography.labelLarge
+                            )
+                        }
+                    }
                 }
             }
-
-            RadioButton(
-                selected = isSelected,
-                onClick = onClick
-            )
         }
     }
 }
 
-@Composable
-private fun WeekStartDayOption(
-    weekStartDay: WeekStartDay,
-    isSelected: Boolean,
-    onClick: () -> Unit
-) {
-    val icon = when (weekStartDay) {
-        WeekStartDay.SUNDAY -> Icons.Default.Weekend
-        WeekStartDay.MONDAY -> Icons.Default.Today
-    }
 
-    Card(
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = if (isSelected) {
-                MaterialTheme.colorScheme.primaryContainer
-            } else {
-                MaterialTheme.colorScheme.surface
-            }
-        )
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Column {
-                    Text(
-                        text = weekStartDay.displayName,
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Medium
-                    )
-                    Text(
-                        text = weekStartDay.getDescription(),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-
-            RadioButton(
-                selected = isSelected,
-                onClick = onClick
-            )
-        }
-    }
-}
 
 
 @Composable

@@ -7,9 +7,9 @@ import java.time.DayOfWeek
  * Manages dynamic color settings and theme customization
  */
 data class ThemePreferences(
-    val useDynamicColor: Boolean = false, // Default to our water theme
+    val useDynamicColor: Boolean = true, // Default to dynamic colors
     val darkMode: DarkModePreference = DarkModePreference.SYSTEM,
-    val colorSource: ColorSource = ColorSource.HYDRO_THEME,
+    val colorSource: ColorSource = ColorSource.DYNAMIC_COLOR,
     val weekStartDay: WeekStartDay = WeekStartDay.MONDAY
 )
 
