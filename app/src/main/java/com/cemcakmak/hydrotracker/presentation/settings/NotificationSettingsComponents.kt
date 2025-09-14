@@ -37,6 +37,10 @@ fun NotificationSettingsSection(
     var hasPermission by remember {
         mutableStateOf(NotificationPermissionManager.hasNotificationPermission(context))
     }
+    
+    var hasExactAlarmPermission by remember {
+        mutableStateOf(NotificationPermissionManager.hasExactAlarmPermission(context))
+    }
 
     var isNotificationsEnabled by remember {
         mutableStateOf(hasPermission && userProfile?.isOnboardingCompleted == true)
@@ -45,7 +49,8 @@ fun NotificationSettingsSection(
     // Update states when userProfile changes
     LaunchedEffect(userProfile) {
         hasPermission = NotificationPermissionManager.hasNotificationPermission(context)
-        isNotificationsEnabled = hasPermission && userProfile?.isOnboardingCompleted == true
+        hasExactAlarmPermission = NotificationPermissionManager.hasExactAlarmPermission(context)
+        isNotificationsEnabled = hasPermission && hasExactAlarmPermission && userProfile?.isOnboardingCompleted == true
     }
 
     AnimatedVisibility(
@@ -88,19 +93,24 @@ fun NotificationSettingsSection(
                 // Permission Status Card
                 NotificationPermissionCard(
                     hasPermission = hasPermission,
+                    hasExactAlarmPermission = hasExactAlarmPermission,
                     onRequestPermission = {
                         onRequestPermission()
                         // Update state after permission request
                         hasPermission = NotificationPermissionManager.hasNotificationPermission(context)
-                        if (hasPermission && userProfile != null) {
+                        hasExactAlarmPermission = NotificationPermissionManager.hasExactAlarmPermission(context)
+                        if (hasPermission && hasExactAlarmPermission && userProfile != null) {
                             isNotificationsEnabled = true
                             HydroNotificationScheduler.startNotifications(context, userProfile)
                         }
+                    },
+                    onRequestExactAlarmPermission = {
+                        NotificationPermissionManager.requestExactAlarmPermission(context)
                     }
                 )
 
-                // Notification Settings (only show if permission granted)
-                if (hasPermission && userProfile != null) {
+                // Notification Settings (only show if all permissions granted)
+                if (hasPermission && hasExactAlarmPermission && userProfile != null) {
                     NotificationControlsCard(
                         userProfile = userProfile,
                         isEnabled = isNotificationsEnabled,
@@ -124,62 +134,110 @@ fun NotificationSettingsSection(
 @Composable
 private fun NotificationPermissionCard(
     hasPermission: Boolean,
-    onRequestPermission: () -> Unit
+    hasExactAlarmPermission: Boolean,
+    onRequestPermission: () -> Unit,
+    onRequestExactAlarmPermission: () -> Unit
 ) {
+    val allPermissionsGranted = hasPermission && hasExactAlarmPermission
+    
     Card(
         colors = CardDefaults.cardColors(
-            containerColor = if (hasPermission) {
+            containerColor = if (allPermissionsGranted) {
                 MaterialTheme.colorScheme.primaryContainer
             } else {
                 MaterialTheme.colorScheme.errorContainer
             }
         )
     ) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Icon(
-                imageVector = if (hasPermission) Icons.Default.CheckCircle else Icons.Default.Warning,
-                contentDescription = null,
-                tint = if (hasPermission) {
-                    MaterialTheme.colorScheme.primary
-                } else {
-                    MaterialTheme.colorScheme.error
-                },
-                modifier = Modifier.size(24.dp)
-            )
-
-            Column(
-                modifier = Modifier.weight(1f)
+            // Main permission status
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Text(
-                    text = if (hasPermission) "Notifications Enabled" else "Permission Required",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Medium
-                )
-                Text(
-                    text = if (hasPermission) {
-                        "You'll receive hydration reminders"
+                Icon(
+                    imageVector = if (allPermissionsGranted) Icons.Default.CheckCircle else Icons.Default.Warning,
+                    contentDescription = null,
+                    tint = if (allPermissionsGranted) {
+                        MaterialTheme.colorScheme.primary
                     } else {
-                        "Allow notifications to get hydration reminders"
+                        MaterialTheme.colorScheme.error
                     },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    modifier = Modifier.size(24.dp)
                 )
-            }
 
-            if (!hasPermission) {
-                Button(
-                    onClick = onRequestPermission,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.error
-                    )
+                Column(
+                    modifier = Modifier.weight(1f)
                 ) {
-                    Text("Allow")
+                    Text(
+                        text = if (allPermissionsGranted) "Notifications Ready" else "Permissions Required",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Text(
+                        text = if (allPermissionsGranted) {
+                            "You'll receive hydration reminders"
+                        } else {
+                            "Grant permissions to enable notifications"
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+            
+            // Individual permission buttons
+            if (!allPermissionsGranted) {
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                
+                if (!hasPermission) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Notification Permission",
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Button(
+                            onClick = onRequestPermission,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.error
+                            )
+                        ) {
+                            Text("Allow")
+                        }
+                    }
+                }
+                
+                if (!hasExactAlarmPermission) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Alarm Scheduling",
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Button(
+                            onClick = onRequestExactAlarmPermission,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.error
+                            )
+                        ) {
+                            Text("Allow")
+                        }
+                    }
                 }
             }
         }
