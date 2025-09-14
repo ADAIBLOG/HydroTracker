@@ -188,7 +188,6 @@ fun HydroTrackerApp(
                             onColorSourceChange = themeViewModel::setColorSource,
                             onDarkModeChange = themeViewModel::updateDarkModePreference,
                             onWeekStartDayChange = themeViewModel::updateWeekStartDay,
-                            onThemeToggle = themeViewModel::toggleDynamicColor,
                             isDynamicColorAvailable = themeViewModel.isDynamicColorAvailable(),
                             onRequestNotificationPermission = {
                                 notificationPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)

@@ -33,10 +33,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import android.content.Intent
-import android.net.Uri
 import androidx.compose.ui.res.painterResource
 import com.cemcakmak.hydrotracker.R
 import androidx.compose.ui.graphics.Color
+import androidx.core.net.toUri
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -62,8 +62,8 @@ fun SettingsScreen(
             userRepository?.loadDeveloperOptionsEnabled() ?: false
         )
     }
-    var tapCount by remember { mutableStateOf(0) }
-    var lastTapTime by remember { mutableStateOf(0L) }
+    var tapCount by remember { mutableIntStateOf(0) }
+    var lastTapTime by remember { mutableLongStateOf(0L) }
 
     // Snackbar state for Material 3 Expressive feedback
     val snackbarHostState = remember { SnackbarHostState() }
@@ -179,8 +179,7 @@ fun SettingsScreen(
                             developerOptionsEnabled = false
                             userRepository.saveDeveloperOptionsEnabled(false)
                         },
-                        userProfile = userProfile,
-                        isVisible = isVisible
+                        userProfile = userProfile
                     )
                 }
             }
@@ -442,82 +441,7 @@ private fun DisplaySection(
 
 
 
-@Composable
-private fun DebugActionButton(
-    title: String,
-    description: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    snackbarHostState: SnackbarHostState,
-    onClick: () -> Unit,
-    confirmationMessage: String
-) {
-    var isPressed by remember { mutableStateOf(false) }
 
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.95f else 1f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessHigh
-        ),
-        label = "debug_button_press"
-    )
-
-    Card(
-        onClick = {
-            isPressed = true
-            onClick()
-        },
-        modifier = Modifier
-            .fillMaxWidth()
-            .scale(scale),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = 2.dp,
-            pressedElevation = 6.dp
-        )
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.error
-            )
-
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Medium
-                )
-                Text(
-                    text = description,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-    }
-
-    // Show confirmation snackbar
-    LaunchedEffect(isPressed) {
-        if (isPressed) {
-            snackbarHostState.showSnackbar(
-                message = confirmationMessage,
-                duration = SnackbarDuration.Short
-            )
-            kotlinx.coroutines.delay(150)
-            isPressed = false
-        }
-    }
-}
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -674,7 +598,7 @@ private fun SupportSection(
                     // PayPal Button
                     FilledTonalButton(
                         onClick = {
-                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.paypal.com/donate/?hosted_button_id=CQUZLNRM79CAU"))
+                            val intent = Intent(Intent.ACTION_VIEW, "https://www.paypal.com/donate/?hosted_button_id=CQUZLNRM79CAU".toUri())
                             context.startActivity(intent)
                         },
                         modifier = Modifier.weight(1f),
@@ -703,7 +627,7 @@ private fun SupportSection(
                     // Buy Me a Coffee Button
                     FilledTonalButton(
                         onClick = {
-                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://buymeacoffee.com/thegadgetgeek"))
+                            val intent = Intent(Intent.ACTION_VIEW, "https://buymeacoffee.com/thegadgetgeek".toUri())
                             context.startActivity(intent)
                         },
                         modifier = Modifier.weight(1f),
@@ -797,8 +721,7 @@ private fun DeveloperOptionsSection(
     snackbarHostState: SnackbarHostState,
     onNavigateToOnboarding: () -> Unit,
     onDisableDeveloperOptions: () -> Unit,
-    userProfile: UserProfile?,
-    isVisible: Boolean
+    userProfile: UserProfile?
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -873,16 +796,12 @@ private fun DeveloperOptionsSection(
             )
 
             // Reset Onboarding Button
-            DebugActionButton(
-                title = "Reset Onboarding",
-                description = "Clear user data and restart onboarding",
-                icon = Icons.Default.RestartAlt,
+            ResetOnboardingButton(
                 snackbarHostState = snackbarHostState,
                 onClick = {
                     userRepository.resetOnboarding()
                     onNavigateToOnboarding()
-                },
-                confirmationMessage = "Onboarding reset! Redirecting..."
+                }
             )
 
             // Clear All Data Button
@@ -951,6 +870,79 @@ private fun DeveloperOptionsSection(
                 snackbarHostState = snackbarHostState,
                 isVisible = true
             )
+        }
+    }
+}
+
+@Composable
+private fun ResetOnboardingButton(
+    snackbarHostState: SnackbarHostState,
+    onClick: () -> Unit
+) {
+    var isPressed by remember { mutableStateOf(false) }
+
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.95f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessHigh
+        ),
+        label = "debug_button_press"
+    )
+
+    Card(
+        onClick = {
+            isPressed = true
+            onClick()
+        },
+        modifier = Modifier
+            .fillMaxWidth()
+            .scale(scale),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 2.dp,
+            pressedElevation = 6.dp
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.RestartAlt,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.error
+            )
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Reset Onboarding",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Medium
+                )
+                Text(
+                    text = "Clear user data and restart onboarding",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+
+    // Show confirmation snackbar
+    LaunchedEffect(isPressed) {
+        if (isPressed) {
+            snackbarHostState.showSnackbar(
+                message = "Onboarding reset! Redirecting...",
+                duration = SnackbarDuration.Short
+            )
+            kotlinx.coroutines.delay(150)
+            isPressed = false
         }
     }
 }
