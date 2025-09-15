@@ -40,6 +40,7 @@ import com.cemcakmak.hydrotracker.data.models.ReminderStyle
 import com.cemcakmak.hydrotracker.presentation.common.HydroSnackbarHost
 import com.cemcakmak.hydrotracker.presentation.common.showSuccessSnackbar
 import com.cemcakmak.hydrotracker.utils.ImageUtils
+import com.cemcakmak.hydrotracker.notifications.HydroNotificationScheduler
 import java.io.File
 
 /**
@@ -64,6 +65,7 @@ fun ProfileScreen(
     )
 
     // State management
+    val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -86,7 +88,22 @@ fun ProfileScreen(
 
     fun updateUserProfile(updatedProfile: UserProfile) {
         coroutineScope.launch {
+            // Check if notification-affecting fields changed
+            val currentProfile = userProfile
+            val needsNotificationReschedule = currentProfile?.let { current ->
+                current.wakeUpTime != updatedProfile.wakeUpTime ||
+                current.sleepTime != updatedProfile.sleepTime ||
+                current.reminderInterval != updatedProfile.reminderInterval
+            } ?: false
+
             userRepository.saveUserProfile(updatedProfile)
+
+            // Reschedule notifications if needed and user has completed onboarding
+            if (needsNotificationReschedule && updatedProfile.isOnboardingCompleted) {
+                Log.d("ProfileScreen", "Profile changes affect notifications, rescheduling...")
+                HydroNotificationScheduler.rescheduleNotifications(context, updatedProfile)
+            }
+
             snackbarHostState.showSuccessSnackbar(
                 message = "Profile updated successfully!"
             )

@@ -145,45 +145,6 @@ object WaterCalculator {
         }
     }
 
-    /**
-     * Determines if user is on track based on time of day and consumption
-     *
-     * @param consumed Current consumption in milliliters
-     * @param goal Daily goal in milliliters
-     * @param wakeUpTime Wake up time in HH:mm format
-     * @param sleepTime Sleep time in HH:mm format
-     * @return True if user is on track or ahead
-     */
-    fun isOnTrack(
-        consumed: Double,
-        goal: Double,
-        wakeUpTime: String,
-        sleepTime: String
-    ): Boolean {
-        val currentTime = LocalTime.now()
-        val awakeHours = calculateAwakeHours(wakeUpTime, sleepTime)
-
-        return try {
-            val wakeUp = LocalTime.parse(wakeUpTime, DateTimeFormatter.ofPattern("HH:mm"))
-
-            // Calculate how many hours have passed since wake up
-            val hoursAwake = if (currentTime.isAfter(wakeUp)) {
-                (currentTime.toSecondOfDay() - wakeUp.toSecondOfDay()) / 3600.0
-            } else {
-                // Handle case where current time is before wake up time (next day scenario)
-                ((24 * 3600) - wakeUp.toSecondOfDay() + currentTime.toSecondOfDay()) / 3600.0
-            }
-
-            // Expected consumption based on time elapsed
-            val expectedProgress = (hoursAwake / awakeHours).coerceIn(0.0, 1.0)
-            val expectedConsumption = goal * expectedProgress
-
-            consumed >= expectedConsumption * 0.9 // 10% tolerance
-        } catch (_: Exception) {
-            // Fallback: consider on track if consumed >= 50% of goal
-            consumed >= goal * 0.5
-        }
-    }
 
     /**
      * Extension function to format Double with specified decimal places
