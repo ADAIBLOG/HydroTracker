@@ -89,12 +89,10 @@ fun ProfileScreen(
     fun updateUserProfile(updatedProfile: UserProfile) {
         coroutineScope.launch {
             // Check if notification-affecting fields changed
-            val currentProfile = userProfile
-            val needsNotificationReschedule = currentProfile?.let { current ->
-                current.wakeUpTime != updatedProfile.wakeUpTime ||
-                current.sleepTime != updatedProfile.sleepTime ||
-                current.reminderInterval != updatedProfile.reminderInterval
-            } ?: false
+            val needsNotificationReschedule =
+                userProfile.wakeUpTime != updatedProfile.wakeUpTime ||
+                userProfile.sleepTime != updatedProfile.sleepTime ||
+                userProfile.reminderInterval != updatedProfile.reminderInterval
 
             userRepository.saveUserProfile(updatedProfile)
 

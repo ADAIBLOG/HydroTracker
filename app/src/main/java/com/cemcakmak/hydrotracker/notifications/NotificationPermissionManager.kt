@@ -1,6 +1,3 @@
-// NotificationPermissionManager.kt
-// Location: app/src/main/java/com/cemcakmak/hydrotracker/notifications/NotificationPermissionManager.kt
-
 package com.cemcakmak.hydrotracker.notifications
 
 import android.Manifest
