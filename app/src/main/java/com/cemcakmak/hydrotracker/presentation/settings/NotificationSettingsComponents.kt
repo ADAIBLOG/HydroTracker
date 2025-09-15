@@ -66,7 +66,7 @@ fun NotificationSettingsSection(
             )
         ) {
             Column(
-                modifier = Modifier.padding(20.dp),
+                modifier = Modifier.padding(10.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 // Header

@@ -15,8 +15,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.launch
 import com.cemcakmak.hydrotracker.data.models.ThemePreferences
 import com.cemcakmak.hydrotracker.data.models.DarkModePreference
 import com.cemcakmak.hydrotracker.data.models.ColorSource
@@ -26,7 +31,6 @@ import com.cemcakmak.hydrotracker.data.repository.UserRepository
 import com.cemcakmak.hydrotracker.data.database.repository.WaterIntakeRepository
 import com.cemcakmak.hydrotracker.presentation.common.HydroSnackbarHost
 import com.cemcakmak.hydrotracker.ui.theme.HydroTrackerTheme
-import kotlinx.coroutines.launch
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.clickable
 import androidx.compose.ui.text.style.TextAlign
@@ -188,7 +192,16 @@ fun SettingsScreen(
             SupportSection(
                 isVisible = isVisible
             )
-            
+
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+            )
+
+            // About Section
+            AboutSection(
+                isVisible = isVisible
+            )
+
             // Footer with app info
             FooterSection(
                 onVersionTap = {
@@ -239,7 +252,7 @@ private fun ThemeSection(
         )
     ) {
         Column(
-            modifier = Modifier.padding(20.dp),
+            modifier = Modifier.padding(10.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
             // Theme Mode Section
@@ -375,7 +388,7 @@ private fun DisplaySection(
         )
     ) {
         Column(
-            modifier = Modifier.padding(20.dp),
+            modifier = Modifier.padding(10.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Row(
@@ -562,7 +575,7 @@ private fun SupportSection(
             )
         ) {
             Column(
-                modifier = Modifier.padding(20.dp),
+                modifier = Modifier.padding(10.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
@@ -730,7 +743,7 @@ private fun DeveloperOptionsSection(
         )
     ) {
         Column(
-            modifier = Modifier.padding(20.dp),
+            modifier = Modifier.padding(10.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Row(
@@ -945,6 +958,272 @@ private fun ResetOnboardingButton(
             isPressed = false
         }
     }
+}
+
+@Composable
+private fun AboutSection(
+    isVisible: Boolean
+) {
+    val context = LocalContext.current
+    var showLicenseBottomSheet by remember { mutableStateOf(false) }
+
+    AnimatedVisibility(
+        visible = isVisible,
+        enter = slideInVertically(
+            animationSpec = spring(
+                dampingRatio = Spring.DampingRatioMediumBouncy,
+                stiffness = Spring.StiffnessMedium
+            ),
+            initialOffsetY = { it / 2 }
+        ) + fadeIn(animationSpec = tween(600, delayMillis = 475))
+    ) {
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface
+            )
+        ) {
+            Column(
+                modifier = Modifier.padding(10.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+
+                // Open Source License
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { showLicenseBottomSheet = true },
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Code,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Open Source License",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Medium
+                            )
+                            Text(
+                                text = "View the software license",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+
+                        Icon(
+                            imageVector = Icons.Default.ChevronRight,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    // License Bottom Sheet
+    if (showLicenseBottomSheet) {
+        LicenseBottomSheet(
+            onDismiss = { showLicenseBottomSheet = false },
+            context = context
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun LicenseBottomSheet(
+    onDismiss: () -> Unit,
+    context: android.content.Context
+) {
+    val sheetState = rememberModalBottomSheetState()
+    val scope = rememberCoroutineScope()
+    var licenseText by remember { mutableStateOf("Loading...") }
+
+    LaunchedEffect(Unit) {
+        try {
+            licenseText = loadLicenseText(context)
+        } catch (e: Exception) {
+            licenseText = "Error loading license: ${e.message}"
+        }
+    }
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(24.dp)
+                .padding(bottom = 32.dp)
+        ) {
+            // Header
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Open Source License",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // License Content
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 400.dp)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                ParsedMarkdownText(
+                    text = licenseText,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ParsedMarkdownText(
+    text: String,
+    modifier: Modifier = Modifier
+) {
+    val lines = text.split("\n")
+
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        for (line in lines) {
+            when {
+                line.startsWith("# ") -> {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = line.substring(2),
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+                line.startsWith("## ") -> {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        text = line.substring(3),
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+                line.startsWith("### ") -> {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = line.substring(4),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+                line.startsWith("- ") -> {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.Top
+                    ) {
+                        Text(
+                            text = "•",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(top = 2.dp)
+                        )
+                        Text(
+                            text = parseInlineMarkdown(line.substring(2)),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+                line.trim().startsWith("**") && line.trim().endsWith("**") -> {
+                    Text(
+                        text = line.trim().removeSurrounding("**"),
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+                line.isBlank() -> {
+                    Spacer(modifier = Modifier.height(2.dp))
+                }
+                line.trim() == "---" -> {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    HorizontalDivider(
+                        color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                        thickness = 1.dp
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+                else -> {
+                    Text(
+                        text = parseInlineMarkdown(line),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        lineHeight = MaterialTheme.typography.bodyMedium.lineHeight * 1.2
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun parseInlineMarkdown(text: String): AnnotatedString {
+    return buildAnnotatedString {
+        var currentIndex = 0
+        val boldRegex = "\\*\\*(.*?)\\*\\*".toRegex()
+
+        val matches = boldRegex.findAll(text).toList()
+
+        for (match in matches) {
+            // Add text before the match
+            append(text.substring(currentIndex, match.range.first))
+
+            // Add bold text
+            withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
+                append(match.groupValues[1])
+            }
+
+            currentIndex = match.range.last + 1
+        }
+
+        // Add remaining text
+        if (currentIndex < text.length) {
+            append(text.substring(currentIndex))
+        }
+    }
+}
+
+private fun loadLicenseText(context: android.content.Context): String {
+    return context.assets.open("LICENSE.md").bufferedReader().use { it.readText() }
 }
 
 @Preview(showBackground = true)
