@@ -1,6 +1,3 @@
-// HydroNotificationReceiver.kt
-// Location: app/src/main/java/com/cemcakmak/hydrotracker/notifications/HydroNotificationReceiver.kt
-
 package com.cemcakmak.hydrotracker.notifications
 
 import android.content.BroadcastReceiver
@@ -69,8 +66,8 @@ class HydroNotificationReceiver : BroadcastReceiver() {
             // Check if we're within waking hours (double-check)
             if (!isWithinWakingHours(context, userProfile)) {
                 Log.d(TAG, "Outside waking hours, rescheduling for appropriate time")
-                // Schedule for next appropriate time
-                HydroNotificationScheduler.scheduleNextReminder(context, userProfile)
+                // Schedule for next appropriate time using the improved scheduling method
+                HydroNotificationScheduler.scheduleNextFromTriggered(context, userProfile)
                 return
             }
 
@@ -79,9 +76,9 @@ class HydroNotificationReceiver : BroadcastReceiver() {
             val notificationService = HydroNotificationService(context)
             notificationService.showHydrationReminder(userProfile, currentProgress)
 
-            // Schedule the next reminder
-            Log.d(TAG, "Scheduling next reminder")
-            HydroNotificationScheduler.scheduleNextReminder(context, userProfile)
+            // Schedule the next reminder using the new method that ensures continuous operation
+            Log.d(TAG, "Scheduling next reminder from triggered time")
+            HydroNotificationScheduler.scheduleNextFromTriggered(context, userProfile)
 
         } catch (e: Exception) {
             Log.e(TAG, "Error handling notification trigger", e)

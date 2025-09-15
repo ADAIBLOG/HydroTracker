@@ -1,6 +1,3 @@
-// BootReceiver.kt
-// Location: app/src/main/java/com/cemcakmak/hydrotracker/notifications/BootReceiver.kt
-
 package com.cemcakmak.hydrotracker.notifications
 
 import android.content.BroadcastReceiver

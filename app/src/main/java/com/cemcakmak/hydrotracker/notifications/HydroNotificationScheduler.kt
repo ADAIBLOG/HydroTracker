@@ -1,12 +1,10 @@
-// HydroNotificationScheduler.kt
-// Location: app/src/main/java/com/cemcakmak/hydrotracker/notifications/HydroNotificationScheduler.kt
-
 package com.cemcakmak.hydrotracker.notifications
 
 import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
 import android.os.Build
 import android.util.Log
 import com.cemcakmak.hydrotracker.data.models.UserProfile
@@ -28,6 +26,13 @@ object HydroNotificationScheduler {
 
     private const val NOTIFICATION_REQUEST_CODE = 2001
     private const val TAG = "HydroNotificationScheduler"
+    private const val PREFS_NAME = "hydro_notification_prefs"
+    private const val KEY_NEXT_REMINDER_TIME = "next_reminder_time"
+    private const val KEY_LAST_SCHEDULED_TIME = "last_scheduled_time"
+
+    private fun getPreferences(context: Context): SharedPreferences {
+        return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    }
 
     /**
      * Start notification scheduling for a user
@@ -99,9 +104,9 @@ object HydroNotificationScheduler {
     /**
      * Calculate the next reminder time based on user's schedule and interval
      */
-    private fun calculateNextReminderTime(userProfile: UserProfile): Calendar? {
-        val now = Calendar.getInstance()
-        val currentTime = LocalTime.now()
+    private fun calculateNextReminderTime(userProfile: UserProfile, fromTime: Calendar? = null): Calendar? {
+        val baseTime = fromTime ?: Calendar.getInstance()
+        val baseLocalTime = LocalTime.of(baseTime.get(Calendar.HOUR_OF_DAY), baseTime.get(Calendar.MINUTE))
 
         val wakeUpTime = parseTime(userProfile.wakeUpTime)
         val sleepTime = parseTime(userProfile.sleepTime)
@@ -111,26 +116,18 @@ object HydroNotificationScheduler {
             return null
         }
 
-        Log.d(TAG, "Current time: $currentTime, wake up: $wakeUpTime, sleep: $sleepTime, interval: ${userProfile.reminderInterval}min")
+        Log.d(TAG, "Base time: $baseLocalTime, wake up: $wakeUpTime, sleep: $sleepTime, interval: ${userProfile.reminderInterval}min")
 
-        // Check if we're currently in sleep hours
-        if (isInSleepHours(currentTime, wakeUpTime, sleepTime)) {
-            Log.d(TAG, "Currently in sleep hours, scheduling for tomorrow after wake up")
-            // Schedule first notification after wake up time + interval
-            val tomorrow = now.clone() as Calendar
-            tomorrow.add(Calendar.DAY_OF_YEAR, 1)
-            tomorrow.set(Calendar.HOUR_OF_DAY, wakeUpTime.hour)
-            tomorrow.set(Calendar.MINUTE, wakeUpTime.minute)
-            tomorrow.set(Calendar.SECOND, 0)
-            tomorrow.set(Calendar.MILLISECOND, 0)
-
-            // Add the reminder interval to wake up time
-            tomorrow.add(Calendar.MINUTE, userProfile.reminderInterval)
-            return tomorrow
+        // If we're currently in sleep hours, schedule for next wake-up + interval
+        if (isInSleepHours(baseLocalTime, wakeUpTime, sleepTime)) {
+            Log.d(TAG, "Base time is in sleep hours, scheduling for next wake up")
+            val nextWakeUp = getNextWakeUpTime(baseTime, wakeUpTime)
+            nextWakeUp.add(Calendar.MINUTE, userProfile.reminderInterval)
+            return nextWakeUp
         }
 
-        // Calculate next reminder time
-        val nextReminder = now.clone() as Calendar
+        // Calculate next reminder time by adding interval
+        val nextReminder = baseTime.clone() as Calendar
         nextReminder.add(Calendar.MINUTE, userProfile.reminderInterval)
 
         val nextReminderTime = LocalTime.of(
@@ -142,20 +139,32 @@ object HydroNotificationScheduler {
 
         // Check if next reminder would be in sleep hours
         if (isInSleepHours(nextReminderTime, wakeUpTime, sleepTime)) {
-            Log.d(TAG, "Next reminder would be in sleep hours, scheduling for tomorrow after wake up")
-            // Schedule for tomorrow after wake up + interval
-            val tomorrow = now.clone() as Calendar
-            tomorrow.add(Calendar.DAY_OF_YEAR, 1)
-            tomorrow.set(Calendar.HOUR_OF_DAY, wakeUpTime.hour)
-            tomorrow.set(Calendar.MINUTE, wakeUpTime.minute)
-            tomorrow.set(Calendar.SECOND, 0)
-            tomorrow.set(Calendar.MILLISECOND, 0)
-            tomorrow.add(Calendar.MINUTE, userProfile.reminderInterval)
-            return tomorrow
+            Log.d(TAG, "Next reminder would be in sleep hours, scheduling for next wake up")
+            val nextWakeUp = getNextWakeUpTime(nextReminder, wakeUpTime)
+            nextWakeUp.add(Calendar.MINUTE, userProfile.reminderInterval)
+            return nextWakeUp
         }
 
         Log.d(TAG, "Scheduling next reminder for: ${nextReminder.time}")
         return nextReminder
+    }
+
+    /**
+     * Get the next wake-up time (today or tomorrow)
+     */
+    private fun getNextWakeUpTime(fromTime: Calendar, wakeUpTime: LocalTime): Calendar {
+        val wakeUp = fromTime.clone() as Calendar
+        wakeUp.set(Calendar.HOUR_OF_DAY, wakeUpTime.hour)
+        wakeUp.set(Calendar.MINUTE, wakeUpTime.minute)
+        wakeUp.set(Calendar.SECOND, 0)
+        wakeUp.set(Calendar.MILLISECOND, 0)
+
+        // If wake-up time has already passed today, move to tomorrow
+        if (wakeUp.timeInMillis <= fromTime.timeInMillis) {
+            wakeUp.add(Calendar.DAY_OF_YEAR, 1)
+        }
+
+        return wakeUp
     }
 
     /**
@@ -191,7 +200,7 @@ object HydroNotificationScheduler {
     }
 
     /**
-     * Schedule notification using AlarmManager
+     * Schedule notification using AlarmManager and persist the schedule time
      */
     private fun scheduleNotification(context: Context, triggerTime: Calendar) {
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
@@ -229,6 +238,9 @@ object HydroNotificationScheduler {
                 Log.d(TAG, "Scheduled exact alarm for: ${triggerTime.time}")
             }
 
+            // Store the scheduled time for UI display
+            storeScheduledTime(context, triggerTime.timeInMillis)
+
             // Verify the alarm was scheduled by checking next alarm clock info
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                 val nextAlarm = alarmManager.nextAlarmClock
@@ -245,11 +257,33 @@ object HydroNotificationScheduler {
     }
 
     /**
+     * Store the scheduled notification time for UI display
+     */
+    private fun storeScheduledTime(context: Context, timeMillis: Long) {
+        getPreferences(context).edit()
+            .putLong(KEY_NEXT_REMINDER_TIME, timeMillis)
+            .putLong(KEY_LAST_SCHEDULED_TIME, System.currentTimeMillis())
+            .apply()
+        Log.d(TAG, "Stored scheduled time: ${Date(timeMillis)}")
+    }
+
+    /**
+     * Clear stored notification time
+     */
+    private fun clearScheduledTime(context: Context) {
+        getPreferences(context).edit()
+            .remove(KEY_NEXT_REMINDER_TIME)
+            .remove(KEY_LAST_SCHEDULED_TIME)
+            .apply()
+        Log.d(TAG, "Cleared stored scheduled time")
+    }
+
+    /**
      * Stop all scheduled notifications
      */
     fun stopNotifications(context: Context) {
         Log.d(TAG, "Stopping all notifications")
-        
+
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
         val intent = Intent(context, HydroNotificationReceiver::class.java)
@@ -262,6 +296,9 @@ object HydroNotificationScheduler {
 
         alarmManager.cancel(pendingIntent)
         Log.d(TAG, "Cancelled scheduled alarms")
+
+        // Clear stored schedule time
+        clearScheduledTime(context)
 
         // Also cancel any visible notifications
         val notificationService = HydroNotificationService(context)
@@ -299,13 +336,79 @@ object HydroNotificationScheduler {
     }
 
     /**
-     * Get next scheduled notification time for debugging
+     * Get next scheduled notification time for UI display
+     * Returns actual scheduled time from AlarmManager if available
      */
     fun getNextScheduledTime(context: Context, userProfile: UserProfile): String? {
+        // First try to get the actual scheduled time
+        val prefs = getPreferences(context)
+        val scheduledTime = prefs.getLong(KEY_NEXT_REMINDER_TIME, 0L)
+        val lastScheduled = prefs.getLong(KEY_LAST_SCHEDULED_TIME, 0L)
+
+        // Check if we have a valid scheduled time and it's not too old (max 24 hours old)
+        val now = System.currentTimeMillis()
+        val maxAge = 24 * 60 * 60 * 1000L // 24 hours
+
+        if (scheduledTime > now && (now - lastScheduled) < maxAge) {
+            // We have a valid future scheduled time
+            val formatter = DateTimeFormatter.ofPattern("MMM dd, HH:mm")
+            val calendar = Calendar.getInstance().apply { timeInMillis = scheduledTime }
+            val localDateTime = LocalDateTime.ofInstant(calendar.toInstant(), calendar.timeZone.toZoneId())
+            return localDateTime.format(formatter)
+        }
+
+        // Fallback to calculated time if no valid scheduled time exists
         val nextTime = calculateNextReminderTime(userProfile)
         return nextTime?.let {
             val formatter = DateTimeFormatter.ofPattern("MMM dd, HH:mm")
             LocalDateTime.ofInstant(it.toInstant(), it.timeZone.toZoneId()).format(formatter)
+        }
+    }
+
+    /**
+     * Schedule the next reminder based on when the current one was triggered
+     * This ensures continuous operation
+     */
+    fun scheduleNextFromTriggered(context: Context, userProfile: UserProfile) {
+        Log.d(TAG, "Scheduling next reminder from triggered time")
+
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val userRepository = UserRepository(context)
+                val waterIntakeRepository = com.cemcakmak.hydrotracker.data.database.DatabaseInitializer
+                    .getWaterIntakeRepository(context, userRepository)
+
+                // Get current progress to check if goal is achieved
+                val currentProgress = waterIntakeRepository.getTodayProgress().first()
+                Log.d(TAG, "Current progress: ${currentProgress.progress}, goal achieved: ${currentProgress.isGoalAchieved}")
+
+                // Don't schedule if goal is achieved
+                if (currentProgress.isGoalAchieved) {
+                    Log.d(TAG, "Goal achieved, not scheduling next reminder")
+                    clearScheduledTime(context)
+                    return@launch
+                }
+
+                // Use current time as the base for next calculation to ensure consistent intervals
+                val now = Calendar.getInstance()
+                val nextReminderTime = calculateNextReminderTime(userProfile, now)
+
+                if (nextReminderTime == null) {
+                    Log.w(TAG, "Could not calculate next reminder time")
+                    return@launch
+                }
+
+                // Only schedule if the time is within waking hours
+                if (isWithinWakingHours(nextReminderTime, userProfile)) {
+                    scheduleNotification(context, nextReminderTime)
+                    Log.d(TAG, "Next reminder scheduled for: ${nextReminderTime.time}")
+                } else {
+                    Log.d(TAG, "Next reminder time ${nextReminderTime.time} is outside waking hours, not scheduling")
+                    clearScheduledTime(context)
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error scheduling next reminder from triggered", e)
+            }
         }
     }
 }

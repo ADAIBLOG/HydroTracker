@@ -3,6 +3,7 @@ package com.cemcakmak.hydrotracker.presentation.profile
 import android.Manifest
 import android.content.pm.PackageManager
 import android.net.Uri
+import android.util.Log
 import androidx.core.net.toUri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -246,6 +247,9 @@ fun ProfileScreen(
                 sleepTime = sleep,
                 dailyGoal = userProfile.dailyWaterGoal
             )
+
+            Log.d("Interval", "New interval: $newInterval")
+
             updateUserProfile(
                 userProfile.copy(
                     wakeUpTime = wakeUp,

@@ -1,6 +1,3 @@
-// NotificationSettingsComponents.kt
-// Location: app/src/main/java/com/cemcakmak/hydrotracker/presentation/settings/NotificationSettingsComponents.kt
-
 package com.cemcakmak.hydrotracker.presentation.settings
 
 import androidx.compose.animation.*
@@ -23,7 +20,6 @@ import kotlinx.coroutines.launch
 
 /**
  * Notification Settings Section for the Settings Screen
- * Material 3 Expressive design with animated components
  */
 @Composable
 fun NotificationSettingsSection(
@@ -319,9 +315,13 @@ private fun NotificationControlsCard(
                     value = userProfile.reminderStyle.getDisplayName()
                 )
 
-                // Next notification info
-                val nextNotificationTime = remember {
-                    HydroNotificationScheduler.getNextScheduledTime(context, userProfile)
+                // Next notification info (refreshes every time the composable recomposes)
+                val nextNotificationTime = remember(userProfile, isEnabled) {
+                    if (isEnabled) {
+                        HydroNotificationScheduler.getNextScheduledTime(context, userProfile)
+                    } else {
+                        null
+                    }
                 }
 
                 if (nextNotificationTime != null) {

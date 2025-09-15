@@ -1,5 +1,6 @@
 package com.cemcakmak.hydrotracker.utils
 
+import android.util.Log
 import com.cemcakmak.hydrotracker.data.models.ActivityLevel
 import com.cemcakmak.hydrotracker.data.models.AgeGroup
 import com.cemcakmak.hydrotracker.data.models.Gender
@@ -92,6 +93,8 @@ object WaterCalculator {
     ): Int {
         val awakeHours = calculateAwakeHours(wakeUpTime, sleepTime)
 
+        Log.d("Awake Hours", "Awake hours: $awakeHours")
+
         // Target 8-12 reminders per day for optimal hydration
         val targetReminders = when {
             dailyGoal < 2000 -> 8 // Lower goal = fewer reminders
@@ -101,8 +104,7 @@ object WaterCalculator {
 
         val intervalMinutes = ((awakeHours * 60) / targetReminders).toInt()
 
-        // Ensure reasonable bounds (30 minutes minimum, 3 hours maximum)
-        return intervalMinutes.coerceIn(30, 180)
+        return intervalMinutes
     }
 
     /**
@@ -123,7 +125,8 @@ object WaterCalculator {
             } / 60
 
             awakeMinutes / 60.0
-        } catch (e: Exception) {
+
+        } catch (_: Exception) {
             // Fallback to 16 hours if time parsing fails
             16.0
         }
@@ -140,17 +143,6 @@ object WaterCalculator {
             amountMl >= 1000 -> "${(amountMl / 1000).format(1)} L"
             else -> "${amountMl.toInt()} ml"
         }
-    }
-
-    /**
-     * Calculates percentage of daily goal completed
-     *
-     * @param consumed Amount consumed in milliliters
-     * @param goal Daily goal in milliliters
-     * @return Percentage (0.0 to 1.0+)
-     */
-    fun calculateProgress(consumed: Double, goal: Double): Double {
-        return if (goal > 0) consumed / goal else 0.0
     }
 
     /**
@@ -187,7 +179,7 @@ object WaterCalculator {
             val expectedConsumption = goal * expectedProgress
 
             consumed >= expectedConsumption * 0.9 // 10% tolerance
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             // Fallback: consider on track if consumed >= 50% of goal
             consumed >= goal * 0.5
         }

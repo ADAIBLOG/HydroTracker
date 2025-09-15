@@ -1,6 +1,7 @@
 package com.cemcakmak.hydrotracker.presentation.onboarding
 
 import android.app.Application
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -85,6 +86,8 @@ class OnboardingViewModel(
             // Calculate water goal when moving to goal step
             if (nextStep == OnboardingStep.GOAL) {
                 calculateWaterGoal()
+                Log.d("OnboardingViewModel", "Calculated water goal: ${_userProfile.value.dailyWaterGoal}")
+                Log.d("OnboardingViewModel", "Calculated reminder interval: ${_userProfile.value.reminderInterval}")
             }
 
             _currentStep.value = nextStep
