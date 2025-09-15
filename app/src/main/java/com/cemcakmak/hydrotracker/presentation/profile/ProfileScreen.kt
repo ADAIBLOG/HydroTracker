@@ -422,27 +422,7 @@ fun ProfilePictureBottomSheet(
 ) {
     val context = LocalContext.current
     val bottomSheetState = rememberModalBottomSheetState()
-    
-    // Camera permission launcher
-    val cameraPermissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
-    ) { _ ->
-        // Handle permission denied if needed
-    }
-    
-    // Image picker launcher
-    val imagePickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri ->
-        uri?.let { selectedUri ->
-            // Save the image to local storage
-            val savedPath = ImageUtils.saveProfileImage(context, selectedUri)
-            if (savedPath != null) {
-                onImageSelected(savedPath.toUri())
-            }
-        }
-    }
-    
+
     // Camera launcher
     val cameraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicture()
@@ -456,6 +436,35 @@ fun ProfilePictureBottomSheet(
                     onImageSelected(savedPath.toUri())
                 }
                 tempFile.delete() // Clean up temp file
+            }
+        }
+    }
+
+    // Camera permission launcher
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            // Permission granted, launch camera immediately
+            val photoFile = File(context.cacheDir, "temp_profile_photo.jpg")
+            val photoUri = androidx.core.content.FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.fileprovider",
+                photoFile
+            )
+            cameraLauncher.launch(photoUri)
+        }
+    }
+    
+    // Image picker launcher
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        uri?.let { selectedUri ->
+            // Save the image to local storage
+            val savedPath = ImageUtils.saveProfileImage(context, selectedUri)
+            if (savedPath != null) {
+                onImageSelected(savedPath.toUri())
             }
         }
     }
@@ -526,7 +535,7 @@ fun ProfilePictureBottomSheet(
                                     val photoFile = File(context.cacheDir, "temp_profile_photo.jpg")
                                     val photoUri = androidx.core.content.FileProvider.getUriForFile(
                                         context,
-                                        "${context.packageName}.fileProvider",
+                                        "${context.packageName}.fileprovider",
                                         photoFile
                                     )
                                     cameraLauncher.launch(photoUri)

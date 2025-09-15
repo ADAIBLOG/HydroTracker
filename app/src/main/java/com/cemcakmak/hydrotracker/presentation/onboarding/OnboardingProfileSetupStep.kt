@@ -50,29 +50,6 @@ fun ProfileSetupStep(
     val bottomSheetState = rememberModalBottomSheetState()
     var showBottomSheet by remember { mutableStateOf(false) }
     
-    // Camera permission launcher
-    val cameraPermissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
-        if (!isGranted) {
-            // Handle permission denied - could show a snackbar
-        }
-    }
-    
-    // Image picker launcher
-    val imagePickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri ->
-        uri?.let { selectedUri ->
-            // Save the image to local storage
-            val savedPath = ImageUtils.saveProfileImage(context, selectedUri)
-            if (savedPath != null) {
-                onImageSelected(Uri.parse(savedPath))
-            }
-        }
-        showBottomSheet = false
-    }
-    
     // Camera launcher
     val cameraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicture()
@@ -90,7 +67,37 @@ fun ProfileSetupStep(
         }
         showBottomSheet = false
     }
+
+    // Camera permission launcher
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            // Permission granted, launch camera immediately
+            val photoFile = File(context.cacheDir, "temp_profile_photo.jpg")
+            val photoUri = androidx.core.content.FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.fileprovider",
+                photoFile
+            )
+            cameraLauncher.launch(photoUri)
+        }
+    }
     
+    // Image picker launcher
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        uri?.let { selectedUri ->
+            // Save the image to local storage
+            val savedPath = ImageUtils.saveProfileImage(context, selectedUri)
+            if (savedPath != null) {
+                onImageSelected(Uri.parse(savedPath))
+            }
+        }
+        showBottomSheet = false
+    }
+
     OnboardingStepLayout(
         title = title,
         description = description
