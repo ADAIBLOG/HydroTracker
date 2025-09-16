@@ -85,7 +85,7 @@ Download the latest APK from [Releases](https://github.com/cemcakmak/HydroTracke
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/cemcakmak/HydroTracker.git
+   git clone https://github.com/Econ01/HydroTracker/releases
    cd HydroTracker
    ```
 
