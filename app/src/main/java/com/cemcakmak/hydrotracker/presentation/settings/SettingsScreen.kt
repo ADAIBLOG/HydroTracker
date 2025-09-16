@@ -41,6 +41,7 @@ import androidx.compose.ui.res.painterResource
 import com.cemcakmak.hydrotracker.R
 import androidx.compose.ui.graphics.Color
 import androidx.core.net.toUri
+import com.cemcakmak.hydrotracker.BuildConfig
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -708,7 +709,7 @@ private fun FooterSection(
                 )
                 
                 Text(
-                    text = "Version 1.0",
+                    text = "Version ${BuildConfig.VERSION_NAME}",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.primary,
                     textAlign = TextAlign.Center,
