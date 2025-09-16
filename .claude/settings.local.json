@@ -14,7 +14,9 @@
       "Bash(rm:*)",
       "Bash(grep:*)",
       "WebFetch(domain:ruwasoft.medium.com)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(cat:*)",
+      "Bash(git rm:*)"
     ],
     "deny": [],
     "additionalDirectories": [
