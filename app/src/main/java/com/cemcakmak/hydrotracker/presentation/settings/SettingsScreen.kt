@@ -257,7 +257,7 @@ private fun ThemeSection(
         )
     ) {
         Column(
-            modifier = Modifier.padding(10.dp),
+            modifier = Modifier.padding(5.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
             // Theme Mode Section
@@ -434,7 +434,7 @@ private fun DisplaySection(
         )
     ) {
         Column(
-            modifier = Modifier.padding(10.dp),
+            modifier = Modifier.padding(5.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Row(
@@ -622,7 +622,7 @@ private fun SupportSection(
             )
         ) {
             Column(
-                modifier = Modifier.padding(10.dp),
+                modifier = Modifier.padding(5.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
@@ -790,7 +790,7 @@ private fun DeveloperOptionsSection(
         )
     ) {
         Column(
-            modifier = Modifier.padding(10.dp),
+            modifier = Modifier.padding(5.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Row(
@@ -1031,7 +1031,7 @@ private fun AboutSection(
             )
         ) {
             Column(
-                modifier = Modifier.padding(10.dp),
+                modifier = Modifier.padding(5.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
 
