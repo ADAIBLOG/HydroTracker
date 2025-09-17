@@ -2,6 +2,7 @@ package com.cemcakmak.hydrotracker.presentation.settings
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -61,9 +62,9 @@ fun SettingsScreen(
 ) {
     // Animation states
     var isVisible by remember { mutableStateOf(false) }
-    
+
     // Developer options state
-    var developerOptionsEnabled by remember { 
+    var developerOptionsEnabled by remember {
         mutableStateOf(
             userRepository?.loadDeveloperOptionsEnabled() ?: false
         )
@@ -190,7 +191,7 @@ fun SettingsScreen(
                     )
                 }
             }
-            
+
             // Support Section
             SupportSection(
                 isVisible = isVisible
@@ -209,28 +210,28 @@ fun SettingsScreen(
             FooterSection(
                 onVersionTap = {
                     val currentTime = System.currentTimeMillis()
-                    
+
                     // Reset counter if more than 3 seconds have passed
                     if (currentTime - lastTapTime > 3000) {
                         tapCount = 1
                     } else {
                         tapCount++
                     }
-                    
+
                     lastTapTime = currentTime
-                    
+
                     // Activate developer options after 10 taps
                     if (tapCount >= 10 && !developerOptionsEnabled) {
                         developerOptionsEnabled = true
                         userRepository?.saveDeveloperOptionsEnabled(true)
-                        
+
                         coroutineScope.launch {
                             snackbarHostState.showSnackbar(
                                 message = "Developer options activated",
                                 duration = SnackbarDuration.Short
                             )
                         }
-                        
+
                         tapCount = 0
                     }
                 },
@@ -287,10 +288,10 @@ private fun ThemeSection(
                 ) {
                     DarkModePreference.entries.forEach { preference ->
                         val isSelected = themePreferences.darkMode == preference
-                        
+
                         ToggleButton(
                             checked = isSelected,
-                            onCheckedChange = { 
+                            onCheckedChange = {
                                 onDarkModeChange(preference)
                                 haptics.performHapticFeedback(HapticFeedbackType.ToggleOn)
                             },
@@ -386,7 +387,7 @@ private fun ThemeSection(
                         modifier = Modifier.weight(1f)
                     ) {
                         Text(
-                            text = "Pure Black",
+                            text = "AMOLED Mode",
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.onSurface
                         )
@@ -451,7 +452,7 @@ private fun DisplaySection(
                     fontWeight = FontWeight.SemiBold
                 )
             }
-            
+
             // Connected Button Groups for Week Start Day
             val haptics = LocalHapticFeedback.current
             Row(
@@ -460,10 +461,10 @@ private fun DisplaySection(
             ) {
                 WeekStartDay.entries.forEach { weekStartDay ->
                     val isSelected = themePreferences.weekStartDay == weekStartDay
-                    
+
                     ToggleButton(
                         checked = isSelected,
-                        onCheckedChange = { 
+                        onCheckedChange = {
                             onWeekStartDayChange(weekStartDay)
                             haptics.performHapticFeedback(HapticFeedbackType.ToggleOn)
                         },
@@ -602,7 +603,8 @@ private fun SupportSection(
     isVisible: Boolean
 ) {
     val context = LocalContext.current
-    
+    val isDarkTheme = isSystemInDarkTheme()
+
     AnimatedVisibility(
         visible = isVisible,
         enter = slideInVertically(
@@ -641,14 +643,14 @@ private fun SupportSection(
                         color = MaterialTheme.colorScheme.onSecondaryContainer
                     )
                 }
-                
+
                 Text(
                     text = "If you like to support my work, you can donate me :)",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSecondaryContainer,
                     textAlign = TextAlign.Center
                 )
-                
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -672,16 +674,16 @@ private fun SupportSection(
                                 painter = painterResource(id = R.drawable.paypal),
                                 contentDescription = null,
                                 modifier = Modifier.size(18.dp),
-                                tint = MaterialTheme.colorScheme.inverseOnSurface
+                                tint = if (isDarkTheme) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.inverseOnSurface
                             )
                             Text(
                                 text = "PayPal",
                                 style = MaterialTheme.typography.labelLarge,
-                                color = MaterialTheme.colorScheme.inverseOnSurface
+                                color = if (isDarkTheme) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.inverseOnSurface
                             )
                         }
                     }
-                    
+
                     // Buy Me a Coffee Button
                     FilledTonalButton(
                         onClick = {
@@ -701,12 +703,12 @@ private fun SupportSection(
                                 painter = painterResource(id = R.drawable.coffee),
                                 contentDescription = null,
                                 modifier = Modifier.size(18.dp),
-                                tint = MaterialTheme.colorScheme.onSurface
+                                tint = if (isDarkTheme) MaterialTheme.colorScheme.inverseOnSurface else MaterialTheme.colorScheme.onSurface
                             )
                             Text(
                                 text = "Buy Me Coffee",
                                 style = MaterialTheme.typography.labelLarge,
-                                color = MaterialTheme.colorScheme.onSurface
+                                color = if (isDarkTheme) MaterialTheme.colorScheme.inverseOnSurface else MaterialTheme.colorScheme.onSurface
                             )
                         }
                     }
