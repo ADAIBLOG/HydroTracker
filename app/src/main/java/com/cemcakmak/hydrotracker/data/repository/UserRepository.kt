@@ -156,6 +156,7 @@ class UserRepository(context: Context) {
             putString("dark_mode", themePreferences.darkMode.name)
             putString("color_source", themePreferences.colorSource.name)
             putString("week_start_day", themePreferences.weekStartDay.name)
+            putBoolean("use_pure_black", themePreferences.usePureBlack)
             apply()
         }
     }
@@ -174,7 +175,8 @@ class UserRepository(context: Context) {
             ),
             weekStartDay = WeekStartDay.valueOf(
                 prefs.getString("week_start_day", WeekStartDay.MONDAY.name) ?: WeekStartDay.MONDAY.name
-            )
+            ),
+            usePureBlack = prefs.getBoolean("use_pure_black", false)
         )
     }
     

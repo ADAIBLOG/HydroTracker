@@ -52,6 +52,7 @@ fun SettingsScreen(
     waterIntakeRepository: WaterIntakeRepository? = null,
     onDarkModeChange: (DarkModePreference) -> Unit = {},
     onColorSourceChange: (ColorSource) -> Unit = {},
+    onPureBlackChange: (Boolean) -> Unit = {},
     onWeekStartDayChange: (WeekStartDay) -> Unit = {},
     onRequestNotificationPermission: () -> Unit = {},
     onNavigateBack: () -> Unit = {},
@@ -123,6 +124,7 @@ fun SettingsScreen(
                     themePreferences = themePreferences,
                     onColorSourceChange = onColorSourceChange,
                     onDarkModeChange = onDarkModeChange,
+                    onPureBlackChange = onPureBlackChange,
                     isDynamicColorAvailable = isDynamicColorAvailable,
                 )
             }
@@ -244,6 +246,7 @@ private fun ThemeSection(
     themePreferences: ThemePreferences,
     onColorSourceChange: (ColorSource) -> Unit,
     onDarkModeChange: (DarkModePreference) -> Unit,
+    onPureBlackChange: (Boolean) -> Unit,
     isDynamicColorAvailable: Boolean,
 ) {
     Card(
@@ -359,6 +362,47 @@ private fun ThemeSection(
                         },
                         enabled = isDynamicColorAvailable,
                         thumbContent = if (themePreferences.colorSource == ColorSource.DYNAMIC_COLOR) {
+                            {
+                                Icon(
+                                    imageVector = Icons.Filled.Check,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(SwitchDefaults.IconSize),
+                                )
+                            }
+                        } else {
+                            null
+                        }
+                    )
+                }
+
+                // Pure Black Toggle
+                val haptics = LocalHapticFeedback.current
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(
+                            text = "Pure Black",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = "True black backgrounds in dark mode",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Switch(
+                        checked = themePreferences.usePureBlack,
+                        onCheckedChange = { enabled ->
+                            onPureBlackChange(enabled)
+                            haptics.performHapticFeedback(HapticFeedbackType.ToggleOn)
+                        },
+                        thumbContent = if (themePreferences.usePureBlack) {
                             {
                                 Icon(
                                     imageVector = Icons.Filled.Check,
@@ -1051,14 +1095,13 @@ private fun LicenseBottomSheet(
     context: android.content.Context
 ) {
     val sheetState = rememberModalBottomSheetState()
-    val scope = rememberCoroutineScope()
     var licenseText by remember { mutableStateOf("Loading...") }
 
     LaunchedEffect(Unit) {
-        try {
-            licenseText = loadLicenseText(context)
+        licenseText = try {
+            loadLicenseText(context)
         } catch (e: Exception) {
-            licenseText = "Error loading license: ${e.message}"
+            "Error loading license: ${e.message}"
         }
     }
 

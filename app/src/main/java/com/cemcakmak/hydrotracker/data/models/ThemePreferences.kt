@@ -10,7 +10,8 @@ data class ThemePreferences(
     val useDynamicColor: Boolean = true, // Default to dynamic colors
     val darkMode: DarkModePreference = DarkModePreference.SYSTEM,
     val colorSource: ColorSource = ColorSource.DYNAMIC_COLOR,
-    val weekStartDay: WeekStartDay = WeekStartDay.MONDAY
+    val weekStartDay: WeekStartDay = WeekStartDay.MONDAY,
+    val usePureBlack: Boolean = false // Pure black backgrounds in dark mode
 )
 
 enum class DarkModePreference {

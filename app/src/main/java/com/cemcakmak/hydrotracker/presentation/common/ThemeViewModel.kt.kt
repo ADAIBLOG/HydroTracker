@@ -80,6 +80,19 @@ class ThemeViewModel(private val userRepository: UserRepository) : ViewModel() {
     }
 
     /**
+     * Update pure black preference
+     */
+    fun updatePureBlackPreference(usePureBlack: Boolean) {
+        viewModelScope.launch {
+            val newPreferences = _themePreferences.value.copy(
+                usePureBlack = usePureBlack
+            )
+            _themePreferences.value = newPreferences
+            userRepository.updateThemePreferences(newPreferences)
+        }
+    }
+
+    /**
      * Check if dynamic color is available on this device
      */
     fun isDynamicColorAvailable(): Boolean {

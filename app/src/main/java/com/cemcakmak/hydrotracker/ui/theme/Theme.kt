@@ -8,6 +8,7 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
+import androidx.compose.ui.graphics.Color
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.platform.LocalContext
@@ -92,7 +93,7 @@ fun HydroTrackerTheme(
     }
 
     // Material 3 Expressive: Choose color scheme based on user preference
-    val colorScheme = when {
+    val baseColorScheme = when {
         // Dynamic colors (Material You) - requires Android 12+
         themePreferences.colorSource == ColorSource.DYNAMIC_COLOR &&
                 Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
@@ -106,6 +107,16 @@ fun HydroTrackerTheme(
         else -> {
             if (darkTheme) HydroDarkColorScheme else HydroLightColorScheme
         }
+    }
+
+    // Apply pure black mode override if enabled and in dark theme
+    val colorScheme = if (themePreferences.usePureBlack && darkTheme) {
+        baseColorScheme.copy(
+            surface = Color.Black,
+            background = Color.Black
+        )
+    } else {
+        baseColorScheme
     }
 
     // Material 3 Expressive: Edge-to-edge with proper status bar theming

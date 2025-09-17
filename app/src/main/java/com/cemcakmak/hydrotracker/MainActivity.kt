@@ -187,6 +187,7 @@ fun HydroTrackerApp(
                             waterIntakeRepository = waterIntakeRepository,
                             onColorSourceChange = themeViewModel::setColorSource,
                             onDarkModeChange = themeViewModel::updateDarkModePreference,
+                            onPureBlackChange = themeViewModel::updatePureBlackPreference,
                             onWeekStartDayChange = themeViewModel::updateWeekStartDay,
                             isDynamicColorAvailable = themeViewModel.isDynamicColorAvailable(),
                             onRequestNotificationPermission = {
