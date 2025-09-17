@@ -2,6 +2,15 @@
 
 All notable changes to HydroTracker will be documented in this file.
 
+## [0.9.3] - 
+### Added
+- Bouncy animations to swtiches
+- New pure black mode
+
+### Fixed
+- Colors of the donation buttons are applied correctly now
+- Reduce side padding on settings page
+
 ## [0.9.1] - 2024-09-16
 ### Added
 - Dynamic version display in Settings screen
