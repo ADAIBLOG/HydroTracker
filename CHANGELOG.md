@@ -2,6 +2,11 @@
 
 All notable changes to HydroTracker will be documented in this file.
 
+## [0.9.4] - 
+
+### Fixed
+- Fix notification problem
+
 ## [0.9.3] - 
 ### Added
 - Bouncy animations to swtiches

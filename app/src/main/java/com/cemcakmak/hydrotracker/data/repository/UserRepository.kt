@@ -30,11 +30,33 @@ class UserRepository(context: Context) {
         val currentCompletionStatus = prefs.getBoolean("onboarding_completed", false)
         println("UserRepository: Current onboarding_completed = $currentCompletionStatus")
 
+        // Migration: Ensure existing users have new theme preferences
+        migratePreferencesIfNeeded()
+
         loadUserProfile()
         // Ensure we emit the initial state immediately
         _isOnboardingCompleted.value = prefs.getBoolean("onboarding_completed", false)
 
         println("UserRepository: Initialization complete. Final status = ${_isOnboardingCompleted.value}")
+    }
+
+    /**
+     * Migrate SharedPreferences for existing users when new features are added
+     */
+    private fun migratePreferencesIfNeeded() {
+        val isExistingUser = prefs.getBoolean("onboarding_completed", false)
+
+        if (isExistingUser) {
+            println("UserRepository: Migrating preferences for existing user...")
+
+            // Migration for usePureBlack (added in version 0.9.3)
+            if (!prefs.contains("use_pure_black")) {
+                println("UserRepository: Adding missing use_pure_black preference")
+                prefs.edit().putBoolean("use_pure_black", false).apply()
+            }
+
+            println("UserRepository: Migration complete")
+        }
     }
 
     /**
