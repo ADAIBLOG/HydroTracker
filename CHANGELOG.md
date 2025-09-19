@@ -2,7 +2,7 @@
 
 All notable changes to HydroTracker will be documented in this file.
 
-## [0.9.5] - 
+## [0.9.5] - 2025.09.19
 ### Added
 - Added privacy policy to the settings
 - Sources section to settings
