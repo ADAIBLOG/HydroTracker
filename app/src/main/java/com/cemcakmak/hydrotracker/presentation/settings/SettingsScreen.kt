@@ -1013,6 +1013,7 @@ private fun AboutSection(
 ) {
     val context = LocalContext.current
     var showLicenseBottomSheet by remember { mutableStateOf(false) }
+    var showPrivacyPolicyBottomSheet by remember { mutableStateOf(false) }
 
     AnimatedVisibility(
         visible = isVisible,
@@ -1032,14 +1033,59 @@ private fun AboutSection(
         ) {
             Column(
                 modifier = Modifier.padding(5.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
+
+                // Privacy Policy
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { showPrivacyPolicyBottomSheet = true },
+                    shape = MaterialTheme.shapes.extraLarge,
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Security,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Privacy Policy",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Medium
+                            )
+                            Text(
+                                text = "View our privacy policy",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+
+                        Icon(
+                            imageVector = Icons.Default.ChevronRight,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    }
+                }
 
                 // Open Source License
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable { showLicenseBottomSheet = true },
+                    shape = MaterialTheme.shapes.extraLarge,
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.primaryContainer
                     )
@@ -1081,6 +1127,14 @@ private fun AboutSection(
         }
     }
 
+    // Privacy Policy Bottom Sheet
+    if (showPrivacyPolicyBottomSheet) {
+        PrivacyPolicyBottomSheet(
+            onDismiss = { showPrivacyPolicyBottomSheet = false },
+            context = context
+        )
+    }
+
     // License Bottom Sheet
     if (showLicenseBottomSheet) {
         LicenseBottomSheet(
@@ -1109,11 +1163,12 @@ private fun LicenseBottomSheet(
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        sheetState = sheetState
+        sheetState = sheetState,
+        modifier = Modifier.fillMaxHeight()
     ) {
         Column(
             modifier = Modifier
-                .fillMaxWidth()
+                .fillMaxSize()
                 .padding(24.dp)
                 .padding(bottom = 32.dp)
         ) {
@@ -1135,8 +1190,7 @@ private fun LicenseBottomSheet(
             // License Content
             Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(max = 400.dp)
+                    .fillMaxSize()
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
@@ -1270,6 +1324,69 @@ private fun parseInlineMarkdown(text: String): AnnotatedString {
 
 private fun loadLicenseText(context: android.content.Context): String {
     return context.assets.open("LICENSE.md").bufferedReader().use { it.readText() }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun PrivacyPolicyBottomSheet(
+    onDismiss: () -> Unit,
+    context: android.content.Context
+) {
+    val sheetState = rememberModalBottomSheetState()
+    var privacyPolicyText by remember { mutableStateOf("Loading...") }
+
+    LaunchedEffect(Unit) {
+        privacyPolicyText = try {
+            loadPrivacyPolicyText(context)
+        } catch (e: Exception) {
+            "Error loading privacy policy: ${e.message}"
+        }
+    }
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        modifier = Modifier.fillMaxHeight()
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(24.dp)
+                .padding(bottom = 32.dp)
+        ) {
+            // Header
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Privacy Policy",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Privacy Policy Content
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                ParsedMarkdownText(
+                    text = privacyPolicyText,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        }
+    }
+}
+
+private fun loadPrivacyPolicyText(context: android.content.Context): String {
+    return context.assets.open("privacy-policy.md").bufferedReader().use { it.readText() }
 }
 
 @Preview(showBackground = true)
