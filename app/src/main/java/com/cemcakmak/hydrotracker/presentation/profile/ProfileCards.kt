@@ -277,10 +277,10 @@ fun ProfileDetailsCard(
                 // Age Group
                 EditableInfoRow(
                     icon = Icons.Default.Cake,
-                    label = "Age Group", 
+                    label = "Age Group",
                     value = userProfile.ageGroup.getDisplayName(),
                     onClick = {haptics.performHapticFeedback(HapticFeedbackType.ContextClick)
-                        onEditGender() }
+                        onEditAgeGroup() }
                 )
 
                 // Weight
