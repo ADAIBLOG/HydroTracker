@@ -2,8 +2,17 @@
 
 All notable changes to HydroTracker will be documented in this file.
 
-## [0.9.4] - 
+## [0.9.5] - 
+### Added
+- Added privacy policy to the settings
+- Sources section to settings
+- Improve water intake amounts based on current research
+- Add an option to choose from EFSA or IOM data
 
+### Fixed
+- Fix: Age Group button opens the correct dialog rather than gender dialog
+
+## [0.9.4] - 2024-09-18
 ### Fixed
 - Fix notification problem
 

@@ -189,6 +189,24 @@ fun HydroTrackerApp(
                             onDarkModeChange = themeViewModel::updateDarkModePreference,
                             onPureBlackChange = themeViewModel::updatePureBlackPreference,
                             onWeekStartDayChange = themeViewModel::updateWeekStartDay,
+                            onHydrationStandardChange = { newStandard ->
+                                userProfile?.let { profile ->
+                                    // Recalculate daily water goal with new standard
+                                    val newGoal = com.cemcakmak.hydrotracker.utils.WaterCalculator.calculateDailyWaterGoal(
+                                        gender = profile.gender,
+                                        ageGroup = profile.ageGroup,
+                                        activityLevel = profile.activityLevel,
+                                        weight = profile.weight,
+                                        hydrationStandard = newStandard
+                                    )
+
+                                    val updatedProfile = profile.copy(
+                                        hydrationStandard = newStandard,
+                                        dailyWaterGoal = newGoal
+                                    )
+                                    userRepository.saveUserProfile(updatedProfile)
+                                }
+                            },
                             isDynamicColorAvailable = themeViewModel.isDynamicColorAvailable(),
                             onRequestNotificationPermission = {
                                 notificationPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)

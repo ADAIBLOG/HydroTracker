@@ -238,7 +238,8 @@ fun ProfileScreen(
                 gender = userProfile.gender,
                 ageGroup = userProfile.ageGroup,
                 activityLevel = newLevel,
-                weight = userProfile.weight
+                weight = userProfile.weight,
+                hydrationStandard = userProfile.hydrationStandard
             )
             updateUserProfile(
                 userProfile.copy(
@@ -286,7 +287,8 @@ fun ProfileScreen(
                 gender = newGender,
                 ageGroup = userProfile.ageGroup,
                 activityLevel = userProfile.activityLevel,
-                weight = userProfile.weight
+                weight = userProfile.weight,
+                hydrationStandard = userProfile.hydrationStandard
             )
             updateUserProfile(
                 userProfile.copy(
@@ -308,7 +310,8 @@ fun ProfileScreen(
                 gender = userProfile.gender,
                 ageGroup = newAgeGroup,
                 activityLevel = userProfile.activityLevel,
-                weight = userProfile.weight
+                weight = userProfile.weight,
+                hydrationStandard = userProfile.hydrationStandard
             )
             updateUserProfile(
                 userProfile.copy(
@@ -330,7 +333,8 @@ fun ProfileScreen(
                 gender = userProfile.gender,
                 ageGroup = userProfile.ageGroup,
                 activityLevel = userProfile.activityLevel,
-                weight = newWeight
+                weight = newWeight,
+                hydrationStandard = userProfile.hydrationStandard
             )
             updateUserProfile(
                 userProfile.copy(

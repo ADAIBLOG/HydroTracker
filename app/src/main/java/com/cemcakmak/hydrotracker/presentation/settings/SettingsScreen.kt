@@ -28,6 +28,7 @@ import com.cemcakmak.hydrotracker.data.models.DarkModePreference
 import com.cemcakmak.hydrotracker.data.models.ColorSource
 import com.cemcakmak.hydrotracker.data.models.WeekStartDay
 import com.cemcakmak.hydrotracker.data.models.UserProfile
+import com.cemcakmak.hydrotracker.data.models.HydrationStandard
 import com.cemcakmak.hydrotracker.data.repository.UserRepository
 import com.cemcakmak.hydrotracker.data.database.repository.WaterIntakeRepository
 import com.cemcakmak.hydrotracker.presentation.common.HydroSnackbarHost
@@ -55,6 +56,7 @@ fun SettingsScreen(
     onColorSourceChange: (ColorSource) -> Unit = {},
     onPureBlackChange: (Boolean) -> Unit = {},
     onWeekStartDayChange: (WeekStartDay) -> Unit = {},
+    onHydrationStandardChange: (HydrationStandard) -> Unit = {},
     onRequestNotificationPermission: () -> Unit = {},
     onNavigateBack: () -> Unit = {},
     onNavigateToOnboarding: () -> Unit = {},
@@ -148,6 +150,27 @@ fun SettingsScreen(
                 DisplaySection(
                     themePreferences = themePreferences,
                     onWeekStartDayChange = onWeekStartDayChange
+                )
+            }
+
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+            )
+
+            // Hydration Calculation Section
+            AnimatedVisibility(
+                visible = isVisible,
+                enter = slideInVertically(
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessMedium
+                    ),
+                    initialOffsetY = { it / 2 }
+                ) + fadeIn(animationSpec = tween(600, delayMillis = 250))
+            ) {
+                HydrationSection(
+                    userProfile = userProfile,
+                    onHydrationStandardChange = onHydrationStandardChange
                 )
             }
 
@@ -1014,6 +1037,7 @@ private fun AboutSection(
     val context = LocalContext.current
     var showLicenseBottomSheet by remember { mutableStateOf(false) }
     var showPrivacyPolicyBottomSheet by remember { mutableStateOf(false) }
+    var showSourcesBottomSheet by remember { mutableStateOf(false) }
 
     AnimatedVisibility(
         visible = isVisible,
@@ -1035,6 +1059,50 @@ private fun AboutSection(
                 modifier = Modifier.padding(5.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
+
+                // Sources
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { showSourcesBottomSheet = true },
+                    shape = MaterialTheme.shapes.extraLarge,
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Science,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Sources & Research",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Medium
+                            )
+                            Text(
+                                text = "View scientific sources and research",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+
+                        Icon(
+                            imageVector = Icons.Default.ChevronRight,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    }
+                }
 
                 // Privacy Policy
                 Card(
@@ -1125,6 +1193,14 @@ private fun AboutSection(
                 }
             }
         }
+    }
+
+    // Sources Bottom Sheet
+    if (showSourcesBottomSheet) {
+        SourcesBottomSheet(
+            onDismiss = { showSourcesBottomSheet = false },
+            context = context
+        )
     }
 
     // Privacy Policy Bottom Sheet
@@ -1387,6 +1463,189 @@ private fun PrivacyPolicyBottomSheet(
 
 private fun loadPrivacyPolicyText(context: android.content.Context): String {
     return context.assets.open("privacy-policy.md").bufferedReader().use { it.readText() }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SourcesBottomSheet(
+    onDismiss: () -> Unit,
+    context: android.content.Context
+) {
+    val sheetState = rememberModalBottomSheetState()
+    var sourcesText by remember { mutableStateOf("Loading...") }
+
+    LaunchedEffect(Unit) {
+        sourcesText = try {
+            loadSourcesText(context)
+        } catch (e: Exception) {
+            "Error loading sources: ${e.message}"
+        }
+    }
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        modifier = Modifier.fillMaxHeight()
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(24.dp)
+                .padding(bottom = 32.dp)
+        ) {
+            // Header
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Sources & Research",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Sources Content
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                ParsedMarkdownText(
+                    text = sourcesText,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        }
+    }
+}
+
+private fun loadSourcesText(context: android.content.Context): String {
+    return context.assets.open("sources.md").bufferedReader().use { it.readText() }
+}
+
+@Composable
+private fun HydrationSection(
+    userProfile: UserProfile?,
+    onHydrationStandardChange: (HydrationStandard) -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(5.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Science,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    text = "Calculation Standard",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+
+            // Hydration Standard Toggle
+            val haptics = LocalHapticFeedback.current
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                HydrationStandard.entries.forEach { standard ->
+                    val isSelected = userProfile?.hydrationStandard == standard
+
+                    ToggleButton(
+                        checked = isSelected,
+                        onCheckedChange = {
+                            onHydrationStandardChange(standard)
+                            haptics.performHapticFeedback(HapticFeedbackType.ToggleOn)
+                        },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text(
+                                text = standard.getDisplayName(),
+                                style = if (isSelected) MaterialTheme.typography.labelLargeEmphasized else MaterialTheme.typography.labelLarge,
+                            )
+                            Text(
+                                text = when (standard) {
+                                    HydrationStandard.EFSA -> "Conservative"
+                                    HydrationStandard.IOM -> "Higher intake"
+                                },
+                                style = MaterialTheme.typography.labelSmall,
+                                color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Current values display
+            userProfile?.let { profile ->
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier.padding(5.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            text = "Current Standards:",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = "Male baseline:",
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                            Text(
+                                text = "${profile.hydrationStandard.getMaleIntake().toInt() / 1000.0} L",
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = "Female baseline:",
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                            Text(
+                                text = "${profile.hydrationStandard.getFemaleIntake().toInt() / 1000.0} L",
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 @Preview(showBackground = true)

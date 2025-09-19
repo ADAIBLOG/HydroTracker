@@ -55,6 +55,12 @@ class UserRepository(context: Context) {
                 prefs.edit().putBoolean("use_pure_black", false).apply()
             }
 
+            // Migration for hydrationStandard (added in version 0.9.4)
+            if (!prefs.contains("hydration_standard")) {
+                println("UserRepository: Adding missing hydration_standard preference - defaulting to EFSA")
+                prefs.edit().putString("hydration_standard", HydrationStandard.EFSA.name).apply()
+            }
+
             println("UserRepository: Migration complete")
         }
     }
@@ -77,6 +83,7 @@ class UserRepository(context: Context) {
             putInt("reminder_interval", profile.reminderInterval)
             putBoolean("onboarding_completed", profile.isOnboardingCompleted)
             putString("reminder_style", profile.reminderStyle.name)
+            putString("hydration_standard", profile.hydrationStandard.name)
 
             // Optional fields
             profile.weight?.let { putFloat("weight", it.toFloat()) }
@@ -130,6 +137,9 @@ class UserRepository(context: Context) {
                         useSystemTheme = prefs.getBoolean("use_system_theme", true),
                         reminderStyle = ReminderStyle.valueOf(
                             prefs.getString("reminder_style", ReminderStyle.GENTLE.name) ?: ReminderStyle.GENTLE.name
+                        ),
+                        hydrationStandard = HydrationStandard.valueOf(
+                            prefs.getString("hydration_standard", HydrationStandard.EFSA.name) ?: HydrationStandard.EFSA.name
                         )
                     )
 

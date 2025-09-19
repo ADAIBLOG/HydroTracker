@@ -19,7 +19,8 @@ data class UserProfile(
     val isOnboardingCompleted: Boolean = false,
     val preferredThemeColor: String? = null, // For custom color themes
     val useSystemTheme: Boolean = true, // Material 3 dynamic color
-    val reminderStyle: ReminderStyle = ReminderStyle.GENTLE
+    val reminderStyle: ReminderStyle = ReminderStyle.GENTLE,
+    val hydrationStandard: HydrationStandard = HydrationStandard.EFSA // Default to EFSA
 )
 
 enum class Gender {
@@ -149,6 +150,39 @@ enum class ReminderStyle {
             GENTLE -> "💧 Time for a refreshing sip of water"
             MOTIVATING -> "🚀 Fuel your success with hydration!"
             MINIMAL -> "💧 Water reminder"
+        }
+    }
+}
+
+enum class HydrationStandard {
+    EFSA,    // European Food Safety Authority (default)
+    IOM;     // Institute of Medicine (US)
+
+    fun getDisplayName(): String {
+        return when (this) {
+            EFSA -> "EFSA (European)"
+            IOM -> "IOM (US)"
+        }
+    }
+
+    fun getDescription(): String {
+        return when (this) {
+            EFSA -> "European Food Safety Authority standards (conservative)"
+            IOM -> "Institute of Medicine standards (US, higher intake)"
+        }
+    }
+
+    fun getMaleIntake(): Double {
+        return when (this) {
+            EFSA -> 2500.0  // 2.5L
+            IOM -> 3700.0   // 3.7L
+        }
+    }
+
+    fun getFemaleIntake(): Double {
+        return when (this) {
+            EFSA -> 2000.0  // 2.0L
+            IOM -> 2700.0   // 2.7L
         }
     }
 }

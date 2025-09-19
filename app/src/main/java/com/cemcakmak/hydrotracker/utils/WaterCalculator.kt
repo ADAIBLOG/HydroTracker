@@ -4,6 +4,7 @@ import android.util.Log
 import com.cemcakmak.hydrotracker.data.models.ActivityLevel
 import com.cemcakmak.hydrotracker.data.models.AgeGroup
 import com.cemcakmak.hydrotracker.data.models.Gender
+import com.cemcakmak.hydrotracker.data.models.HydrationStandard
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import kotlin.math.max
@@ -12,15 +13,12 @@ import kotlin.math.max
  * Utility class for calculating daily water intake goals based on scientific research
  *
  * Based on:
- * - Institute of Medicine (IOM) recommendations
- * - European Food Safety Authority (EFSA) guidelines
+ * - European Food Safety Authority (EFSA) guidelines (default)
+ * - Institute of Medicine (IOM) recommendations (optional)
  * - Activity level adjustments from sports medicine research
+ * - Evidence-based discrete activity additions
  */
 object WaterCalculator {
-
-    // Base recommendations in milliliters (IOM guidelines)
-    private const val BASE_MALE_INTAKE = 3700.0 // 3.7L for men
-    private const val BASE_FEMALE_INTAKE = 2700.0 // 2.7L for women
 
     // Weight-based calculation factor (0.67 * weight in pounds converted to kg)
     private const val WEIGHT_FACTOR_ML_PER_KG = 30.0 // approximately 0.67 * 2.205 * 20
@@ -32,27 +30,29 @@ object WaterCalculator {
      * @param ageGroup User's age group
      * @param activityLevel User's activity level
      * @param weight User's weight in kg (optional for more precise calculation)
+     * @param hydrationStandard EFSA (default) or IOM standards
      * @return Daily water intake goal in milliliters
      */
     fun calculateDailyWaterGoal(
         gender: Gender,
         ageGroup: AgeGroup,
         activityLevel: ActivityLevel,
-        weight: Double? = null
+        weight: Double? = null,
+        hydrationStandard: HydrationStandard = HydrationStandard.EFSA
     ): Double {
 
-        // Step 1: Get base intake based on gender and IOM guidelines
+        // Step 1: Get base intake based on gender and chosen standard
         val baseIntake = when (gender) {
-            Gender.MALE -> BASE_MALE_INTAKE
-            Gender.FEMALE -> BASE_FEMALE_INTAKE
-            Gender.OTHER -> (BASE_MALE_INTAKE + BASE_FEMALE_INTAKE) / 2 // Average
+            Gender.MALE -> hydrationStandard.getMaleIntake()
+            Gender.FEMALE -> hydrationStandard.getFemaleIntake()
+            Gender.OTHER -> (hydrationStandard.getMaleIntake() + hydrationStandard.getFemaleIntake()) / 2 // Average
         }
 
-        // Step 2: Apply age group adjustment
-        val ageAdjustedIntake = applyAgeAdjustment(baseIntake, ageGroup)
+        // Step 2: NO age adjustments - research shows older adults need same intake
+        // All adults get the same base amount regardless of age
 
-        // Step 3: Apply activity level multiplier
-        val activityAdjustedIntake = ageAdjustedIntake * activityLevel.getActivityMultiplier()
+        // Step 3: Apply discrete activity level additions (evidence-based)
+        val activityAdjustedIntake = baseIntake + getActivityAddition(activityLevel)
 
         // Step 4: If weight is provided, use weight-based validation
         val finalIntake = weight?.let { weightKg ->
@@ -66,15 +66,16 @@ object WaterCalculator {
     }
 
     /**
-     * Applies age-based adjustments to water intake
-     * Research shows older adults typically need slightly less water due to reduced metabolism
+     * Gets discrete activity level additions based on research
+     * Evidence shows fixed additions are more accurate than percentage multipliers
      */
-    private fun applyAgeAdjustment(baseIntake: Double, ageGroup: AgeGroup): Double {
-        return when (ageGroup) {
-            AgeGroup.YOUNG_ADULT_18_30 -> baseIntake * 1.0 // No adjustment
-            AgeGroup.ADULT_31_50 -> baseIntake * 0.98 // Slight reduction
-            AgeGroup.MIDDLE_AGED_51_60 -> baseIntake * 0.95 // Moderate reduction
-            AgeGroup.SENIOR_60_PLUS -> baseIntake * 0.9 // More significant reduction
+    private fun getActivityAddition(activityLevel: ActivityLevel): Double {
+        return when (activityLevel) {
+            ActivityLevel.SEDENTARY -> 0.0        // No addition for sedentary
+            ActivityLevel.LIGHT -> 400.0          // +0.4L for light activity
+            ActivityLevel.MODERATE -> 500.0       // +0.5L for moderate activity
+            ActivityLevel.ACTIVE -> 600.0         // +0.6L for active lifestyle
+            ActivityLevel.VERY_ACTIVE -> 800.0    // +0.8L for very active
         }
     }
 

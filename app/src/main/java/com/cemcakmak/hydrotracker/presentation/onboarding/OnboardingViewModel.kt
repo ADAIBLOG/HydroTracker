@@ -175,7 +175,8 @@ class OnboardingViewModel(
             gender = profile.gender,
             ageGroup = profile.ageGroup,
             activityLevel = profile.activityLevel,
-            weight = profile.weight
+            weight = profile.weight,
+            hydrationStandard = profile.hydrationStandard
         )
 
         val reminderInterval = WaterCalculator.calculateReminderInterval(
