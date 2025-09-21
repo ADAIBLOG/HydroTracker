@@ -8,6 +8,7 @@ All notable changes to HydroTracker will be documented in this file.
 
 ### Fixed
 - Reduce padding in profile page
+- Fixed notification permisison is not automatically getting detected
 
 ## [0.9.5] - 2025.09.19
 ### Added
