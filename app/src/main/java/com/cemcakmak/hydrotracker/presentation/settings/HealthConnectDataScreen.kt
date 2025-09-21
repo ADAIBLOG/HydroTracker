@@ -16,8 +16,6 @@ import androidx.compose.ui.unit.dp
 import com.cemcakmak.hydrotracker.data.database.entities.WaterIntakeEntry
 import com.cemcakmak.hydrotracker.data.database.repository.WaterIntakeRepository
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
-import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -140,8 +138,7 @@ private fun HealthConnectDataItem(
     onEntryChanged: () -> Unit
 ) {
     val coroutineScope = rememberCoroutineScope()
-    val dateFormat = remember { SimpleDateFormat("MMM dd, yyyy HH:mm", Locale.getDefault()) }
-    val date = Date(entry.timestamp)
+    // Use the localized date-time formatting from the entry itself
 
     val isExternal = entry.isExternalEntry()
     val isHidden = entry.isHidden
@@ -216,7 +213,7 @@ private fun HealthConnectDataItem(
 
             // Date and time
             Text(
-                text = dateFormat.format(date),
+                text = entry.getFormattedDateTime(),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

@@ -3,8 +3,9 @@ package com.cemcakmak.hydrotracker.data.database.entities
 import androidx.room.*
 import java.text.NumberFormat
 import java.time.Instant
-import java.time.ZoneOffset
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
 import java.util.Locale
 
 @Entity(
@@ -46,14 +47,31 @@ data class WaterIntakeEntry(
     val isHidden: Boolean = false
 ) {
     /**
-     * Returns an ISO-8601 *time* string in UTC for the given Unix epoch milliseconds.
+     * Returns a formatted time string according to system locale and timezone preferences
      */
     fun getFormattedTime(): String {
         val instant = Instant.ofEpochMilli(timestamp)
-        val formatter = DateTimeFormatter.ofPattern("HH:mm:ss'Z'")
-            .withLocale(Locale.US)
-            .withZone(ZoneOffset.UTC)
-        return formatter.format(instant)
+        val localDateTime = instant.atZone(ZoneId.systemDefault())
+
+        // Use system locale and preferences for 12/24 hour format
+        val formatter = DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT)
+            .withLocale(Locale.getDefault())
+
+        return formatter.format(localDateTime)
+    }
+
+    /**
+     * Returns a formatted date and time string according to system locale and timezone preferences
+     */
+    fun getFormattedDateTime(): String {
+        val instant = Instant.ofEpochMilli(timestamp)
+        val localDateTime = instant.atZone(ZoneId.systemDefault())
+
+        // Use system locale and preferences for date and time format
+        val formatter = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.SHORT, FormatStyle.SHORT)
+            .withLocale(Locale.getDefault())
+
+        return formatter.format(localDateTime)
     }
 
     fun getFormattedAmount(): String {
