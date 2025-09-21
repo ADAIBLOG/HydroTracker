@@ -13,8 +13,8 @@ android {
         applicationId = "com.cemcakmak.hydrotracker"
         minSdk = 32
         targetSdk = 36
-        versionCode = 10
-        versionName = "0.9.5"
+        versionCode = 11
+        versionName = "0.9.6"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -96,6 +96,9 @@ dependencies {
     implementation("androidx.room:room-runtime:2.7.2")
     implementation("androidx.room:room-ktx:2.7.2")
     ksp("androidx.room:room-compiler:2.7.2")
+
+    // Health Connect
+    implementation("androidx.health.connect:connect-client:1.1.0-rc03")
 
     // Debug tools
     debugImplementation("androidx.compose.ui:ui-tooling")

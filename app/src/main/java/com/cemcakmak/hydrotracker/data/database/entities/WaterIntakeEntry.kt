@@ -1,9 +1,11 @@
-// WaterIntakeEntry.kt
-// Location: app/src/main/java/com/cemcakmak/hydrotracker/data/database/entities/WaterIntakeEntry.kt
-
 package com.cemcakmak.hydrotracker.data.database.entities
 
 import androidx.room.*
+import java.text.NumberFormat
+import java.time.Instant
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 @Entity(
     tableName = "water_intake_entries",
@@ -35,19 +37,41 @@ data class WaterIntakeEntry(
     val note: String? = null,
 
     @ColumnInfo(name = "created_at")
-    val createdAt: Long = System.currentTimeMillis()
+    val createdAt: Long = System.currentTimeMillis(),
+
+    @ColumnInfo(name = "health_connect_record_id")
+    val healthConnectRecordId: String? = null,
+
+    @ColumnInfo(name = "is_hidden")
+    val isHidden: Boolean = false
 ) {
+    /**
+     * Returns an ISO-8601 *time* string in UTC for the given Unix epoch milliseconds.
+     */
     fun getFormattedTime(): String {
-        val hours = (timestamp / (1000 * 60 * 60)) % 24
-        val minutes = (timestamp / (1000 * 60)) % 60
-        return String.format("%02d:%02d", hours, minutes)
+        val instant = Instant.ofEpochMilli(timestamp)
+        val formatter = DateTimeFormatter.ofPattern("HH:mm:ss'Z'")
+            .withLocale(Locale.US)
+            .withZone(ZoneOffset.UTC)
+        return formatter.format(instant)
     }
 
     fun getFormattedAmount(): String {
-        return when {
-            amount >= 1000 -> "${String.format("%.1f", amount / 1000)} L"
-            else -> "${amount.toInt()} ml"
+        return if (amount >= 1000) {
+            val liters = amount / 1000
+            val formatter = NumberFormat.getNumberInstance(Locale.getDefault())
+            formatter.maximumFractionDigits = 1
+            "${formatter.format(liters)} L"
+        } else {
+            "${amount.toInt()} ml"
         }
+    }
+
+    /**
+     * Check if this entry was imported from an external Health Connect app
+     */
+    fun isExternalEntry(): Boolean {
+        return note?.startsWith("Imported from ") == true
     }
 
     companion object {
@@ -58,7 +82,7 @@ data class WaterIntakeEntry(
             note: String? = null
         ): WaterIntakeEntry {
             val now = System.currentTimeMillis()
-            val today = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
+            val today = java.text.SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
                 .format(java.util.Date())
 
             return WaterIntakeEntry(

@@ -44,6 +44,10 @@ import com.cemcakmak.hydrotracker.R
 import androidx.compose.ui.graphics.Color
 import androidx.core.net.toUri
 import com.cemcakmak.hydrotracker.BuildConfig
+import com.cemcakmak.hydrotracker.health.HealthConnectManager
+import androidx.activity.ComponentActivity
+import androidx.activity.result.ActivityResultLauncher
+import android.util.Log
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -58,8 +62,10 @@ fun SettingsScreen(
     onWeekStartDayChange: (WeekStartDay) -> Unit = {},
     onHydrationStandardChange: (HydrationStandard) -> Unit = {},
     onRequestNotificationPermission: () -> Unit = {},
+    healthConnectPermissionLauncher: ActivityResultLauncher<Set<String>>? = null,
     onNavigateBack: () -> Unit = {},
     onNavigateToOnboarding: () -> Unit = {},
+    onNavigateToHealthConnectData: () -> Unit = {},
     isDynamicColorAvailable: Boolean = true
 ) {
     // Animation states
@@ -171,6 +177,34 @@ fun SettingsScreen(
                 HydrationSection(
                     userProfile = userProfile,
                     onHydrationStandardChange = onHydrationStandardChange
+                )
+            }
+
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+            )
+
+            // Health Connect Section
+            AnimatedVisibility(
+                visible = isVisible,
+                enter = slideInVertically(
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessMedium
+                    ),
+                    initialOffsetY = { it / 2 }
+                ) + fadeIn(animationSpec = tween(600, delayMillis = 275))
+            ) {
+                HealthConnectSection(
+                    healthConnectPermissionLauncher = healthConnectPermissionLauncher,
+                    userProfile = userProfile,
+                    onHealthConnectSyncChange = { enabled ->
+                        userProfile?.let { profile ->
+                            val updatedProfile = profile.copy(healthConnectSyncEnabled = enabled)
+                            userRepository?.saveUserProfile(updatedProfile)
+                        }
+                    },
+                    onNavigateToHealthConnectData = onNavigateToHealthConnectData
                 )
             }
 
@@ -911,6 +945,116 @@ private fun DeveloperOptionsSection(
                 confirmationMessage = "30 days of realistic data injected! Check History screen."
             )
 
+            // Health Connect Debug Section
+            if (userProfile?.healthConnectSyncEnabled == true) {
+                val context = LocalContext.current // Capture context in Composable scope
+
+                Text(
+                    text = "Health Connect Testing",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(vertical = 16.dp)
+                )
+
+                // Test Health Connect Write
+                AsyncDebugActionButton(
+                    title = "Test Health Connect Write",
+                    description = "Write a 250ml test entry to Health Connect",
+                    icon = Icons.Default.CloudUpload,
+                    snackbarHostState = snackbarHostState,
+                    onClick = {
+                        try {
+                            val healthConnectManager = HealthConnectManager
+                            val testEntry = com.cemcakmak.hydrotracker.data.database.entities.WaterIntakeEntry(
+                                amount = 250.0,
+                                timestamp = System.currentTimeMillis(),
+                                date = java.time.LocalDate.now().toString(),
+                                containerType = "Debug Test",
+                                containerVolume = 250.0,
+                                note = "Health Connect Debug Test Entry"
+                            )
+                            val result = healthConnectManager.writeHydrationRecord(context,testEntry)
+                            Log.i("HealthConnectDebug", "Test write result: ${result.getOrNull()}")
+                        } catch (e: Exception) {
+                            Log.e("HealthConnectDebug", "Test write failed", e)
+                        }
+                    },
+                    confirmationMessage = "Test entry sent to Health Connect! Check logs for results."
+                )
+
+                // Test Health Connect Read
+                AsyncDebugActionButton(
+                    title = "Test Health Connect Read",
+                    description = "Read recent hydration records from Health Connect",
+                    icon = Icons.Default.CloudDownload,
+                    snackbarHostState = snackbarHostState,
+                    onClick = {
+                        try {
+                            val healthConnectManager = HealthConnectManager
+                            val yesterday = java.time.Instant.now().minus(1, java.time.temporal.ChronoUnit.DAYS)
+                            val result = healthConnectManager.readHydrationRecords(context,yesterday)
+                            Log.i("HealthConnectDebug", "Found ${result.getOrNull()?.size ?: 0} records since yesterday")
+                            result.getOrNull()?.forEach { record ->
+                                Log.d("HealthConnectDebug", "Record: ${record.volume.inMilliliters}ml at ${record.startTime}")
+                            }
+                        } catch (e: Exception) {
+                            Log.e("HealthConnectDebug", "Test read failed", e)
+                        }
+                    },
+                    confirmationMessage = "Health Connect read test completed! Check logs for results."
+                )
+
+                // Test Health Connect Import (External Data)
+                AsyncDebugActionButton(
+                    title = "Test Health Connect Import",
+                    description = "Import external hydration data from Health Connect",
+                    icon = Icons.Default.Download,
+                    snackbarHostState = snackbarHostState,
+                    onClick = {
+                        try {
+                            val healthConnectSyncManager = com.cemcakmak.hydrotracker.health.HealthConnectSyncManager
+                            val since = java.time.Instant.now().minus(7, java.time.temporal.ChronoUnit.DAYS)
+                            Log.i("HealthConnectDebug", "🔄 Starting import test for last 7 days...")
+                            healthConnectSyncManager.importExternalHydrationData(context, userRepository, waterIntakeRepository, since) { imported, errors ->
+                                Log.i("HealthConnectDebug", "📊 Import test result: $imported entries imported, $errors errors")
+                            }
+                        } catch (e: Exception) {
+                            Log.e("HealthConnectDebug", "Import test failed", e)
+                        }
+                    },
+                    confirmationMessage = "Health Connect import test started! Check logs for detailed results."
+                )
+
+                // Health Connect Status Check
+                AsyncDebugActionButton(
+                    title = "Check Health Connect Status",
+                    description = "Verify Health Connect availability and permissions",
+                    icon = Icons.Default.HealthAndSafety,
+                    snackbarHostState = snackbarHostState,
+                    onClick = {
+                        try {
+                            val healthConnectManager = HealthConnectManager
+                            Log.i("HealthConnectDebug", "=== Health Connect Status Check ===")
+                            Log.i("HealthConnectDebug", "Available: ${healthConnectManager.isAvailable(context)}")
+                            Log.i("HealthConnectDebug", "Has Permissions: ${healthConnectManager.hasPermissions(context)}")
+                            Log.i("HealthConnectDebug", "Status: ${healthConnectManager.getStatusMessage(context)}")
+                            Log.i("HealthConnectDebug", "Sync Enabled: ${userProfile.healthConnectSyncEnabled}")
+                            HealthConnectManager.debugPermissions()
+                        } catch (e: Exception) {
+                            Log.e("HealthConnectDebug", "Status check failed", e)
+                        }
+                    },
+                    confirmationMessage = "Health Connect status logged! Check: adb logcat | grep HealthConnectDebug"
+                )
+
+                Text(
+                    text = "💡 View logs with: adb logcat | grep -E \"(HealthConnect|HealthConnectDebug|HealthConnectTest)\"",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(vertical = 8.dp)
+                )
+            }
+
             // Show Current Status
             val isOnboardingCompleted by userRepository.isOnboardingCompleted.collectAsState()
             val currentUserProfile by userRepository.userProfile.collectAsState()
@@ -1642,6 +1786,206 @@ private fun HydrationSection(
                             )
                         }
                     }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun HealthConnectSection(
+    healthConnectPermissionLauncher: ActivityResultLauncher<Set<String>>? = null,
+    userProfile: UserProfile? = null,
+    onHealthConnectSyncChange: (Boolean) -> Unit = {},
+    onNavigateToHealthConnectData: () -> Unit = {}
+) {
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+
+    var isHealthConnectEnabled by remember { mutableStateOf(false) }
+    var healthConnectStatus by remember { mutableStateOf("Checking...") }
+    var isLoading by remember { mutableStateOf(true) }
+    var refreshTrigger by remember { mutableIntStateOf(0) }
+
+    val manager = HealthConnectManager
+
+    // Check Health Connect status on component mount and when refresh is triggered
+    LaunchedEffect(refreshTrigger) {
+        try {
+
+            val status = manager.getStatusMessage(context)
+            healthConnectStatus = status
+            val newIsEnabled = status == "Health Connect is ready"
+
+            isHealthConnectEnabled = newIsEnabled
+        } catch (e: Exception) {
+            healthConnectStatus = "Error: ${e.message}"
+        } finally {
+            isLoading = false
+        }
+    }
+
+    // Listen for when app regains focus to refresh permissions
+    androidx.compose.runtime.DisposableEffect(Unit) {
+        val activity = context as? ComponentActivity
+        val listener = object : android.app.Application.ActivityLifecycleCallbacks {
+            override fun onActivityResumed(activity: android.app.Activity) {
+                if (activity == context) {
+                    // Refresh permissions when returning to this screen
+                    refreshTrigger++
+                }
+            }
+            override fun onActivityPaused(activity: android.app.Activity) {}
+            override fun onActivityCreated(activity: android.app.Activity, savedInstanceState: android.os.Bundle?) {}
+            override fun onActivityStarted(activity: android.app.Activity) {}
+            override fun onActivityStopped(activity: android.app.Activity) {}
+            override fun onActivitySaveInstanceState(activity: android.app.Activity, outState: android.os.Bundle) {}
+            override fun onActivityDestroyed(activity: android.app.Activity) {}
+        }
+
+        activity?.application?.registerActivityLifecycleCallbacks(listener)
+        onDispose {
+            activity?.application?.unregisterActivityLifecycleCallbacks(listener)
+        }
+    }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(5.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            // Header
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.HealthAndSafety,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    text = "Health Connect",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+
+            // Settings Toggle (only show when ready)
+            if (isHealthConnectEnabled) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Sync with Health Connect",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Text(
+                            text = "Share hydration data with other health apps",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    Switch(
+                        checked = userProfile?.healthConnectSyncEnabled == true,
+                        enabled = isHealthConnectEnabled, // Only enable if permissions are granted
+                        onCheckedChange = { enabled ->
+                            onHealthConnectSyncChange(enabled)
+                        },
+                        thumbContent = {
+                            Icon(
+                                imageVector = Icons.Filled.Sync,
+                                contentDescription = null,
+                                modifier = Modifier.size(SwitchDefaults.IconSize),
+                            )
+                        }
+                    )
+                }
+
+                // Health Connect Data button
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onNavigateToHealthConnectData() },
+                    shape = MaterialTheme.shapes.extraLarge,
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.health_connect),
+                            modifier = Modifier.size(20.dp),
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Health Connect Data",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Medium
+                            )
+                            Text(
+                                text = "View and manage Health Connect data",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+
+                        Icon(
+                            imageVector = Icons.Default.ChevronRight,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    }
+                }
+            }
+
+            // Request permissions button (when not ready)
+            if (!isHealthConnectEnabled && !isLoading &&
+                (healthConnectStatus.contains("Permissions") || healthConnectStatus.contains("Missing permissions"))) {
+
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Button(
+                        onClick = {
+                            if (healthConnectPermissionLauncher != null) {
+                                // Use the proper Activity-based permission launcher
+                                coroutineScope.launch {
+                                    manager.checkPermissionsAndRun(context, healthConnectPermissionLauncher) {
+                                        // Permissions granted callback
+                                        healthConnectStatus = "Health Connect is ready"
+                                        isHealthConnectEnabled = true
+                                    }
+                                }
+                            } else {
+                                Log.w("HealthConnect", "Permission launcher not available")
+                                healthConnectStatus = "Error: Permission launcher not available"
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(if (healthConnectStatus.contains("Missing")) "Try Again" else "Grant Permissions")
+                    }
+
                 }
             }
         }

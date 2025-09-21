@@ -20,7 +20,8 @@ data class UserProfile(
     val preferredThemeColor: String? = null, // For custom color themes
     val useSystemTheme: Boolean = true, // Material 3 dynamic color
     val reminderStyle: ReminderStyle = ReminderStyle.GENTLE,
-    val hydrationStandard: HydrationStandard = HydrationStandard.EFSA // Default to EFSA
+    val hydrationStandard: HydrationStandard = HydrationStandard.EFSA, // Default to EFSA
+    val healthConnectSyncEnabled: Boolean = false // Health Connect data sync setting
 )
 
 enum class Gender {

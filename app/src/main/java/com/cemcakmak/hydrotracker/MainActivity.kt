@@ -28,9 +28,11 @@ import com.cemcakmak.hydrotracker.presentation.home.HomeScreen
 import com.cemcakmak.hydrotracker.presentation.history.HistoryScreen
 import com.cemcakmak.hydrotracker.presentation.profile.ProfileScreen
 import com.cemcakmak.hydrotracker.presentation.settings.SettingsScreen
+import com.cemcakmak.hydrotracker.presentation.settings.HealthConnectDataScreen
 import com.cemcakmak.hydrotracker.presentation.onboarding.*
 import com.cemcakmak.hydrotracker.notifications.*
 import com.cemcakmak.hydrotracker.ui.theme.HydroTrackerTheme
+import com.cemcakmak.hydrotracker.health.HealthConnectManager
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class, ExperimentalMaterial3Api::class, ExperimentalTextApi::class)
 class MainActivity : ComponentActivity() {
@@ -50,6 +52,9 @@ class MainActivity : ComponentActivity() {
         // Handle denied case if needed - currently no-op as per original logic
     }
 
+    // Health Connect permission launcher - using proper Activity context
+    private lateinit var healthConnectPermissionLauncher: ActivityResultLauncher<Set<String>>
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -62,8 +67,19 @@ class MainActivity : ComponentActivity() {
             applicationContext, userRepository
         )
 
+        // Create Health Connect permission launcher using the proper method from the manager
+        healthConnectPermissionLauncher = HealthConnectManager.createPermissionRequestLauncher(this) { grantedPermissions ->
+            // This callback will be called when user responds to permission request
+            android.util.Log.d("MainActivity", "Health Connect permission result: $grantedPermissions")
+        }
+
         setContent {
-            HydroTrackerApp(userRepository, waterIntakeRepository, notificationPermissionLauncher)
+            HydroTrackerApp(
+                userRepository,
+                waterIntakeRepository,
+                notificationPermissionLauncher,
+                healthConnectPermissionLauncher
+            )
         }
     }
 
@@ -73,7 +89,8 @@ class MainActivity : ComponentActivity() {
 fun HydroTrackerApp(
     userRepository: UserRepository,
     waterIntakeRepository: WaterIntakeRepository,
-    notificationPermissionLauncher: ActivityResultLauncher<String>
+    notificationPermissionLauncher: ActivityResultLauncher<String>,
+    healthConnectPermissionLauncher: ActivityResultLauncher<Set<String>>
 ) {
     val navController = rememberNavController()
     val themeViewModel: ThemeViewModel = viewModel(factory = ThemeViewModelFactory(userRepository))
@@ -81,13 +98,17 @@ fun HydroTrackerApp(
     val userProfile by userRepository.userProfile.collectAsState()
     val isOnboardingCompleted by userRepository.isOnboardingCompleted.collectAsState()
     var isLoading by remember { mutableStateOf(true) }
+    val context = LocalContext.current
 
     LaunchedEffect(isOnboardingCompleted, userProfile) {
         isLoading = false
-        
+
         // Check for new user day when app starts
         if (isOnboardingCompleted && userProfile != null) {
             waterIntakeRepository.checkAndHandleNewUserDay()
+
+            // Perform app launch sync to import any missed external Health Connect data
+            waterIntakeRepository.getSyncManager().performAppLaunchSync(context, userRepository, waterIntakeRepository)
         }
     }
 
@@ -209,14 +230,27 @@ fun HydroTrackerApp(
                             },
                             isDynamicColorAvailable = themeViewModel.isDynamicColorAvailable(),
                             onRequestNotificationPermission = {
-                                notificationPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                                    notificationPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                                }
                             },
+                            healthConnectPermissionLauncher = healthConnectPermissionLauncher,
                             onNavigateBack = { navController.popBackStack() },
                             onNavigateToOnboarding = {
                                 navController.navigate(NavigationRoutes.ONBOARDING) {
                                     popUpTo(NavigationRoutes.HOME) { inclusive = true }
                                 }
+                            },
+                            onNavigateToHealthConnectData = {
+                                navController.navigate(NavigationRoutes.HEALTH_CONNECT_DATA)
                             }
+                        )
+                    }
+
+                    composable(NavigationRoutes.HEALTH_CONNECT_DATA) {
+                        HealthConnectDataScreen(
+                            waterIntakeRepository = waterIntakeRepository,
+                            onNavigateBack = { navController.popBackStack() }
                         )
                     }
                 }

@@ -10,16 +10,22 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.*
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.material3.carousel.rememberCarouselState
 import androidx.compose.material3.carousel.HorizontalMultiBrowseCarousel
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.*
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -30,6 +36,8 @@ import kotlinx.coroutines.launch
 import com.cemcakmak.hydrotracker.data.models.UserProfile
 import com.cemcakmak.hydrotracker.data.models.ContainerPreset
 import com.cemcakmak.hydrotracker.data.database.repository.WaterIntakeRepository
+import com.cemcakmak.hydrotracker.health.HealthConnectManager
+import com.cemcakmak.hydrotracker.health.HealthConnectSyncManager
 import com.cemcakmak.hydrotracker.data.database.repository.WaterProgress
 import com.cemcakmak.hydrotracker.data.database.repository.TodayStatistics
 import com.cemcakmak.hydrotracker.data.database.entities.WaterIntakeEntry
@@ -80,6 +88,7 @@ fun HomeScreen(
 
     // Vibration and haptics
     val haptics = LocalHapticFeedback.current
+    val context = LocalContext.current
 
     // Coroutine scope for database operations
     val coroutineScope = rememberCoroutineScope()
@@ -91,6 +100,10 @@ fun HomeScreen(
     // Edit entry dialog state
     var showEditDialog by remember { mutableStateOf(false) }
     var entryToEdit by remember { mutableStateOf<WaterIntakeEntry?>(null) }
+
+    // Pull-to-refresh state
+    var isRefreshing by remember { mutableStateOf(false) }
+    val pullToRefreshState = rememberPullToRefreshState()
 
     // Function to add water intake to database
     fun addWaterIntake(amount: Double, containerName: String) {
@@ -134,18 +147,76 @@ fun HomeScreen(
     }
 
     // Function to update water intake entry
-    fun updateWaterIntake(entry: WaterIntakeEntry) {
+    fun updateWaterIntake(oldEntry: WaterIntakeEntry, newEntry: WaterIntakeEntry) {
         coroutineScope.launch {
-            val result = waterIntakeRepository.updateWaterIntake(entry)
-            
+            val result = waterIntakeRepository.updateWaterIntake(oldEntry, newEntry)
+
             result.onSuccess {
                 snackbarHostState.showSuccessSnackbar(
-                    message = "Updated entry to ${entry.getFormattedAmount()}"
+                    message = "Updated entry to ${newEntry.getFormattedAmount()}"
                 )
             }.onFailure { error ->
                 snackbarHostState.showErrorSnackbar(
                     message = "Failed to update entry: ${error.message}"
                 )
+            }
+        }
+    }
+
+    // Function to perform manual sync with Health Connect
+    fun performManualSync() {
+        coroutineScope.launch {
+            if (userProfile?.healthConnectSyncEnabled == true) {
+                isRefreshing = true
+                try {
+                    // Import external hydration data from the last 30 days
+                    val since = java.time.Instant.now().minus(30, java.time.temporal.ChronoUnit.DAYS)
+
+                    waterIntakeRepository.getSyncManager().importExternalHydrationData(context, waterIntakeRepository.getUserRepository(), waterIntakeRepository, since) { imported, errors ->
+                        coroutineScope.launch {
+                            // Always show loading for at least 1.5 seconds for better UX
+                            kotlinx.coroutines.delay(1500)
+
+                            when {
+                                imported > 0 -> {
+                                    snackbarHostState.showSuccessSnackbar(
+                                        message = "Synced $imported entries from Health Connect"
+                                    )
+                                }
+                                errors > 0 -> {
+                                    snackbarHostState.showErrorSnackbar(
+                                        message = "Sync completed with $errors errors"
+                                    )
+                                }
+                                else -> {
+                                    snackbarHostState.showSuccessSnackbar(
+                                        message = "Data is up to date"
+                                    )
+                                }
+                            }
+                            isRefreshing = false
+                        }
+                    }
+                } catch (e: Exception) {
+                    // Show loading for at least 1.5 seconds even on error
+                    kotlinx.coroutines.delay(1500)
+                    snackbarHostState.showErrorSnackbar(
+                        message = "Sync failed: ${e.message}"
+                    )
+                    isRefreshing = false
+                }
+            } else {
+                // Show loading animation even when disabled for consistency
+                kotlinx.coroutines.delay(1500)
+                snackbarHostState.showSnackbar(
+                    message = "Health Connect sync is disabled",
+                    actionLabel = "Enable"
+                ).let { result ->
+                    if (result == SnackbarResult.ActionPerformed) {
+                        onNavigateToSettings()
+                    }
+                }
+                isRefreshing = false
             }
         }
     }
@@ -201,12 +272,23 @@ fun HomeScreen(
                 TopAppBar(
                     scrollBehavior = scrollBehavior,
                     title = {
-                        Text(
-                            text = "HydroTracker",
-                            style = MaterialTheme.typography.headlineLargeEmphasized,
-                            modifier = Modifier.fillMaxWidth(),
-                            color = MaterialTheme.colorScheme.onSurface,
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Text(
+                                text = "HydroTracker",
+                                style = MaterialTheme.typography.headlineLargeEmphasized,
+                                color = MaterialTheme.colorScheme.onSurface,
+                            )
+
+                            // Health Connect Sync Status Icon
+                            HealthConnectSyncIcon(
+                                userProfile = userProfile,
+                                waterIntakeRepository = waterIntakeRepository,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = MaterialTheme.colorScheme.surface
@@ -269,13 +351,20 @@ fun HomeScreen(
         },
         snackbarHost = { HydroSnackbarHost(snackbarHostState) }
     ) { paddingValues ->
-        Column(
+        PullToRefreshBox(
+            isRefreshing = isRefreshing,
+            onRefresh = ::performManualSync,
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
-                .verticalScroll(scrollState),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+                .padding(paddingValues),
+            state = pullToRefreshState
         ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(scrollState),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
 
             // Daily Progress Section
             AnimatedVisibility(
@@ -468,6 +557,7 @@ fun HomeScreen(
 
             // Bottom spacing for FAB
             Spacer(modifier = Modifier.height(20.dp))
+            }
         }
     }
 
@@ -491,7 +581,7 @@ fun HomeScreen(
                 entryToEdit = null
             },
             onConfirm = { updatedEntry ->
-                updateWaterIntake(updatedEntry)
+                updateWaterIntake(entryToEdit!!, updatedEntry)
                 showEditDialog = false
                 entryToEdit = null
             }
@@ -645,6 +735,7 @@ private fun EditWaterDialog(
     var isError by remember { mutableStateOf(false) }
 
     val presets = remember { ContainerPreset.getDefaultPresets() }
+    val isExternalEntry = entry.isExternalEntry()
 
     Dialog(onDismissRequest = onDismiss) {
         Card(
@@ -659,64 +750,109 @@ private fun EditWaterDialog(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 Text(
-                    text = "Edit Water Entry",
+                    text = if (isExternalEntry) "External Water Entry" else "Edit Water Entry",
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold
                 )
 
-                // Container type dropdown
+                // Warning message for external entries
+                if (isExternalEntry) {
+                    Card(
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.errorContainer
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Info,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "Entry from another app",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Medium,
+                                    color = MaterialTheme.colorScheme.onErrorContainer
+                                )
+                                Text(
+                                    text = "This entry was imported from another health app and cannot be edited. You can only view its details.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onErrorContainer
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // Container type dropdown (disabled for external entries)
                 var expanded by remember { mutableStateOf(false) }
-                
+
                 ExposedDropdownMenuBox(
-                    expanded = expanded,
-                    onExpandedChange = { expanded = !expanded }
+                    expanded = expanded && !isExternalEntry,
+                    onExpandedChange = { if (!isExternalEntry) expanded = !expanded }
                 ) {
                     OutlinedTextField(
                         value = containerType,
                         onValueChange = { },
                         readOnly = true,
+                        enabled = !isExternalEntry,
                         label = { Text("Container Type") },
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                        trailingIcon = {
+                            if (!isExternalEntry) {
+                                ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
+                            }
+                        },
                         modifier = Modifier
                             .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
                             .fillMaxWidth()
                     )
-                    
-                    ExposedDropdownMenu(
-                        expanded = expanded,
-                        onDismissRequest = { expanded = false }
-                    ) {
-                        presets.forEach { preset ->
+
+                    if (!isExternalEntry) {
+                        ExposedDropdownMenu(
+                            expanded = expanded,
+                            onDismissRequest = { expanded = false }
+                        ) {
+                            presets.forEach { preset ->
+                                DropdownMenuItem(
+                                    text = { Text(preset.name) },
+                                    onClick = {
+                                        containerType = preset.name
+                                        amountText = preset.volume.toString()
+                                        expanded = false
+                                    }
+                                )
+                            }
                             DropdownMenuItem(
-                                text = { Text(preset.name) },
+                                text = { Text("Custom") },
                                 onClick = {
-                                    containerType = preset.name
-                                    amountText = preset.volume.toString()
+                                    containerType = "Custom"
                                     expanded = false
                                 }
                             )
                         }
-                        DropdownMenuItem(
-                            text = { Text("Custom") },
-                            onClick = {
-                                containerType = "Custom"
-                                expanded = false
-                            }
-                        )
                     }
                 }
 
-                // Amount field
+                // Amount field (disabled for external entries)
                 OutlinedTextField(
                     value = amountText,
                     onValueChange = {
-                        amountText = it
-                        isError = false
+                        if (!isExternalEntry) {
+                            amountText = it
+                            isError = false
+                        }
                     },
+                    enabled = !isExternalEntry,
                     label = { Text("Amount (ml)") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    isError = isError,
-                    supportingText = if (isError) {
+                    isError = isError && !isExternalEntry,
+                    supportingText = if (isError && !isExternalEntry) {
                         { Text("Please enter a valid amount (1-5000 ml)") }
                     } else null,
                     modifier = Modifier.fillMaxWidth()
@@ -727,27 +863,29 @@ private fun EditWaterDialog(
                     horizontalArrangement = Arrangement.End
                 ) {
                     TextButton(onClick = onDismiss) {
-                        Text("Cancel")
+                        Text(if (isExternalEntry) "Close" else "Cancel")
                     }
 
-                    Spacer(modifier = Modifier.width(8.dp))
+                    if (!isExternalEntry) {
+                        Spacer(modifier = Modifier.width(8.dp))
 
-                    Button(
-                        shapes = ButtonDefaults.shapes(),
-                        onClick = {
-                            val amount = amountText.toDoubleOrNull()
-                            if (amount != null && amount > 0 && amount <= 5000) {
-                                val updatedEntry = entry.copy(
-                                    amount = amount,
-                                    containerType = containerType
-                                )
-                                onConfirm(updatedEntry)
-                            } else {
-                                isError = true
+                        Button(
+                            shapes = ButtonDefaults.shapes(),
+                            onClick = {
+                                val amount = amountText.toDoubleOrNull()
+                                if (amount != null && amount > 0 && amount <= 5000) {
+                                    val updatedEntry = entry.copy(
+                                        amount = amount,
+                                        containerType = containerType
+                                    )
+                                    onConfirm(updatedEntry)
+                                } else {
+                                    isError = true
+                                }
                             }
+                        ) {
+                            Text("Update")
                         }
-                    ) {
-                        Text("Update")
                     }
                 }
             }
@@ -1090,5 +1228,94 @@ private fun getMotivationalMessage(progress: Float, userProfile: UserProfile, is
         progress >= 0.5f -> "🌟 Halfway there! Keep up the good work!"
         progress >= 0.25f -> "👍 Good start! Stay consistent!"
         else -> userProfile.activityLevel.getHydrationTip()
+    }
+}
+
+@Composable
+private fun HealthConnectSyncIcon(
+    userProfile: UserProfile,
+    waterIntakeRepository: WaterIntakeRepository,
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
+    var syncStatus by remember { mutableStateOf(HealthConnectSyncManager.SyncStatus.DISABLED) }
+
+    // Get the HealthConnectSyncManager from the waterIntakeRepository
+    val syncManager = remember { waterIntakeRepository.getSyncManager() }
+
+    // Monitor sync state from the actual sync manager
+    val isSyncing by syncManager.isSyncing.collectAsState()
+
+    // Check sync status
+    LaunchedEffect(userProfile.healthConnectSyncEnabled) {
+        if (!userProfile.healthConnectSyncEnabled) {
+            syncStatus = HealthConnectSyncManager.SyncStatus.DISABLED
+            return@LaunchedEffect
+        }
+
+        try {
+            when {
+                !HealthConnectManager.isAvailable(context) -> syncStatus = HealthConnectSyncManager.SyncStatus.UNAVAILABLE
+                !HealthConnectManager.hasPermissions(context) -> syncStatus = HealthConnectSyncManager.SyncStatus.NO_PERMISSIONS
+                else -> syncStatus = HealthConnectSyncManager.SyncStatus.READY
+            }
+        } catch (e: Exception) {
+            syncStatus = HealthConnectSyncManager.SyncStatus.ERROR
+        }
+    }
+
+    // Animated sync indicator with smooth transitions
+    AnimatedContent(
+        targetState = Pair(syncStatus, isSyncing),
+        transitionSpec = {
+            fadeIn(animationSpec = tween(500)) togetherWith
+            fadeOut(animationSpec = tween(500))
+        },
+        modifier = modifier,
+        label = "sync_icon_transition"
+    ) { (status, syncing) ->
+        when (status) {
+            HealthConnectSyncManager.SyncStatus.READY -> {
+                if (syncing) {
+                    // Outlined primary colored cloud for active syncing
+                    Icon(
+                        imageVector = Icons.Outlined.Cloud,
+                        contentDescription = "Health Connect syncing",
+                        modifier = Modifier.fillMaxSize(),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                } else {
+                    // Filled rounded onSurface colored cloud for synced state
+                    Icon(
+                        imageVector = Icons.Rounded.Cloud,
+                        contentDescription = "Health Connect synced",
+                        modifier = Modifier.fillMaxSize(),
+                        tint = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            }
+            HealthConnectSyncManager.SyncStatus.DISABLED -> {
+                // No icon when disabled
+            }
+            HealthConnectSyncManager.SyncStatus.UNAVAILABLE,
+            HealthConnectSyncManager.SyncStatus.NO_PERMISSIONS -> {
+                // Warning icon for issues
+                Icon(
+                    imageVector = Icons.Default.CloudOff,
+                    contentDescription = "Health Connect not available",
+                    modifier = Modifier.fillMaxSize(),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            HealthConnectSyncManager.SyncStatus.ERROR -> {
+                // Error icon
+                Icon(
+                    imageVector = Icons.Default.ErrorOutline,
+                    contentDescription = "Health Connect error",
+                    modifier = Modifier.fillMaxSize(),
+                    tint = MaterialTheme.colorScheme.error
+                )
+            }
+        }
     }
 }

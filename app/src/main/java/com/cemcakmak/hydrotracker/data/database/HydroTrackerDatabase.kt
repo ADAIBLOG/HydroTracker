@@ -1,6 +1,3 @@
-// HydroTrackerDatabase.kt
-// Location: app/src/main/java/com/cemcakmak/hydrotracker/data/database/HydroTrackerDatabase.kt
-
 package com.cemcakmak.hydrotracker.data.database
 
 import androidx.room.*
@@ -14,7 +11,7 @@ import com.cemcakmak.hydrotracker.data.database.entities.DailySummary
         WaterIntakeEntry::class,
         DailySummary::class
     ],
-    version = 1,
+    version = 4,
     exportSchema = true
 )
 abstract class HydroTrackerDatabase : RoomDatabase() {

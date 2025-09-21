@@ -9,7 +9,6 @@ import kotlinx.coroutines.flow.asStateFlow
 
 /**
  * Repository for managing user data persistence
- * Following Android Architecture Components patterns
  */
 class UserRepository(context: Context) {
 
@@ -84,6 +83,7 @@ class UserRepository(context: Context) {
             putBoolean("onboarding_completed", profile.isOnboardingCompleted)
             putString("reminder_style", profile.reminderStyle.name)
             putString("hydration_standard", profile.hydrationStandard.name)
+            putBoolean("health_connect_sync_enabled", profile.healthConnectSyncEnabled)
 
             // Optional fields
             profile.weight?.let { putFloat("weight", it.toFloat()) }
@@ -140,7 +140,8 @@ class UserRepository(context: Context) {
                         ),
                         hydrationStandard = HydrationStandard.valueOf(
                             prefs.getString("hydration_standard", HydrationStandard.EFSA.name) ?: HydrationStandard.EFSA.name
-                        )
+                        ),
+                        healthConnectSyncEnabled = prefs.getBoolean("health_connect_sync_enabled", false)
                     )
 
                     _userProfile.value = profile

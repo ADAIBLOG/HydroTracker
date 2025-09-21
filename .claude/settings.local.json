@@ -16,7 +16,12 @@
       "WebFetch(domain:ruwasoft.medium.com)",
       "WebSearch",
       "Bash(cat:*)",
-      "Bash(git rm:*)"
+      "Bash(git rm:*)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(timeout:*)",
+      "WebFetch(domain:www.sinasamaki.com)",
+      "Bash(cmd.exe:*)"
     ],
     "deny": [],
     "additionalDirectories": [

@@ -44,7 +44,7 @@ import com.cemcakmak.hydrotracker.notifications.HydroNotificationScheduler
 import java.io.File
 
 /**
- * Main Profile Screen with Material 3 Expressive Design
+ * Main Profile Screen
  * Modular architecture with separate components
  */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
@@ -134,7 +134,7 @@ fun ProfileScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp)
+                .padding(5.dp)
                 .padding(bottom = 80.dp), // Add bottom padding for navigation bar
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
@@ -388,6 +388,8 @@ fun ProfileScreenPreview() {
             override suspend fun insertEntry(entry: com.cemcakmak.hydrotracker.data.database.entities.WaterIntakeEntry): Long = 0
             override suspend fun insertEntries(entries: List<com.cemcakmak.hydrotracker.data.database.entities.WaterIntakeEntry>) {}
             override fun getEntriesForDate(date: String): kotlinx.coroutines.flow.Flow<List<com.cemcakmak.hydrotracker.data.database.entities.WaterIntakeEntry>> = kotlinx.coroutines.flow.flowOf(emptyList())
+            override suspend fun getEntriesForDateSync(date: String): List<com.cemcakmak.hydrotracker.data.database.entities.WaterIntakeEntry> = emptyList()
+            override suspend fun getAllEntriesForDateSync(date: String): List<com.cemcakmak.hydrotracker.data.database.entities.WaterIntakeEntry> = emptyList()
             override fun getEntriesForDateRange(startDate: String, endDate: String): kotlinx.coroutines.flow.Flow<List<com.cemcakmak.hydrotracker.data.database.entities.WaterIntakeEntry>> = kotlinx.coroutines.flow.flowOf(emptyList())
             override fun getTotalIntakeForDate(date: String): kotlinx.coroutines.flow.Flow<Double> = kotlinx.coroutines.flow.flowOf(0.0)
             override suspend fun getEntryCountForDate(date: String): Int = 0
@@ -396,6 +398,9 @@ fun ProfileScreenPreview() {
             override suspend fun deleteEntry(entry: com.cemcakmak.hydrotracker.data.database.entities.WaterIntakeEntry) {}
             override suspend fun deleteEntryById(entryId: Long) {}
             override suspend fun deleteAllEntries() {}
+            override suspend fun hideEntry(entryId: Long) {}
+            override suspend fun unhideEntry(entryId: Long) {}
+            override fun getHiddenEntries(): kotlinx.coroutines.flow.Flow<List<com.cemcakmak.hydrotracker.data.database.entities.WaterIntakeEntry>> = kotlinx.coroutines.flow.flowOf(emptyList())
             override suspend fun getDailyTotals(startDate: String, endDate: String): List<com.cemcakmak.hydrotracker.data.database.dao.DailyTotal> = emptyList()
         },
         dailySummaryDao = object : com.cemcakmak.hydrotracker.data.database.dao.DailySummaryDao {

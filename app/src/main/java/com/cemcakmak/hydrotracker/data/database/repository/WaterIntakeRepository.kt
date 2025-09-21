@@ -1,6 +1,3 @@
-// WaterIntakeRepository.kt
-// Location: app/src/main/java/com/cemcakmak/hydrotracker/data/repository/WaterIntakeRepository.kt
-
 package com.cemcakmak.hydrotracker.data.database.repository
 
 import kotlinx.coroutines.flow.Flow
@@ -9,7 +6,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import com.cemcakmak.hydrotracker.data.database.dao.WaterIntakeDao
 import com.cemcakmak.hydrotracker.data.database.dao.DailySummaryDao
-import com.cemcakmak.hydrotracker.data.database.dao.DailyTotal
 import com.cemcakmak.hydrotracker.data.database.entities.WaterIntakeEntry
 import com.cemcakmak.hydrotracker.data.database.entities.DailySummary
 import com.cemcakmak.hydrotracker.data.models.ContainerPreset
@@ -21,8 +17,10 @@ import android.content.Context
 import androidx.core.content.edit
 import android.content.SharedPreferences
 import com.cemcakmak.hydrotracker.data.repository.UserRepository
+import com.cemcakmak.hydrotracker.health.HealthConnectSyncManager
 import kotlinx.coroutines.flow.flow
 import kotlin.random.Random
+import android.util.Log
 
 class WaterIntakeRepository(
     private val waterIntakeDao: WaterIntakeDao,
@@ -33,6 +31,19 @@ class WaterIntakeRepository(
     private val prefs: SharedPreferences = context.getSharedPreferences(
         "water_intake_prefs", Context.MODE_PRIVATE
     )
+
+    // Helper property to access the sync manager
+    private val healthConnectSyncManager get() = HealthConnectSyncManager
+
+    // Public getter for UI components to access sync state
+    fun getSyncManager(): HealthConnectSyncManager = healthConnectSyncManager
+
+    // Public getter for accessing user repository
+    fun getUserRepository(): UserRepository = userRepository
+
+    companion object {
+        private const val TAG = "WaterIntakeRepository"
+    }
 
     // Get today's user day string based on wake-up time
     private fun getTodayUserDayString(): String {
@@ -74,6 +85,8 @@ class WaterIntakeRepository(
         note: String? = null
     ): Result<Long> = withContext(Dispatchers.IO) {
         try {
+            Log.d(TAG, "📝 Adding water intake: ${amount}ml (${containerPreset.name})")
+
             val userDayString = getTodayUserDayString()
             val entry = WaterIntakeEntry(
                 amount = amount,
@@ -85,36 +98,116 @@ class WaterIntakeRepository(
                 createdAt = System.currentTimeMillis()
             )
 
+            Log.d(TAG, "💾 Saving water intake to local database...")
             val entryId = waterIntakeDao.insertEntry(entry)
             updateDailySummaryForDate(userDayString)
-            
+
             // Update widgets after successful water intake
+            Log.d(TAG, "🔄 Updating widgets...")
             WidgetUpdateHelper.updateAllWidgets(context)
-            
+
+            // Sync to Health Connect if enabled with UI feedback
+            Log.d(TAG, "🏥 Initiating Health Connect sync...")
+            val entryWithId = entry.copy(id = entryId)
+            healthConnectSyncManager.syncWaterIntakeToHealthConnect(context, userRepository, this@WaterIntakeRepository, entryWithId)
+
+            Log.i(TAG, "✅ Water intake added successfully: ${amount}ml (ID: $entryId)")
             Result.success(entryId)
         } catch (e: Exception) {
+            Log.e(TAG, "❌ Error adding water intake", e)
             Result.failure(e)
         }
     }
 
     suspend fun deleteWaterIntake(entry: WaterIntakeEntry): Result<Unit> = withContext(Dispatchers.IO) {
         try {
-            waterIntakeDao.deleteEntry(entry)
-            updateDailySummaryForDate(entry.date)
-            Result.success(Unit)
+            if (entry.isExternalEntry()) {
+                Log.d(TAG, "👁️ Hiding external entry: ${entry.amount}ml (ID: ${entry.id}) from ${entry.containerType}")
+
+                // Hide external entries instead of deleting them
+                waterIntakeDao.hideEntry(entry.id)
+                updateDailySummaryForDate(entry.date)
+
+                // Update widgets after hiding
+                Log.d(TAG, "🔄 Updating widgets...")
+                WidgetUpdateHelper.updateAllWidgets(context)
+
+                Log.i(TAG, "👁️ External entry hidden successfully: ${entry.amount}ml")
+                Result.success(Unit)
+            } else {
+                Log.d(TAG, "🗑️ Deleting water intake: ${entry.amount}ml (ID: ${entry.id})")
+
+                // Delete our own entries normally
+                waterIntakeDao.deleteEntry(entry)
+                updateDailySummaryForDate(entry.date)
+
+                // Update widgets after successful deletion
+                Log.d(TAG, "🔄 Updating widgets...")
+                WidgetUpdateHelper.updateAllWidgets(context)
+
+                // Handle Health Connect delete using proper API
+                Log.d(TAG, "🏥 Deleting entry from Health Connect...")
+                healthConnectSyncManager.handleWaterIntakeDelete(context, userRepository, entry)
+
+                Log.i(TAG, "✅ Water intake deleted successfully: ${entry.amount}ml")
+                Result.success(Unit)
+            }
         } catch (e: Exception) {
+            Log.e(TAG, "❌ Error deleting/hiding water intake", e)
             Result.failure(e)
         }
     }
 
-    suspend fun updateWaterIntake(entry: WaterIntakeEntry): Result<Unit> = withContext(Dispatchers.IO) {
+    suspend fun unhideWaterIntake(entry: WaterIntakeEntry): Result<Unit> = withContext(Dispatchers.IO) {
         try {
-            waterIntakeDao.updateEntry(entry)
+            Log.d(TAG, "👁️ Unhiding water intake: ${entry.amount}ml (ID: ${entry.id})")
+
+            waterIntakeDao.unhideEntry(entry.id)
             updateDailySummaryForDate(entry.date)
+
+            // Update widgets after unhiding
+            Log.d(TAG, "🔄 Updating widgets...")
+            WidgetUpdateHelper.updateAllWidgets(context)
+
+            Log.i(TAG, "👁️ Water intake unhidden successfully: ${entry.amount}ml")
             Result.success(Unit)
         } catch (e: Exception) {
+            Log.e(TAG, "❌ Error unhiding water intake", e)
             Result.failure(e)
         }
+    }
+
+    fun getHiddenEntries(): Flow<List<WaterIntakeEntry>> = waterIntakeDao.getHiddenEntries()
+
+    suspend fun updateWaterIntake(oldEntry: WaterIntakeEntry, newEntry: WaterIntakeEntry): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            Log.d(TAG, "✏️ Updating water intake: ${newEntry.amount}ml (ID: ${newEntry.id})")
+            waterIntakeDao.updateEntry(newEntry)
+            updateDailySummaryForDate(newEntry.date)
+
+            // Update widgets after successful update
+            Log.d(TAG, "🔄 Updating widgets...")
+            WidgetUpdateHelper.updateAllWidgets(context)
+
+            // Re-sync updated entry to Health Connect using delete + add pattern
+            Log.d(TAG, "🏥 Re-syncing updated entry to Health Connect...")
+            healthConnectSyncManager.syncUpdatedWaterIntakeToHealthConnect(context, userRepository, this@WaterIntakeRepository, oldEntry, newEntry)
+
+            Log.i(TAG, "✅ Water intake updated successfully: ${newEntry.amount}ml")
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Error updating water intake", e)
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Update a water intake entry without triggering Health Connect sync
+     * Used internally for updating Health Connect record IDs
+     */
+    suspend fun updateWaterIntakeEntry(entry: WaterIntakeEntry): Unit = withContext(Dispatchers.IO) {
+        waterIntakeDao.updateEntry(entry)
+        updateDailySummaryForDate(entry.date)
     }
 
     // ===== QUERY OPERATIONS =====
@@ -135,6 +228,28 @@ class WaterIntakeRepository(
 
     fun getLast30DaysEntries(): Flow<List<WaterIntakeEntry>> {
         return waterIntakeDao.getLast30DaysEntries()
+    }
+
+    suspend fun getAllEntriesForDate(date: String): List<WaterIntakeEntry> = withContext(Dispatchers.IO) {
+        waterIntakeDao.getAllEntriesForDateSync(date)
+    }
+
+    /**
+     * Add an imported water entry without triggering Health Connect sync
+     * Used for importing external data to avoid circular syncing
+     */
+    suspend fun addImportedWaterEntry(entry: WaterIntakeEntry): Long = withContext(Dispatchers.IO) {
+        Log.d(TAG, "📥 Adding imported water entry: ${entry.amount}ml from ${entry.note}")
+
+        val entryId = waterIntakeDao.insertEntry(entry)
+        updateDailySummaryForDate(entry.date)
+
+        // Update widgets after importing
+        Log.d(TAG, "🔄 Updating widgets after import...")
+        WidgetUpdateHelper.updateAllWidgets(context)
+
+        Log.i(TAG, "✅ Imported entry saved with ID: $entryId")
+        entryId
     }
 
     // ===== PROGRESS & STATISTICS =====
@@ -172,31 +287,6 @@ class WaterIntakeRepository(
                 remainingAmount = progress.remainingAmount
             )
         }
-    }
-
-    suspend fun getWeeklyStatistics(): WeeklyStatistics = withContext(Dispatchers.IO) {
-        val calendar = Calendar.getInstance()
-        val endDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(calendar.time)
-
-        calendar.add(Calendar.DAY_OF_YEAR, -6)
-        val startDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(calendar.time)
-
-        val dailyTotals = waterIntakeDao.getDailyTotals(startDate, endDate)
-
-        val totalIntake = dailyTotals.sumOf { it.totalAmount }
-        val averageDaily = if (dailyTotals.isNotEmpty()) totalIntake / 7 else 0.0
-        val bestDay = dailyTotals.maxByOrNull { it.totalAmount }
-        val totalEntries = dailyTotals.sumOf { it.entryCount }
-
-        WeeklyStatistics(
-            totalIntake = totalIntake,
-            averageDailyIntake = averageDaily,
-            bestDayAmount = bestDay?.totalAmount ?: 0.0,
-            bestDayDate = bestDay?.date ?: "",
-            totalEntries = totalEntries,
-            daysWithData = dailyTotals.size,
-            dailyTotals = dailyTotals
-        )
     }
 
     // ===== DAILY SUMMARY OPERATIONS =====
@@ -433,34 +523,3 @@ data class TodayStatistics(
     val isGoalAchieved: Boolean,
     val remainingAmount: Double
 )
-
-data class WeeklyStatistics(
-    val totalIntake: Double,
-    val averageDailyIntake: Double,
-    val bestDayAmount: Double,
-    val bestDayDate: String,
-    val totalEntries: Int,
-    val daysWithData: Int,
-    val dailyTotals: List<DailyTotal>
-) {
-    fun getFormattedTotal(): String {
-        return when {
-            totalIntake >= 1000 -> "${String.format(Locale.US, "%.1f", totalIntake / 1000)} L"
-            else -> "${totalIntake.toInt()} ml"
-        }
-    }
-
-    fun getFormattedAverage(): String {
-        return when {
-            averageDailyIntake >= 1000 -> "${String.format(Locale.US, "%.1f", averageDailyIntake / 1000)} L"
-            else -> "${averageDailyIntake.toInt()} ml"
-        }
-    }
-
-    fun getFormattedBestDay(): String {
-        return when {
-            bestDayAmount >= 1000 -> "${String.format(Locale.US, "%.1f", bestDayAmount / 1000)} L"
-            else -> "${bestDayAmount.toInt()} ml"
-        }
-    }
-}

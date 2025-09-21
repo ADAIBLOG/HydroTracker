@@ -2,6 +2,13 @@
 
 All notable changes to HydroTracker will be documented in this file.
 
+## [0.9.6] - 2025.09.21
+### Added
+- Add Health Connect support 🥲
+
+### Fixed
+- Reduce padding in profile page
+
 ## [0.9.5] - 2025.09.19
 ### Added
 - Added privacy policy to the settings

@@ -33,7 +33,7 @@ fun NotificationSettingsSection(
     var hasPermission by remember {
         mutableStateOf(NotificationPermissionManager.hasNotificationPermission(context))
     }
-    
+
     var hasExactAlarmPermission by remember {
         mutableStateOf(NotificationPermissionManager.hasExactAlarmPermission(context))
     }
@@ -42,11 +42,42 @@ fun NotificationSettingsSection(
         mutableStateOf(hasPermission && userProfile?.isOnboardingCompleted == true)
     }
 
-    // Update states when userProfile changes
-    LaunchedEffect(userProfile) {
+    var refreshTrigger by remember { mutableIntStateOf(0) }
+
+    // Function to refresh permission status
+    val refreshPermissions = {
         hasPermission = NotificationPermissionManager.hasNotificationPermission(context)
         hasExactAlarmPermission = NotificationPermissionManager.hasExactAlarmPermission(context)
         isNotificationsEnabled = hasPermission && hasExactAlarmPermission && userProfile?.isOnboardingCompleted == true
+    }
+
+    // Update states when userProfile changes or refresh is triggered
+    LaunchedEffect(userProfile, refreshTrigger) {
+        refreshPermissions()
+    }
+
+    // Listen for when app regains focus to refresh permissions (same logic as Health Connect)
+    androidx.compose.runtime.DisposableEffect(Unit) {
+        val activity = context as? androidx.activity.ComponentActivity
+        val listener = object : android.app.Application.ActivityLifecycleCallbacks {
+            override fun onActivityResumed(activity: android.app.Activity) {
+                if (activity == context) {
+                    // Refresh permissions when returning to this screen
+                    refreshTrigger++
+                }
+            }
+            override fun onActivityPaused(activity: android.app.Activity) {}
+            override fun onActivityCreated(activity: android.app.Activity, savedInstanceState: android.os.Bundle?) {}
+            override fun onActivityStarted(activity: android.app.Activity) {}
+            override fun onActivityStopped(activity: android.app.Activity) {}
+            override fun onActivitySaveInstanceState(activity: android.app.Activity, outState: android.os.Bundle) {}
+            override fun onActivityDestroyed(activity: android.app.Activity) {}
+        }
+
+        activity?.application?.registerActivityLifecycleCallbacks(listener)
+        onDispose {
+            activity?.application?.unregisterActivityLifecycleCallbacks(listener)
+        }
     }
 
     AnimatedVisibility(
