@@ -2,7 +2,15 @@
 
 All notable changes to HydroTracker will be documented in this file.
 
-## [0.9.6] - 2025.09.21
+## [0.9.8] - 2025.09.25
+### Added
+- Upgraded Libraries
+- Update Room version
+
+### Fixed
+- Bug Fixes
+
+## [0.9.7] - 2025.09.21
 ### Added
 - Add Health Connect support 🥲
 
