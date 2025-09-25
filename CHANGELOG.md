@@ -2,7 +2,7 @@
 
 All notable changes to HydroTracker will be documented in this file.
 
-## [0.9.8] - 2025.09.25
+## [0.9.9] - 2025.09.25
 ### Added
 - Upgraded Libraries
 - Update Room version
