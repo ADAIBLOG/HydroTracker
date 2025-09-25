@@ -10,7 +10,7 @@ import com.cemcakmak.hydrotracker.data.repository.UserRepository
 object DatabaseInitializer {
 
     @Volatile
-    private var database: HydroTrackerDatabase? = null
+    internal var database: HydroTrackerDatabase? = null
 
     // Migration from version 1 to version 2
     private val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -43,10 +43,46 @@ object DatabaseInitializer {
     // Migration from version 3 to version 4 (adding is_hidden)
     private val MIGRATION_3_4 = object : Migration(3, 4) {
         override fun migrate(db: SupportSQLiteDatabase) {
-            // Add the new is_hidden column to water_intake_entries table
-            db.execSQL(
-                "ALTER TABLE water_intake_entries ADD COLUMN is_hidden INTEGER NOT NULL DEFAULT 0"
-            )
+            try {
+                println("DatabaseInitializer: Starting migration from version 3 to 4")
+
+                // Check if the column already exists (defensive programming)
+                val cursor = db.query("PRAGMA table_info(water_intake_entries)")
+                var hasIsHiddenColumn = false
+
+                while (cursor.moveToNext()) {
+                    val columnName = cursor.getString(cursor.getColumnIndexOrThrow("name"))
+                    if (columnName == "is_hidden") {
+                        hasIsHiddenColumn = true
+                        break
+                    }
+                }
+                cursor.close()
+
+                if (!hasIsHiddenColumn) {
+                    // Add the new is_hidden column to water_intake_entries table
+                    db.execSQL(
+                        "ALTER TABLE water_intake_entries ADD COLUMN is_hidden INTEGER NOT NULL DEFAULT 0"
+                    )
+                    println("DatabaseInitializer: Successfully added is_hidden column")
+                } else {
+                    println("DatabaseInitializer: is_hidden column already exists, skipping")
+                }
+
+                // Verify the migration was successful
+                val verificationCursor = db.query("PRAGMA table_info(water_intake_entries)")
+                var columnCount = 0
+                while (verificationCursor.moveToNext()) {
+                    columnCount++
+                }
+                verificationCursor.close()
+
+                println("DatabaseInitializer: Migration 3→4 completed. Column count: $columnCount")
+
+            } catch (e: Exception) {
+                println("DatabaseInitializer: Error during migration 3→4: ${e.message}")
+                throw e
+            }
         }
     }
 
@@ -58,6 +94,8 @@ object DatabaseInitializer {
                 HydroTrackerDatabase.DATABASE_NAME
             )
                 .addMigrations(MIGRATION_1_2, MIGRATION_1_3, MIGRATION_2_3, MIGRATION_3_4)
+                // Add fallback strategy for Room 2.8.1 compatibility issues
+                .fallbackToDestructiveMigrationOnDowngrade(true)
                 .build()
             database = instance
             instance
@@ -74,5 +112,52 @@ object DatabaseInitializer {
             userRepository = userRepository,
             context = context.applicationContext // Use application context to prevent leaks
         )
+    }
+
+    /**
+     * Validate database connection (simplified version for synchronous use)
+     * Call this method if you suspect database corruption or migration issues
+     */
+    fun validateDatabase(context: Context): Boolean {
+        return try {
+            println("DatabaseInitializer: Validating database...")
+            val db = getDatabase(context)
+
+            // Try to open database connection - this will trigger migrations if needed
+            db.openHelper.readableDatabase.version
+            println("DatabaseInitializer: Database validation successful")
+            true
+        } catch (e: Exception) {
+            println("DatabaseInitializer: Database validation failed: ${e.message}")
+            false
+        }
+    }
+
+    /**
+     * Repair corrupted database by recreating it
+     */
+    fun repairDatabase(context: Context): Boolean {
+        return try {
+            println("DatabaseInitializer: Attempting database repair...")
+
+            // Close existing database connection
+            database?.close()
+            database = null
+
+            // Clear database file and recreate
+            val dbFile = context.getDatabasePath(HydroTrackerDatabase.DATABASE_NAME)
+            if (dbFile.exists()) {
+                dbFile.delete()
+                println("DatabaseInitializer: Deleted corrupted database file")
+            }
+
+            // Force recreation
+            val newDb = getDatabase(context)
+            println("DatabaseInitializer: Database recreated successfully")
+            true
+        } catch (repairError: Exception) {
+            println("DatabaseInitializer: Database repair failed: ${repairError.message}")
+            false
+        }
     }
 }

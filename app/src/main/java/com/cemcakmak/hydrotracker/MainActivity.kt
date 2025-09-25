@@ -22,6 +22,9 @@ import androidx.compose.animation.*
 import androidx.compose.ui.graphics.TransformOrigin
 import com.cemcakmak.hydrotracker.data.repository.*
 import com.cemcakmak.hydrotracker.data.database.DatabaseInitializer
+import com.cemcakmak.hydrotracker.data.database.DatabaseMigrationHelper
+import kotlinx.coroutines.launch
+import androidx.lifecycle.lifecycleScope
 import com.cemcakmak.hydrotracker.data.database.repository.WaterIntakeRepository
 import com.cemcakmak.hydrotracker.presentation.common.*
 import com.cemcakmak.hydrotracker.presentation.home.HomeScreen
@@ -63,6 +66,43 @@ class MainActivity : ComponentActivity() {
 
         // Init
         userRepository = UserRepository(applicationContext)
+
+        // Perform comprehensive database health check (critical for Room 2.8.1 compatibility)
+        lifecycleScope.launch {
+            val healthResult = DatabaseMigrationHelper.performStartupDatabaseCheck(applicationContext)
+            val healthMessage = DatabaseMigrationHelper.getHealthMessage(healthResult)
+
+            android.util.Log.i("MainActivity", "Database health: $healthMessage")
+
+            // Clear notification cache if database was recovered or reset
+            when (healthResult) {
+                is com.cemcakmak.hydrotracker.data.database.DatabaseHealthResult.RecoveredWithDataLoss -> {
+                    android.util.Log.i("MainActivity", "Database was recovered - clearing notification cache")
+                    HydroNotificationScheduler.clearCacheOnSchemaChange(applicationContext)
+                }
+                is com.cemcakmak.hydrotracker.data.database.DatabaseHealthResult.CriticalFailure -> {
+                    android.util.Log.w("MainActivity", "Database critical failure - clearing notification cache")
+                    HydroNotificationScheduler.clearCacheOnSchemaChange(applicationContext)
+                }
+                else -> {
+                    // For healthy or fresh install, validate notification state
+                    val userProfile = userRepository.userProfile.value
+                    if (userProfile != null) {
+                        val notificationStateValid = HydroNotificationScheduler.validateAndRepairNotificationState(
+                            applicationContext, userProfile
+                        )
+                        android.util.Log.d("MainActivity", "Notification state validation: $notificationStateValid")
+                    }
+                }
+            }
+
+            // Notify user if there were issues
+            if (DatabaseMigrationHelper.shouldNotifyUser(healthResult)) {
+                android.util.Log.w("MainActivity", "Database migration issue: $healthMessage")
+                // You can add a toast or dialog here if needed for critical failures
+            }
+        }
+
         waterIntakeRepository = DatabaseInitializer.getWaterIntakeRepository(
             applicationContext, userRepository
         )

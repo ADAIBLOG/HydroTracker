@@ -62,17 +62,17 @@ object HydroNotificationScheduler {
     /**
      * Schedule the next reminder based on user profile and current progress
      */
-    fun scheduleNextReminder(context: Context, userProfile: UserProfile) {
+    fun scheduleNextReminder(context: Context, userProfile: UserProfile, userRepository: UserRepository? = null, waterIntakeRepository: com.cemcakmak.hydrotracker.data.database.repository.WaterIntakeRepository? = null) {
         Log.d(TAG, "Scheduling next reminder")
-        
+
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val userRepository = UserRepository(context)
-                val waterIntakeRepository = com.cemcakmak.hydrotracker.data.database.DatabaseInitializer
-                    .getWaterIntakeRepository(context, userRepository)
+                val userRepo = userRepository ?: UserRepository(context)
+                val waterIntakeRepo = waterIntakeRepository ?: com.cemcakmak.hydrotracker.data.database.DatabaseInitializer
+                    .getWaterIntakeRepository(context, userRepo)
 
                 // Get current progress to check if goal is achieved
-                val currentProgress = waterIntakeRepository.getTodayProgress().first()
+                val currentProgress = waterIntakeRepo.getTodayProgress().first()
                 Log.d(TAG, "Current progress: ${currentProgress.progress}, goal achieved: ${currentProgress.isGoalAchieved}")
 
                 // Don't schedule if goal is achieved
@@ -340,28 +340,141 @@ object HydroNotificationScheduler {
      * Returns actual scheduled time from AlarmManager if available
      */
     fun getNextScheduledTime(context: Context, userProfile: UserProfile): String? {
-        // First try to get the actual scheduled time
+        // First try to get the actual scheduled time with validation
         val prefs = getPreferences(context)
         val scheduledTime = prefs.getLong(KEY_NEXT_REMINDER_TIME, 0L)
         val lastScheduled = prefs.getLong(KEY_LAST_SCHEDULED_TIME, 0L)
 
-        // Check if we have a valid scheduled time and it's not too old (max 24 hours old)
+        // Validate scheduled time
         val now = System.currentTimeMillis()
-        val maxAge = 24 * 60 * 60 * 1000L // 24 hours
+        val validationResult = validateScheduledTime(scheduledTime, lastScheduled, now)
 
-        if (scheduledTime > now && (now - lastScheduled) < maxAge) {
-            // We have a valid future scheduled time
+        if (validationResult.isValid) {
+            Log.d(TAG, "Using valid scheduled time: ${Date(scheduledTime)}")
             val formatter = DateTimeFormatter.ofPattern("MMM dd, HH:mm")
             val calendar = Calendar.getInstance().apply { timeInMillis = scheduledTime }
             val localDateTime = LocalDateTime.ofInstant(calendar.toInstant(), calendar.timeZone.toZoneId())
             return localDateTime.format(formatter)
+        } else {
+            // Clear invalid cached data
+            Log.w(TAG, "Invalid scheduled time detected: ${validationResult.reason}. Clearing cache.")
+            clearScheduledTime(context)
+
+            // Fallback to calculated time
+            Log.d(TAG, "Calculating fresh next reminder time")
+            val nextTime = calculateNextReminderTime(userProfile)
+            return nextTime?.let {
+                val formatter = DateTimeFormatter.ofPattern("MMM dd, HH:mm")
+                LocalDateTime.ofInstant(it.toInstant(), it.timeZone.toZoneId()).format(formatter)
+            }
+        }
+    }
+
+    /**
+     * Validate scheduled time data for consistency and sanity
+     */
+    private fun validateScheduledTime(scheduledTime: Long, lastScheduled: Long, currentTime: Long): ValidationResult {
+        // Check if we have any scheduled time at all
+        if (scheduledTime <= 0) {
+            return ValidationResult(false, "No scheduled time stored")
         }
 
-        // Fallback to calculated time if no valid scheduled time exists
-        val nextTime = calculateNextReminderTime(userProfile)
-        return nextTime?.let {
-            val formatter = DateTimeFormatter.ofPattern("MMM dd, HH:mm")
-            LocalDateTime.ofInstant(it.toInstant(), it.timeZone.toZoneId()).format(formatter)
+        // Check if scheduled time is in the past
+        if (scheduledTime <= currentTime) {
+            return ValidationResult(false, "Scheduled time is in the past")
+        }
+
+        // Check if scheduled time is too far in the future (more than 48 hours)
+        val maxFutureTime = 48 * 60 * 60 * 1000L // 48 hours
+        if (scheduledTime > (currentTime + maxFutureTime)) {
+            return ValidationResult(false, "Scheduled time is too far in the future")
+        }
+
+        // Check if last scheduled timestamp makes sense
+        if (lastScheduled <= 0) {
+            return ValidationResult(false, "No last scheduled timestamp")
+        }
+
+        // Check if last scheduled is not too old (max 24 hours old)
+        val maxAge = 24 * 60 * 60 * 1000L // 24 hours
+        if ((currentTime - lastScheduled) > maxAge) {
+            return ValidationResult(false, "Last scheduled timestamp is too old")
+        }
+
+        // Check if last scheduled is not in the future (sanity check)
+        if (lastScheduled > currentTime) {
+            return ValidationResult(false, "Last scheduled timestamp is in the future")
+        }
+
+        return ValidationResult(true, "Valid")
+    }
+
+    data class ValidationResult(
+        val isValid: Boolean,
+        val reason: String
+    )
+
+    /**
+     * Clear notification cache when database schema changes are detected
+     * Should be called after database migrations or schema updates
+     */
+    fun clearCacheOnSchemaChange(context: Context) {
+        Log.i(TAG, "Clearing notification cache due to database schema change")
+        clearScheduledTime(context)
+
+        // Also cancel any pending alarms since they might be using old data
+        stopNotifications(context)
+
+        Log.i(TAG, "Notification cache cleared successfully")
+    }
+
+    /**
+     * Validate and repair notification system state
+     * Call this when app starts or after database issues
+     */
+    fun validateAndRepairNotificationState(context: Context, userProfile: UserProfile): Boolean {
+        return try {
+            Log.d(TAG, "Validating notification system state")
+
+            // Check if notification permissions are still valid
+            val hasPermission = NotificationPermissionManager.hasNotificationPermission(context)
+            val hasExactAlarm = NotificationPermissionManager.hasExactAlarmPermission(context)
+
+            if (!hasPermission || !hasExactAlarm) {
+                Log.w(TAG, "Notification permissions missing, clearing cache")
+                clearScheduledTime(context)
+                return false
+            }
+
+            // Validate cached scheduled time
+            val prefs = getPreferences(context)
+            val scheduledTime = prefs.getLong(KEY_NEXT_REMINDER_TIME, 0L)
+            val lastScheduled = prefs.getLong(KEY_LAST_SCHEDULED_TIME, 0L)
+            val now = System.currentTimeMillis()
+
+            val validationResult = validateScheduledTime(scheduledTime, lastScheduled, now)
+
+            if (!validationResult.isValid) {
+                Log.w(TAG, "Invalid notification state detected: ${validationResult.reason}")
+                clearScheduledTime(context)
+
+                // Reschedule if user has completed onboarding
+                if (userProfile.isOnboardingCompleted) {
+                    Log.i(TAG, "Rescheduling notifications with fresh data")
+                    startNotifications(context, userProfile)
+                }
+
+                return true // Successfully repaired
+            }
+
+            Log.d(TAG, "Notification system state is valid")
+            return true
+
+        } catch (e: Exception) {
+            Log.e(TAG, "Error validating notification state", e)
+            // Clear everything on error to prevent further issues
+            clearScheduledTime(context)
+            return false
         }
     }
 
@@ -369,17 +482,17 @@ object HydroNotificationScheduler {
      * Schedule the next reminder based on when the current one was triggered
      * This ensures continuous operation
      */
-    fun scheduleNextFromTriggered(context: Context, userProfile: UserProfile) {
+    fun scheduleNextFromTriggered(context: Context, userProfile: UserProfile, userRepository: UserRepository? = null, waterIntakeRepository: com.cemcakmak.hydrotracker.data.database.repository.WaterIntakeRepository? = null) {
         Log.d(TAG, "Scheduling next reminder from triggered time")
 
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val userRepository = UserRepository(context)
-                val waterIntakeRepository = com.cemcakmak.hydrotracker.data.database.DatabaseInitializer
-                    .getWaterIntakeRepository(context, userRepository)
+                val userRepo = userRepository ?: UserRepository(context)
+                val waterIntakeRepo = waterIntakeRepository ?: com.cemcakmak.hydrotracker.data.database.DatabaseInitializer
+                    .getWaterIntakeRepository(context, userRepo)
 
                 // Get current progress to check if goal is achieved
-                val currentProgress = waterIntakeRepository.getTodayProgress().first()
+                val currentProgress = waterIntakeRepo.getTodayProgress().first()
                 Log.d(TAG, "Current progress: ${currentProgress.progress}, goal achieved: ${currentProgress.isGoalAchieved}")
 
                 // Don't schedule if goal is achieved

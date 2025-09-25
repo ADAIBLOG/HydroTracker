@@ -393,6 +393,7 @@ fun ProfileScreenPreview() {
             override fun getEntriesForDateRange(startDate: String, endDate: String): kotlinx.coroutines.flow.Flow<List<com.cemcakmak.hydrotracker.data.database.entities.WaterIntakeEntry>> = kotlinx.coroutines.flow.flowOf(emptyList())
             override fun getTotalIntakeForDate(date: String): kotlinx.coroutines.flow.Flow<Double> = kotlinx.coroutines.flow.flowOf(0.0)
             override suspend fun getEntryCountForDate(date: String): Int = 0
+            override suspend fun getEntryCount(): Int = 0
             override fun getLast30DaysEntries(): kotlinx.coroutines.flow.Flow<List<com.cemcakmak.hydrotracker.data.database.entities.WaterIntakeEntry>> = kotlinx.coroutines.flow.flowOf(emptyList())
             override suspend fun updateEntry(entry: com.cemcakmak.hydrotracker.data.database.entities.WaterIntakeEntry) {}
             override suspend fun deleteEntry(entry: com.cemcakmak.hydrotracker.data.database.entities.WaterIntakeEntry) {}

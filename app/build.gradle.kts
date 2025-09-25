@@ -2,7 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
-    id("com.google.devtools.ksp") version "2.0.21-1.0.25"
+    alias(libs.plugins.ksp)
 }
 
 android {
@@ -13,8 +13,8 @@ android {
         applicationId = "com.cemcakmak.hydrotracker"
         minSdk = 32
         targetSdk = 36
-        versionCode = 11
-        versionName = "0.9.6"
+        versionCode = 12
+        versionName = "0.9.7"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -48,11 +48,13 @@ android {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
-    kotlinOptions {
-        jvmTarget = "11"
-        freeCompilerArgs += listOf(
-            "-opt-in=androidx.compose.material3.ExperimentalMaterial3ExpressiveApi"
-        )
+    kotlin {
+        compilerOptions {
+            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11)
+            freeCompilerArgs.addAll(listOf(
+                "-opt-in=androidx.compose.material3.ExperimentalMaterial3ExpressiveApi"
+            ))
+        }
     }
     buildFeatures {
         compose = true
@@ -71,36 +73,36 @@ dependencies {
     implementation(libs.androidx.activity.compose)
 
     // Compose BOM (Bill of Materials) - Use the latest stable version
-    implementation(platform("androidx.compose:compose-bom:2025.07.00"))
+    implementation(platform(libs.compose.bom))
 
     // Core Compose UI dependencies (versions controlled by BOM)
-    implementation("androidx.compose.ui:ui")
-    implementation("androidx.compose.ui:ui-graphics")
-    implementation("androidx.compose.ui:ui-tooling-preview")
+    implementation(libs.androidx.ui)
+    implementation(libs.androidx.ui.graphics)
+    implementation(libs.androidx.ui.tooling.preview)
 
     // Material 3 with Expressive APIs - Override BOM for experimental features
-    implementation("androidx.compose.material3:material3:1.4.0-alpha18")
-    implementation("androidx.compose.material3:material3-window-size-class:1.3.2")
-    implementation("com.google.android.material:material:1.14.0-alpha03")
+    implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.compose.material3.window.size)
+    implementation(libs.material)
 
     // Navigation
-    implementation("androidx.navigation:navigation-compose:2.9.3")
+    implementation(libs.androidx.navigation.compose)
 
     // ViewModel
-    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.9.2")
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
 
     // Icons (updated to use BOM version)
-    implementation("androidx.compose.material:material-icons-extended")
+    implementation(libs.androidx.material.icons.extended)
 
     // Room (Database)
-    implementation("androidx.room:room-runtime:2.7.2")
-    implementation("androidx.room:room-ktx:2.7.2")
-    ksp("androidx.room:room-compiler:2.7.2")
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
+    ksp(libs.androidx.room.compiler)
 
     // Health Connect
-    implementation("androidx.health.connect:connect-client:1.1.0-rc03")
+    implementation(libs.androidx.health.connect)
 
     // Debug tools
-    debugImplementation("androidx.compose.ui:ui-tooling")
-    debugImplementation("androidx.compose.ui:ui-test-manifest")
+    debugImplementation(libs.androidx.ui.tooling)
+    debugImplementation(libs.androidx.ui.test.manifest)
 }
