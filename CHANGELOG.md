@@ -2,6 +2,10 @@
 
 All notable changes to HydroTracker will be documented in this file.
 
+## [0.9.10] - 2025.09.26
+### Added
+- Add support for devices up to Android 8
+
 ## [0.9.9] - 2025.09.25
 ### Added
 - Upgraded Libraries
