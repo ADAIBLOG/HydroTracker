@@ -1,6 +1,7 @@
 package com.cemcakmak.hydrotracker
 
 import android.app.Application
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -62,7 +63,11 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         WindowCompat.setDecorFitsSystemWindows(window, false)
-        window.isNavigationBarContrastEnforced = false
+
+        // Set navigation bar contrast enforcement - only available on Android 10+ (API 29)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            window.isNavigationBarContrastEnforced = false
+        }
 
         // Init
         userRepository = UserRepository(applicationContext)

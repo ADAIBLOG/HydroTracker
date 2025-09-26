@@ -184,28 +184,30 @@ fun SettingsScreen(
                 color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
             )
 
-            // Health Connect Section
-            AnimatedVisibility(
-                visible = isVisible,
-                enter = slideInVertically(
-                    animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioMediumBouncy,
-                        stiffness = Spring.StiffnessMedium
-                    ),
-                    initialOffsetY = { it / 2 }
-                ) + fadeIn(animationSpec = tween(600, delayMillis = 275))
-            ) {
-                HealthConnectSection(
-                    healthConnectPermissionLauncher = healthConnectPermissionLauncher,
-                    userProfile = userProfile,
-                    onHealthConnectSyncChange = { enabled ->
-                        userProfile?.let { profile ->
-                            val updatedProfile = profile.copy(healthConnectSyncEnabled = enabled)
-                            userRepository?.saveUserProfile(updatedProfile)
-                        }
-                    },
-                    onNavigateToHealthConnectData = onNavigateToHealthConnectData
-                )
+            // Health Connect Section - only show if supported on this Android version
+            if (HealthConnectManager.isVersionSupported()) {
+                AnimatedVisibility(
+                    visible = isVisible,
+                    enter = slideInVertically(
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                            stiffness = Spring.StiffnessMedium
+                        ),
+                        initialOffsetY = { it / 2 }
+                    ) + fadeIn(animationSpec = tween(600, delayMillis = 275))
+                ) {
+                    HealthConnectSection(
+                        healthConnectPermissionLauncher = healthConnectPermissionLauncher,
+                        userProfile = userProfile,
+                        onHealthConnectSyncChange = { enabled ->
+                            userProfile?.let { profile ->
+                                val updatedProfile = profile.copy(healthConnectSyncEnabled = enabled)
+                                userRepository?.saveUserProfile(updatedProfile)
+                            }
+                        },
+                        onNavigateToHealthConnectData = onNavigateToHealthConnectData
+                    )
+                }
             }
 
             HorizontalDivider(
@@ -385,52 +387,47 @@ private fun ThemeSection(
             Column(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // Dynamic Colors Toggle with Icon
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(
-                        modifier = Modifier.weight(1f)
+                // Dynamic Colors Toggle with Icon - only show if available
+                if (isDynamicColorAvailable) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            text = "Dynamic Colors",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Text(
-                            text = if (isDynamicColorAvailable) {
-                                "Colors from your wallpaper"
-                            } else {
-                                "Requires Android 12+"
-                            },
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    Switch(
-                        checked = themePreferences.colorSource == ColorSource.DYNAMIC_COLOR,
-                        onCheckedChange = { enabled ->
-                            if (isDynamicColorAvailable) {
+                        Column(
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text(
+                                text = "Dynamic Colors",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = "Colors from your wallpaper",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Switch(
+                            checked = themePreferences.colorSource == ColorSource.DYNAMIC_COLOR,
+                            onCheckedChange = { enabled ->
                                 onColorSourceChange(
                                     if (enabled) ColorSource.DYNAMIC_COLOR else ColorSource.HYDRO_THEME
                                 )
+                            },
+                            thumbContent = if (themePreferences.colorSource == ColorSource.DYNAMIC_COLOR) {
+                                {
+                                    Icon(
+                                        imageVector = Icons.Filled.Check,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(SwitchDefaults.IconSize),
+                                    )
+                                }
+                            } else {
+                                null
                             }
-                        },
-                        enabled = isDynamicColorAvailable,
-                        thumbContent = if (themePreferences.colorSource == ColorSource.DYNAMIC_COLOR) {
-                            {
-                                Icon(
-                                    imageVector = Icons.Filled.Check,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(SwitchDefaults.IconSize),
-                                )
-                            }
-                        } else {
-                            null
-                        }
-                    )
+                        )
+                    }
                 }
 
                 // Pure Black Toggle
@@ -945,8 +942,8 @@ private fun DeveloperOptionsSection(
                 confirmationMessage = "30 days of realistic data injected! Check History screen."
             )
 
-            // Health Connect Debug Section
-            if (userProfile?.healthConnectSyncEnabled == true) {
+            // Health Connect Debug Section - only show if Health Connect is supported and enabled
+            if (HealthConnectManager.isVersionSupported() && userProfile?.healthConnectSyncEnabled == true) {
                 val context = LocalContext.current // Capture context in Composable scope
 
                 Text(

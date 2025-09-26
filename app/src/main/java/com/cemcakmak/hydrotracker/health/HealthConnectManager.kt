@@ -38,10 +38,24 @@ object HealthConnectManager {
     }
 
     /**
+     * Check if Health Connect is supported on this Android version
+     * Health Connect requires Android 9 (API level 28) or higher
+     */
+    fun isVersionSupported(): Boolean {
+        return android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P
+    }
+
+    /**
      * Check if Health Connect is available on this device
      */
     fun isAvailable(context: Context): Boolean {
         return try {
+            // First check if the Android version supports Health Connect
+            if (!isVersionSupported()) {
+                Log.w(TAG, "Health Connect requires Android 9 (API 28) or higher")
+                return false
+            }
+
             when (HealthConnectClient.getSdkStatus(context)) {
                 HealthConnectClient.SDK_AVAILABLE -> {
                     Log.d(TAG, "Health Connect SDK is available")

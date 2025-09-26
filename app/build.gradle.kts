@@ -11,10 +11,10 @@ android {
 
     defaultConfig {
         applicationId = "com.cemcakmak.hydrotracker"
-        minSdk = 32
+        minSdk = 26
         targetSdk = 36
-        versionCode = 14
-        versionName = "0.9.9"
+        versionCode = 15
+        versionName = "0.9.10-internal"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
