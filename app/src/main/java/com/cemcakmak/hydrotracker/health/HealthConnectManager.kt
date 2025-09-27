@@ -154,9 +154,11 @@ object HealthConnectManager {
             val endTime = startTime.plusSeconds(1)
             Log.d(TAG, "Converted timestamp ${entry.timestamp} to Instant: startTime=$startTime, endTime=$endTime")
 
-            // Create volume using proper units (Health Connect prefers milliliters for precision)
-            val volumeInMilliliters = entry.amount
-            Log.d(TAG, "Using volume: ${volumeInMilliliters}ml")
+            // Create volume using effective hydration amount (considers beverage type multiplier)
+            val effectiveAmount = entry.getEffectiveHydrationAmount()
+            val volumeInMilliliters = effectiveAmount
+            Log.d(TAG, "Using effective volume: ${volumeInMilliliters}ml (raw: ${entry.amount}ml, beverage: ${entry.getBeverageType().displayName}, multiplier: ${entry.getBeverageType().hydrationMultiplier})")
+            Log.d(TAG, "Type check - effectiveAmount: $effectiveAmount (${effectiveAmount::class.simpleName}), volumeInMilliliters: $volumeInMilliliters (${volumeInMilliliters::class.simpleName})")
 
             // Create unique ID for tracking this record
             val uniqueId = "hydrotracker_${entry.id}_${System.currentTimeMillis()}"
@@ -175,6 +177,7 @@ object HealthConnectManager {
             )
 
             Log.d(TAG, "Created HydrationRecord: startTime=$startTime, endTime=$endTime, volume=${volumeInMilliliters}ml")
+            Log.d(TAG, "Volume object created: ${Volume.milliliters(volumeInMilliliters)} (${Volume.milliliters(volumeInMilliliters).inMilliliters}ml)")
 
             // Write to Health Connect
             Log.d(TAG, "Writing HydrationRecord to Health Connect...")
@@ -184,7 +187,7 @@ object HealthConnectManager {
             // Return the custom ID we set in metadata for tracking
             Log.d(TAG, "Health Connect record ID: $uniqueId")
 
-            Log.i(TAG, "✅ Successfully wrote hydration record to Health Connect: ${entry.amount}ml")
+            Log.i(TAG, "✅ Successfully wrote hydration record to Health Connect: ${volumeInMilliliters}ml effective (${entry.amount}ml ${entry.getBeverageType().displayName})")
             Result.success(uniqueId)
         } catch (e: Exception) {
             Log.e(TAG, "❌ Error writing hydration record to Health Connect", e)

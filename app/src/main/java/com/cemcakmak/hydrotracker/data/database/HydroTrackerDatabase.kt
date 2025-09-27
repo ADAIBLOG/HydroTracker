@@ -11,7 +11,7 @@ import com.cemcakmak.hydrotracker.data.database.entities.DailySummary
         WaterIntakeEntry::class,
         DailySummary::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = true
 )
 abstract class HydroTrackerDatabase : RoomDatabase() {

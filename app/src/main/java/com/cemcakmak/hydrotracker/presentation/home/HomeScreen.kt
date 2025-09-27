@@ -8,6 +8,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
@@ -30,11 +33,13 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import kotlinx.coroutines.launch
 import com.cemcakmak.hydrotracker.data.models.UserProfile
 import com.cemcakmak.hydrotracker.data.models.ContainerPreset
+import com.cemcakmak.hydrotracker.data.models.BeverageType
 import com.cemcakmak.hydrotracker.data.database.repository.WaterIntakeRepository
 import com.cemcakmak.hydrotracker.health.HealthConnectManager
 import com.cemcakmak.hydrotracker.health.HealthConnectSyncManager
@@ -96,10 +101,13 @@ fun HomeScreen(
 
     // Custom entry dialog state
     var showCustomDialog by remember { mutableStateOf(false) }
-    
+
     // Edit entry dialog state
     var showEditDialog by remember { mutableStateOf(false) }
     var entryToEdit by remember { mutableStateOf<WaterIntakeEntry?>(null) }
+
+    // Beverage selection state
+    var selectedBeverageType by remember { mutableStateOf(BeverageType.WATER) }
 
     // Pull-to-refresh state
     var isRefreshing by remember { mutableStateOf(false) }
@@ -114,12 +122,18 @@ fun HomeScreen(
 
             val result = waterIntakeRepository.addWaterIntake(
                 amount = amount,
-                containerPreset = containerPreset
+                containerPreset = containerPreset,
+                beverageType = selectedBeverageType
             )
 
             result.onSuccess {
+                val beverageInfo = if (selectedBeverageType != BeverageType.WATER) {
+                    " ${selectedBeverageType.displayName}"
+                } else {
+                    ""
+                }
                 snackbarHostState.showSuccessSnackbar(
-                    message = "Added ${WaterCalculator.formatWaterAmount(amount)}!"
+                    message = "Added ${WaterCalculator.formatWaterAmount(amount)}$beverageInfo!"
                 )
             }.onFailure { error ->
                 snackbarHostState.showErrorSnackbar(
@@ -166,7 +180,7 @@ fun HomeScreen(
     // Function to perform manual sync with Health Connect
     fun performManualSync() {
         coroutineScope.launch {
-            if (userProfile?.healthConnectSyncEnabled == true) {
+            if (userProfile.healthConnectSyncEnabled) {
                 isRefreshing = true
                 try {
                     // Import external hydration data from the last 30 days
@@ -503,6 +517,16 @@ fun HomeScreen(
                                     .maskClip(MaterialTheme.shapes.extraLarge)
                             )
                         }
+
+                        // Beverage Selection Section
+                        BeverageSelectionSection(
+                            selectedBeverageType = selectedBeverageType,
+                            onBeverageTypeChange = { beverageType ->
+                                selectedBeverageType = beverageType
+                                haptics.performHapticFeedback(HapticFeedbackType.Confirm)
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        )
                     }
                 }
 
@@ -568,7 +592,8 @@ fun HomeScreen(
             onConfirm = { amount ->
                 addWaterIntake(amount, "Custom")
                 showCustomDialog = false
-            }
+            },
+            selectedBeverageType = selectedBeverageType
         )
     }
 
@@ -656,7 +681,8 @@ fun CarouselWaterCard(
 @Composable
 private fun CustomWaterDialog(
     onDismiss: () -> Unit,
-    onConfirm: (Double) -> Unit
+    onConfirm: (Double) -> Unit,
+    selectedBeverageType: BeverageType
 ) {
     var amountText by remember { mutableStateOf("") }
     var isError by remember { mutableStateOf(false) }
@@ -678,6 +704,30 @@ private fun CustomWaterDialog(
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold
                 )
+
+                // Show selected beverage type
+                if (selectedBeverageType != BeverageType.WATER) {
+                    Card(
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                        )
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                        ) {
+                            Text(
+                                text = "Beverage: ${selectedBeverageType.displayName}",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Medium
+                            )
+                            Text(
+                                text = "Hydration effectiveness: ${(selectedBeverageType.hydrationMultiplier * 100).toInt()}%",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+                }
 
                 OutlinedTextField(
                     value = amountText,
@@ -732,6 +782,7 @@ private fun EditWaterDialog(
 ) {
     var amountText by remember { mutableStateOf(entry.amount.toString()) }
     var containerType by remember { mutableStateOf(entry.containerType) }
+    var selectedBeverageType by remember { mutableStateOf(entry.getBeverageType()) }
     var isError by remember { mutableStateOf(false) }
 
     val presets = remember { ContainerPreset.getDefaultPresets() }
@@ -839,6 +890,51 @@ private fun EditWaterDialog(
                     }
                 }
 
+                // Beverage Type Selection (disabled for external entries)
+                if (!isExternalEntry) {
+                    Text(
+                        text = "Beverage Type",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(3),
+                        modifier = Modifier.height(200.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(BeverageType.getAllSorted()) { beverageType ->
+                            val isSelected = selectedBeverageType == beverageType
+
+                            ToggleButton(
+                                checked = isSelected,
+                                onCheckedChange = { selectedBeverageType = beverageType },
+                                modifier = Modifier.aspectRatio(1f)
+                            ) {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                                    modifier = Modifier.padding(4.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = beverageType.icon,
+                                        contentDescription = beverageType.displayName,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Text(
+                                        text = beverageType.displayName,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        textAlign = TextAlign.Center,
+                                        maxLines = 2,
+                                        fontSize = 8.sp
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
                 // Amount field (disabled for external entries)
                 OutlinedTextField(
                     value = amountText,
@@ -876,7 +972,8 @@ private fun EditWaterDialog(
                                 if (amount != null && amount > 0 && amount <= 5000) {
                                     val updatedEntry = entry.copy(
                                         amount = amount,
-                                        containerType = containerType
+                                        containerType = containerType,
+                                        beverageType = selectedBeverageType.name
                                     )
                                     onConfirm(updatedEntry)
                                 } else {
@@ -1102,11 +1199,22 @@ private fun RecentEntryItem(
                     )
                 },
                 supportingContent = {
-                    Text(
-                        text = entry.getFormattedTime(),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(2.dp)
+                    ) {
+                        Text(
+                            text = entry.getFormattedTime(),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        if (entry.getBeverageType() != BeverageType.WATER) {
+                            Text(
+                                text = "${entry.getBeverageType().displayName} • ${entry.getFormattedEffectiveAmount()} effective",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
                 },
                 trailingContent = {
                     Column(
@@ -1253,14 +1361,14 @@ private fun HealthConnectSyncIcon(
             return@LaunchedEffect
         }
 
-        try {
+        syncStatus = try {
             when {
-                !HealthConnectManager.isAvailable(context) -> syncStatus = HealthConnectSyncManager.SyncStatus.UNAVAILABLE
-                !HealthConnectManager.hasPermissions(context) -> syncStatus = HealthConnectSyncManager.SyncStatus.NO_PERMISSIONS
-                else -> syncStatus = HealthConnectSyncManager.SyncStatus.READY
+                !HealthConnectManager.isAvailable(context) -> HealthConnectSyncManager.SyncStatus.UNAVAILABLE
+                !HealthConnectManager.hasPermissions(context) -> HealthConnectSyncManager.SyncStatus.NO_PERMISSIONS
+                else -> HealthConnectSyncManager.SyncStatus.READY
             }
-        } catch (e: Exception) {
-            syncStatus = HealthConnectSyncManager.SyncStatus.ERROR
+        } catch (_: Exception) {
+            HealthConnectSyncManager.SyncStatus.ERROR
         }
     }
 
@@ -1315,6 +1423,118 @@ private fun HealthConnectSyncIcon(
                     modifier = Modifier.fillMaxSize(),
                     tint = MaterialTheme.colorScheme.error
                 )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun BeverageSelectionSection(
+    selectedBeverageType: BeverageType,
+    onBeverageTypeChange: (BeverageType) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier.padding(horizontal = 20.dp, vertical = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Text(
+            text = "Beverage Type",
+            style = MaterialTheme.typography.titleLargeEmphasized,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+
+        // Create a scrollable grid of beverage selection buttons
+        val beverageTypes = BeverageType.getAllSorted()
+        val chunkedBeverages = beverageTypes.chunked(3) // 3 buttons per row
+
+        Column(
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            chunkedBeverages.forEach { rowBeverages ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    rowBeverages.forEach { beverageType ->
+                        val isSelected = selectedBeverageType == beverageType
+
+                        ToggleButton(
+                            checked = isSelected,
+                            onCheckedChange = { onBeverageTypeChange(beverageType) },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(4.dp),
+                                modifier = Modifier.padding(vertical = 8.dp, horizontal = 4.dp)
+                            ) {
+                                Icon(
+                                    imageVector = beverageType.icon,
+                                    contentDescription = beverageType.displayName,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Text(
+                                    text = beverageType.displayName,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    textAlign = TextAlign.Center,
+                                    maxLines = 2,
+                                    modifier = Modifier.height(32.dp)
+                                )
+                                // Show hydration multiplier for non-water beverages
+                                if (beverageType != BeverageType.WATER) {
+                                    Text(
+                                        text = "${(beverageType.hydrationMultiplier * 100).toInt()}%",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = if (isSelected)
+                                            MaterialTheme.colorScheme.onPrimary
+                                        else
+                                            MaterialTheme.colorScheme.onSurfaceVariant,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // Fill remaining space if the row is not complete
+                    repeat(3 - rowBeverages.size) {
+                        Spacer(modifier = Modifier.weight(1f))
+                    }
+                }
+            }
+        }
+
+        // Show selected beverage info
+        if (selectedBeverageType != BeverageType.WATER) {
+            Card(
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                ),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier.padding(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        text = "Selected: ${selectedBeverageType.displayName}",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Text(
+                        text = selectedBeverageType.description,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = "Hydration effectiveness: ${(selectedBeverageType.hydrationMultiplier * 100).toInt()}%",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
             }
         }
     }

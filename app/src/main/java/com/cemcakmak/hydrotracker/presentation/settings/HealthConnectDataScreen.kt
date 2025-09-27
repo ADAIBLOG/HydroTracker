@@ -175,7 +175,7 @@ private fun HealthConnectDataItem(
                         modifier = Modifier.size(20.dp)
                     )
                     Text(
-                        text = "${entry.amount.toInt()} ml",
+                        text = "${entry.getEffectiveHydrationAmount().toInt()} ml",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -218,13 +218,32 @@ private fun HealthConnectDataItem(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
-            // Container info
+            // Container info with beverage type details
             if (entry.containerType.isNotEmpty()) {
+                val beverageType = entry.getBeverageType()
+                val rawAmount = entry.amount.toInt()
+                val effectiveAmount = entry.getEffectiveHydrationAmount().toInt()
+
                 Text(
                     text = "Container: ${entry.containerType} (${entry.containerVolume.toInt()} ml)",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+
+                // Show beverage type and effective amount info
+                if (beverageType.hydrationMultiplier != 1.0) {
+                    Text(
+                        text = "${beverageType.displayName} • ${rawAmount}ml raw → ${effectiveAmount}ml effective",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                } else {
+                    Text(
+                        text = "${beverageType.displayName} • ${rawAmount}ml effective",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
 
             // Note

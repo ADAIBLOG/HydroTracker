@@ -111,3 +111,8 @@ signing_keys/
 
 # Development notes and temporary files
 CLAUDE_NOTES.md
+
+# Claude Code files
+.claude/
+*.claude
+settings.local.json

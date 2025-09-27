@@ -9,6 +9,7 @@ import com.cemcakmak.hydrotracker.data.database.dao.DailySummaryDao
 import com.cemcakmak.hydrotracker.data.database.entities.WaterIntakeEntry
 import com.cemcakmak.hydrotracker.data.database.entities.DailySummary
 import com.cemcakmak.hydrotracker.data.models.ContainerPreset
+import com.cemcakmak.hydrotracker.data.models.BeverageType
 import java.text.SimpleDateFormat
 import java.util.*
 import com.cemcakmak.hydrotracker.widgets.WidgetUpdateHelper
@@ -82,6 +83,7 @@ class WaterIntakeRepository(
     suspend fun addWaterIntake(
         amount: Double,
         containerPreset: ContainerPreset,
+        beverageType: BeverageType = BeverageType.WATER,
         note: String? = null
     ): Result<Long> = withContext(Dispatchers.IO) {
         try {
@@ -94,6 +96,7 @@ class WaterIntakeRepository(
                 date = userDayString,
                 containerType = containerPreset.name,
                 containerVolume = containerPreset.volume,
+                beverageType = beverageType.name,
                 note = note,
                 createdAt = System.currentTimeMillis()
             )
@@ -222,7 +225,13 @@ class WaterIntakeRepository(
     fun getTodayTotalIntake(): Flow<Double> {
         return flow {
             val userDayString = getTodayUserDayString()
-            waterIntakeDao.getTotalIntakeForDate(userDayString).collect { emit(it) }
+            waterIntakeDao.getEntriesForDate(userDayString).collect { entries ->
+                // Calculate effective hydration considering beverage type multipliers
+                val effectiveTotal = entries.sumOf { entry ->
+                    entry.getEffectiveHydrationAmount()
+                }
+                emit(effectiveTotal)
+            }
         }
     }
 
@@ -280,7 +289,7 @@ class WaterIntakeRepository(
                 goalProgress = progress.progress,
                 entryCount = entries.size,
                 averageIntake = if (entries.isNotEmpty()) progress.currentIntake / entries.size else 0.0,
-                largestIntake = entries.maxOfOrNull { it.amount } ?: 0.0,
+                largestIntake = entries.maxOfOrNull { it.getEffectiveHydrationAmount() } ?: 0.0,
                 firstIntakeTime = entries.minByOrNull { it.timestamp }?.getFormattedTime(),
                 lastIntakeTime = entries.maxByOrNull { it.timestamp }?.getFormattedTime(),
                 isGoalAchieved = progress.isGoalAchieved,
@@ -300,12 +309,13 @@ class WaterIntakeRepository(
             val userProfile = userRepository.userProfile.value
             val dailyGoal = userProfile?.dailyWaterGoal ?: 2700.0
 
-            // Get the daily total for this specific date
-            val dailyTotal = waterIntakeDao.getDailyTotals(date, date).firstOrNull()
+            // Get all entries for this date to calculate effective hydration
+            val entries = waterIntakeDao.getAllEntriesForDateSync(date).filter { !it.isHidden }
 
-            if (dailyTotal != null) {
-                val totalIntake = dailyTotal.totalAmount
-                val entryCount = dailyTotal.entryCount
+            if (entries.isNotEmpty()) {
+                // Calculate effective hydration considering beverage type multipliers
+                val totalIntake = entries.sumOf { it.getEffectiveHydrationAmount() }
+                val entryCount = entries.size
                 val goalPercentage = (totalIntake / dailyGoal).toFloat()
                 val goalAchieved = totalIntake >= dailyGoal
 

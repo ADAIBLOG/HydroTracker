@@ -86,6 +86,53 @@ object DatabaseInitializer {
         }
     }
 
+    // Migration from version 4 to version 5 (adding beverage_type)
+    private val MIGRATION_4_5 = object : Migration(4, 5) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            try {
+                println("DatabaseInitializer: Starting migration from version 4 to 5")
+
+                // Check if the column already exists (defensive programming)
+                val cursor = db.query("PRAGMA table_info(water_intake_entries)")
+                var hasBeverageTypeColumn = false
+
+                while (cursor.moveToNext()) {
+                    val columnName = cursor.getString(cursor.getColumnIndexOrThrow("name"))
+                    if (columnName == "beverage_type") {
+                        hasBeverageTypeColumn = true
+                        break
+                    }
+                }
+                cursor.close()
+
+                if (!hasBeverageTypeColumn) {
+                    // Add the new beverage_type column to water_intake_entries table
+                    // Default to WATER for all existing entries (backwards compatibility)
+                    db.execSQL(
+                        "ALTER TABLE water_intake_entries ADD COLUMN beverage_type TEXT NOT NULL DEFAULT 'WATER'"
+                    )
+                    println("DatabaseInitializer: Successfully added beverage_type column")
+                } else {
+                    println("DatabaseInitializer: beverage_type column already exists, skipping")
+                }
+
+                // Verify the migration was successful
+                val verificationCursor = db.query("PRAGMA table_info(water_intake_entries)")
+                var columnCount = 0
+                while (verificationCursor.moveToNext()) {
+                    columnCount++
+                }
+                verificationCursor.close()
+
+                println("DatabaseInitializer: Migration 4→5 completed. Column count: $columnCount")
+
+            } catch (e: Exception) {
+                println("DatabaseInitializer: Error during migration 4→5: ${e.message}")
+                throw e
+            }
+        }
+    }
+
     fun getDatabase(context: Context): HydroTrackerDatabase {
         return database ?: synchronized(this) {
             val instance = Room.databaseBuilder(
@@ -93,7 +140,7 @@ object DatabaseInitializer {
                 HydroTrackerDatabase::class.java,
                 HydroTrackerDatabase.DATABASE_NAME
             )
-                .addMigrations(MIGRATION_1_2, MIGRATION_1_3, MIGRATION_2_3, MIGRATION_3_4)
+                .addMigrations(MIGRATION_1_2, MIGRATION_1_3, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
                 // Add fallback strategy for Room 2.8.1 compatibility issues
                 .fallbackToDestructiveMigrationOnDowngrade(true)
                 .build()

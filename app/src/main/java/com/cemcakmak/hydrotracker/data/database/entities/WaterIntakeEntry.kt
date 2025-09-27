@@ -1,6 +1,7 @@
 package com.cemcakmak.hydrotracker.data.database.entities
 
 import androidx.room.*
+import com.cemcakmak.hydrotracker.data.models.BeverageType
 import java.text.NumberFormat
 import java.time.Instant
 import java.time.ZoneId
@@ -44,7 +45,10 @@ data class WaterIntakeEntry(
     val healthConnectRecordId: String? = null,
 
     @ColumnInfo(name = "is_hidden")
-    val isHidden: Boolean = false
+    val isHidden: Boolean = false,
+
+    @ColumnInfo(name = "beverage_type")
+    val beverageType: String = BeverageType.WATER.name
 ) {
     /**
      * Returns a formatted time string according to system locale and timezone preferences
@@ -92,11 +96,41 @@ data class WaterIntakeEntry(
         return note?.startsWith("Imported from ") == true
     }
 
+    /**
+     * Get the beverage type enum for this entry
+     */
+    fun getBeverageType(): BeverageType {
+        return BeverageType.fromStringOrDefault(beverageType)
+    }
+
+    /**
+     * Get the effective hydration amount considering beverage type multiplier
+     */
+    fun getEffectiveHydrationAmount(): Double {
+        return amount * getBeverageType().hydrationMultiplier
+    }
+
+    /**
+     * Get formatted effective hydration amount
+     */
+    fun getFormattedEffectiveAmount(): String {
+        val effectiveAmount = getEffectiveHydrationAmount()
+        return if (effectiveAmount >= 1000) {
+            val liters = effectiveAmount / 1000
+            val formatter = NumberFormat.getNumberInstance(Locale.getDefault())
+            formatter.maximumFractionDigits = 1
+            "${formatter.format(liters)} L"
+        } else {
+            "${effectiveAmount.toInt()} ml"
+        }
+    }
+
     companion object {
         fun create(
             amount: Double,
             containerType: String,
             containerVolume: Double,
+            beverageType: BeverageType = BeverageType.WATER,
             note: String? = null
         ): WaterIntakeEntry {
             val now = System.currentTimeMillis()
@@ -109,7 +143,8 @@ data class WaterIntakeEntry(
                 date = today,
                 containerType = containerType,
                 containerVolume = containerVolume,
-                note = note
+                note = note,
+                beverageType = beverageType.name
             )
         }
     }
