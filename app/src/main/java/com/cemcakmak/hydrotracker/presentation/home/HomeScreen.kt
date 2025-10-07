@@ -8,9 +8,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
@@ -33,7 +32,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import kotlinx.coroutines.launch
@@ -593,7 +591,10 @@ fun HomeScreen(
                 addWaterIntake(amount, "Custom")
                 showCustomDialog = false
             },
-            selectedBeverageType = selectedBeverageType
+            selectedBeverageType = selectedBeverageType,
+            onBeverageTypeChange = { newType ->
+                selectedBeverageType = newType
+            }
         )
     }
 
@@ -682,7 +683,8 @@ fun CarouselWaterCard(
 private fun CustomWaterDialog(
     onDismiss: () -> Unit,
     onConfirm: (Double) -> Unit,
-    selectedBeverageType: BeverageType
+    selectedBeverageType: BeverageType,
+    onBeverageTypeChange: (BeverageType) -> Unit
 ) {
     var amountText by remember { mutableStateOf("") }
     var isError by remember { mutableStateOf(false) }
@@ -705,25 +707,99 @@ private fun CustomWaterDialog(
                     fontWeight = FontWeight.Bold
                 )
 
-                // Show selected beverage type
+                // Beverage Type Selection Dropdown
+                val beverageTypes = BeverageType.getAllSorted()
+                var beverageExpanded by remember { mutableStateOf(false) }
+
+                ExposedDropdownMenuBox(
+                    expanded = beverageExpanded,
+                    onExpandedChange = { beverageExpanded = !beverageExpanded }
+                ) {
+                    OutlinedTextField(
+                        value = selectedBeverageType.displayName,
+                        onValueChange = { },
+                        readOnly = true,
+                        label = { Text("Beverage Type") },
+                        leadingIcon = {
+                            Icon(
+                                painter = painterResource(selectedBeverageType.iconRes),
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        },
+                        trailingIcon = {
+                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = beverageExpanded)
+                        },
+                        modifier = Modifier
+                            .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
+                            .fillMaxWidth()
+                    )
+
+                    ExposedDropdownMenu(
+                        expanded = beverageExpanded,
+                        onDismissRequest = { beverageExpanded = false }
+                    ) {
+                        beverageTypes.forEach { beverageType ->
+                            DropdownMenuItem(
+                                text = {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                    ) {
+                                        Icon(
+                                            painter = painterResource(beverageType.iconRes),
+                                            contentDescription = null,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                        Column {
+                                            Text(
+                                                text = beverageType.displayName,
+                                                style = MaterialTheme.typography.bodyLarge
+                                            )
+                                            Text(
+                                                text = "${(beverageType.hydrationMultiplier * 100).toInt()}% hydration",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    }
+                                },
+                                onClick = {
+                                    onBeverageTypeChange(beverageType)
+                                    beverageExpanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+
+                // Show selected beverage info
                 if (selectedBeverageType != BeverageType.WATER) {
                     Card(
                         colors = CardDefaults.cardColors(
                             containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-                        )
+                        ),
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        Row(
+                        Column(
                             modifier = Modifier.padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             Text(
-                                text = "Beverage: ${selectedBeverageType.displayName}",
+                                text = "Selected: ${selectedBeverageType.displayName}",
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Medium
                             )
                             Text(
+                                text = selectedBeverageType.description,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
                                 text = "Hydration effectiveness: ${(selectedBeverageType.hydrationMultiplier * 100).toInt()}%",
                                 style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.primary
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.Medium
                             )
                         }
                     }
@@ -890,46 +966,69 @@ private fun EditWaterDialog(
                     }
                 }
 
-                // Beverage Type Selection (disabled for external entries)
+                // Beverage Type Selection Dropdown (disabled for external entries)
                 if (!isExternalEntry) {
-                    Text(
-                        text = "Beverage Type",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
+                    val beverageTypes = BeverageType.getAllSorted()
+                    var beverageExpanded by remember { mutableStateOf(false) }
 
-                    LazyVerticalGrid(
-                        columns = GridCells.Fixed(3),
-                        modifier = Modifier.height(200.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ExposedDropdownMenuBox(
+                        expanded = beverageExpanded,
+                        onExpandedChange = { beverageExpanded = !beverageExpanded }
                     ) {
-                        items(BeverageType.getAllSorted()) { beverageType ->
-                            val isSelected = selectedBeverageType == beverageType
+                        OutlinedTextField(
+                            value = selectedBeverageType.displayName,
+                            onValueChange = { },
+                            readOnly = true,
+                            label = { Text("Beverage Type") },
+                            leadingIcon = {
+                                Icon(
+                                    painter = painterResource(selectedBeverageType.iconRes),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            },
+                            trailingIcon = {
+                                ExposedDropdownMenuDefaults.TrailingIcon(expanded = beverageExpanded)
+                            },
+                            modifier = Modifier
+                                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
+                                .fillMaxWidth()
+                        )
 
-                            ToggleButton(
-                                checked = isSelected,
-                                onCheckedChange = { selectedBeverageType = beverageType },
-                                modifier = Modifier.aspectRatio(1f)
-                            ) {
-                                Column(
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.spacedBy(2.dp),
-                                    modifier = Modifier.padding(4.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = beverageType.icon,
-                                        contentDescription = beverageType.displayName,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                    Text(
-                                        text = beverageType.displayName,
-                                        style = MaterialTheme.typography.labelSmall,
-                                        textAlign = TextAlign.Center,
-                                        maxLines = 2,
-                                        fontSize = 8.sp
-                                    )
-                                }
+                        ExposedDropdownMenu(
+                            expanded = beverageExpanded,
+                            onDismissRequest = { beverageExpanded = false }
+                        ) {
+                            beverageTypes.forEach { beverageType ->
+                                DropdownMenuItem(
+                                    text = {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                        ) {
+                                            Icon(
+                                                painter = painterResource(beverageType.iconRes),
+                                                contentDescription = null,
+                                                modifier = Modifier.size(20.dp)
+                                            )
+                                            Column {
+                                                Text(
+                                                    text = beverageType.displayName,
+                                                    style = MaterialTheme.typography.bodyLarge
+                                                )
+                                                Text(
+                                                    text = "${(beverageType.hydrationMultiplier * 100).toInt()}% hydration",
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                            }
+                                        }
+                                    },
+                                    onClick = {
+                                        selectedBeverageType = beverageType
+                                        beverageExpanded = false
+                                    }
+                                )
                             }
                         }
                     }
@@ -1436,73 +1535,55 @@ private fun BeverageSelectionSection(
     modifier: Modifier = Modifier
 ) {
     Column(
-        modifier = modifier.padding(horizontal = 20.dp, vertical = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        modifier = modifier.padding(horizontal = 5.dp, vertical = 5.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        Text(
-            text = "Beverage Type",
-            style = MaterialTheme.typography.titleLargeEmphasized,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
-
-        // Create a scrollable grid of beverage selection buttons
+        // Horizontally scrollable chips
         val beverageTypes = BeverageType.getAllSorted()
-        val chunkedBeverages = beverageTypes.chunked(3) // 3 buttons per row
 
-        Column(
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+        LazyRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            contentPadding = PaddingValues(horizontal = 4.dp)
         ) {
-            chunkedBeverages.forEach { rowBeverages ->
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    rowBeverages.forEach { beverageType ->
-                        val isSelected = selectedBeverageType == beverageType
+            items(beverageTypes) { beverageType ->
+                val isSelected = selectedBeverageType == beverageType
 
-                        ToggleButton(
-                            checked = isSelected,
-                            onCheckedChange = { onBeverageTypeChange(beverageType) },
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(4.dp),
-                                modifier = Modifier.padding(vertical = 8.dp, horizontal = 4.dp)
-                            ) {
-                                Icon(
-                                    imageVector = beverageType.icon,
-                                    contentDescription = beverageType.displayName,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                                Text(
-                                    text = beverageType.displayName,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    textAlign = TextAlign.Center,
-                                    maxLines = 2,
-                                    modifier = Modifier.height(32.dp)
-                                )
-                                // Show hydration multiplier for non-water beverages
-                                if (beverageType != BeverageType.WATER) {
-                                    Text(
-                                        text = "${(beverageType.hydrationMultiplier * 100).toInt()}%",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = if (isSelected)
-                                            MaterialTheme.colorScheme.onPrimary
-                                        else
-                                            MaterialTheme.colorScheme.onSurfaceVariant,
-                                        fontWeight = FontWeight.Medium
-                                    )
-                                }
-                            }
+                FilterChip(
+                    onClick = { onBeverageTypeChange(beverageType) },
+                    label = {
+                        if (isSelected){
+                            Text(
+                                text = beverageType.displayName,
+                                style = MaterialTheme.typography.labelMediumEmphasized,
+                                textAlign = TextAlign.Center
+                            )
+                        } else {
+                            Text(
+                                text = beverageType.displayName,
+                                style = MaterialTheme.typography.labelMedium,
+                                textAlign = TextAlign.Center
+                            )
                         }
-                    }
-
-                    // Fill remaining space if the row is not complete
-                    repeat(3 - rowBeverages.size) {
-                        Spacer(modifier = Modifier.weight(1f))
-                    }
-                }
+                    },
+                    leadingIcon = {
+                        if (isSelected){
+                            Icon(
+                                painter = painterResource(beverageType.iconResFilled),
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        } else {
+                            Icon(
+                                painter = painterResource(beverageType.iconRes),
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    },
+                    selected = isSelected,
+                    modifier = Modifier.animateItem()
+                )
             }
         }
 
@@ -1510,29 +1591,23 @@ private fun BeverageSelectionSection(
         if (selectedBeverageType != BeverageType.WATER) {
             Card(
                 colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer
                 ),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Column(
+                Row(
                     modifier = Modifier.padding(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Info,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                        modifier = Modifier.size(18.dp)
+                    )
                     Text(
-                        text = "Selected: ${selectedBeverageType.displayName}",
+                        text = "Effective Hydration: ${(selectedBeverageType.hydrationMultiplier * 100).toInt()}%",
                         style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Medium
-                    )
-                    Text(
-                        text = selectedBeverageType.description,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = "Hydration effectiveness: ${(selectedBeverageType.hydrationMultiplier * 100).toInt()}%",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Medium
                     )
                 }
             }

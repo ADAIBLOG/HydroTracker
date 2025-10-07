@@ -1,8 +1,7 @@
 package com.cemcakmak.hydrotracker.data.models
 
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.annotation.DrawableRes
+import com.cemcakmak.hydrotracker.R
 
 /**
  * Beverage types with hydration effectiveness multipliers based on peer-reviewed research.
@@ -13,14 +12,16 @@ import androidx.compose.ui.graphics.vector.ImageVector
 enum class BeverageType(
     val displayName: String,
     val hydrationMultiplier: Double,
-    val icon: ImageVector,
+    @param:DrawableRes val iconRes: Int,
+    @param:DrawableRes val iconResFilled: Int,
     val description: String
 ) {
     // Water (baseline)
     WATER(
         displayName = "Water",
         hydrationMultiplier = 1.0,
-        icon = Icons.Filled.WaterDrop,
+        iconRes = R.drawable.water,
+        iconResFilled = R.drawable.water_filled,
         description = "Pure water - baseline hydration"
     ),
 
@@ -28,7 +29,8 @@ enum class BeverageType(
     COFFEE(
         displayName = "Coffee",
         hydrationMultiplier = 1.0,
-        icon = Icons.Filled.Coffee,
+        iconRes = R.drawable.coffee,
+        iconResFilled = R.drawable.coffee_filled,
         description = "Coffee - equivalent to water"
     ),
 
@@ -36,7 +38,8 @@ enum class BeverageType(
     TEA(
         displayName = "Tea",
         hydrationMultiplier = 1.0,
-        icon = Icons.Filled.EmojiFoodBeverage,
+        iconRes = R.drawable.tea,
+        iconResFilled = R.drawable.tea_filled,
         description = "Tea - equivalent to water"
     ),
 
@@ -44,7 +47,8 @@ enum class BeverageType(
     SOFT_DRINK(
         displayName = "Soft Drink",
         hydrationMultiplier = 1.0,
-        icon = Icons.Filled.LocalDrink,
+        iconRes = R.drawable.soft_drink,
+        iconResFilled = R.drawable.soft_drink_filled,
         description = "Soft drink - equivalent to water"
     ),
 
@@ -52,7 +56,8 @@ enum class BeverageType(
     ENERGY_DRINK(
         displayName = "Energy Drink",
         hydrationMultiplier = 1.0,
-        icon = Icons.Filled.Bolt,
+        iconRes = R.drawable.energy_drink,
+        iconResFilled = R.drawable.energy_drink_filled,
         description = "Energy drink - equivalent to water"
     ),
 
@@ -60,7 +65,8 @@ enum class BeverageType(
     SPORTS_DRINK(
         displayName = "Sports Drink",
         hydrationMultiplier = 1.1,
-        icon = Icons.Filled.FitnessCenter,
+        iconRes = R.drawable.sports_drink,
+        iconResFilled = R.drawable.sports_drink_filled,
         description = "Sports drink - slightly enhanced hydration"
     ),
 
@@ -68,7 +74,8 @@ enum class BeverageType(
     ORAL_REHYDRATION_SOLUTION(
         displayName = "ORS",
         hydrationMultiplier = 1.5,
-        icon = Icons.Filled.Healing,
+        iconRes = R.drawable.oral_rehydration_solution,
+        iconResFilled = R.drawable.oral_rehydration_solution_filled,
         description = "Oral rehydration solution - superior hydration"
     ),
 
@@ -76,7 +83,8 @@ enum class BeverageType(
     MILK(
         displayName = "Milk",
         hydrationMultiplier = 1.5,
-        icon = Icons.Filled.LocalDining,
+        iconRes = R.drawable.milk,
+        iconResFilled = R.drawable.milk_filled,
         description = "Milk - superior hydration"
     ),
 
@@ -84,7 +92,8 @@ enum class BeverageType(
     FRUIT_JUICE(
         displayName = "Fruit Juice",
         hydrationMultiplier = 1.3,
-        icon = Icons.Filled.LocalFlorist,
+        iconRes = R.drawable.fruit_juice,
+        iconResFilled = R.drawable.fruit_juice_filled,
         description = "Fruit juice - enhanced hydration"
     );
 
@@ -95,9 +104,13 @@ enum class BeverageType(
         fun getDefault(): BeverageType = WATER
 
         /**
-         * Get all beverage types sorted by category and name
+         * Get all beverage types with Water first, then sorted by name
          */
-        fun getAllSorted(): List<BeverageType> = entries.sortedBy { it.displayName }
+        fun getAllSorted(): List<BeverageType> {
+            val water = listOf(WATER)
+            val others = entries.filter { it != WATER }.sortedBy { it.displayName }
+            return water + others
+        }
 
         /**
          * Find beverage type by display name (case-insensitive)

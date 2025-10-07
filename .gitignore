@@ -116,3 +116,6 @@ CLAUDE_NOTES.md
 .claude/
 *.claude
 settings.local.json
+
+# Research papers and documentation
+Hydration Effects of Common Beverages in Healthy Adults.pdf
