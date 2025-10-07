@@ -1535,6 +1535,8 @@ private fun BeverageSelectionSection(
     onBeverageTypeChange: (BeverageType) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val haptics = LocalHapticFeedback.current
+
     Column(
         modifier = modifier.padding(horizontal = 5.dp, vertical = 5.dp),
         verticalArrangement = Arrangement.spacedBy(5.dp),
@@ -1557,7 +1559,10 @@ private fun BeverageSelectionSection(
                     } else {
                         MaterialTheme.shapes.extraLarge
                     },
-                    onClick = { onBeverageTypeChange(beverageType) },
+                    onClick = {
+                        haptics.performHapticFeedback(HapticFeedbackType.Confirm)
+                        onBeverageTypeChange(beverageType)
+                    },
                     label = {
                         if (isSelected){
                             Text(
