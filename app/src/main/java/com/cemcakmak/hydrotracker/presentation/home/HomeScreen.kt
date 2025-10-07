@@ -24,6 +24,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -1587,17 +1588,46 @@ private fun BeverageSelectionSection(
             }
         }
 
-        // Show selected beverage info
-        if (selectedBeverageType != BeverageType.WATER) {
-            Card(
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer
+        // Show selected beverage info with animation
+        AnimatedVisibility(
+            visible = selectedBeverageType != BeverageType.WATER,
+            enter = expandVertically(
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessLow
                 ),
-                modifier = Modifier.fillMaxWidth()
+                expandFrom = Alignment.Top
+            ) + scaleIn(
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessLow
+                ),
+                initialScale = 0.8f,
+                transformOrigin = TransformOrigin(0.5f, 0f)
+            ),
+            exit = shrinkVertically(
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioNoBouncy,
+                    stiffness = Spring.StiffnessMedium
+                ),
+                shrinkTowards = Alignment.Top
+            ) + scaleOut(
+                animationSpec = tween(150),
+                targetScale = 0.9f,
+                transformOrigin = TransformOrigin(0.5f, 0f)
+            )
+        ) {
+            Card(
+                shape = MaterialTheme.shapes.extraLargeIncreased,
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                )
             ) {
                 Row(
-                    modifier = Modifier.padding(12.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    modifier = Modifier
+                        .padding(12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterHorizontally),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
                         imageVector = Icons.Rounded.Info,
