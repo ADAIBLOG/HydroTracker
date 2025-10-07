@@ -2,6 +2,10 @@
 
 All notable changes to HydroTracker will be documented in this file.
 
+## [0.9.11] - 2025.09.27
+### Added
+- Add different beverage types
+
 ## [0.9.10] - 2025.09.26
 ### Added
 - Add support for devices up to Android 8

@@ -1537,7 +1537,8 @@ private fun BeverageSelectionSection(
 ) {
     Column(
         modifier = modifier.padding(horizontal = 5.dp, vertical = 5.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+        verticalArrangement = Arrangement.spacedBy(5.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
         // Horizontally scrollable chips
         val beverageTypes = BeverageType.getAllSorted()
@@ -1551,6 +1552,11 @@ private fun BeverageSelectionSection(
                 val isSelected = selectedBeverageType == beverageType
 
                 FilterChip(
+                    shape = if (isSelected){
+                        MaterialTheme.shapes.medium
+                    } else {
+                        MaterialTheme.shapes.extraLarge
+                    },
                     onClick = { onBeverageTypeChange(beverageType) },
                     label = {
                         if (isSelected){
@@ -1618,10 +1624,12 @@ private fun BeverageSelectionSection(
             )
         ) {
             Card(
-                shape = MaterialTheme.shapes.extraLargeIncreased,
+                shape = MaterialTheme.shapes.extraLarge,
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                )
+                ),
+                modifier = Modifier
+                    .padding(horizontal = 10.dp)
             ) {
                 Row(
                     modifier = Modifier
@@ -1635,10 +1643,27 @@ private fun BeverageSelectionSection(
                         tint = MaterialTheme.colorScheme.onSecondaryContainer,
                         modifier = Modifier.size(18.dp)
                     )
-                    Text(
-                        text = "Effective Hydration: ${(selectedBeverageType.hydrationMultiplier * 100).toInt()}%",
-                        style = MaterialTheme.typography.titleSmall,
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Effective Hydration: ",
+                            style = MaterialTheme.typography.titleSmall,
+                        )
+                        AnimatedContent(
+                            targetState = (selectedBeverageType.hydrationMultiplier * 100).toInt(),
+                            transitionSpec = {
+                                slideInVertically { height -> height } + fadeIn() togetherWith
+                                slideOutVertically { height -> -height } + fadeOut()
+                            },
+                            label = "hydration_percentage"
+                        ) { percentage ->
+                            Text(
+                                text = "$percentage%",
+                                style = MaterialTheme.typography.titleSmall,
+                            )
+                        }
+                    }
                 }
             }
         }
