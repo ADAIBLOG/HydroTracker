@@ -42,7 +42,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         contentElement.innerHTML = `
             <div class="error">
                 <h2>Error Loading Privacy Policy</h2>
-                <p>Sorry, we couldn't load the privacy policy. Please try again later or visit our <a href="https://github.com/cemcakmak/HydroTracker" target="_blank">GitHub repository</a>.</p>
+                <p>Sorry, we couldn't load the privacy policy. Please try again later or visit our <a href="https://github.com/Econ01/HydroTracker" target="_blank">GitHub repository</a>.</p>
                 <p>Error details: ${error.message}</p>
             </div>
         `;
