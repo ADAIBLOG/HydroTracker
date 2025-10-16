@@ -6,8 +6,6 @@ document.addEventListener('DOMContentLoaded', async function() {
     // Initialize scroll-to-top button
     initScrollToTop();
 
-    // Initialize expressive animations
-    initExpressiveAnimations();
     const contentElement = document.getElementById('privacy-content');
     const dateElement = document.querySelector('.date');
 
@@ -68,8 +66,8 @@ document.addEventListener('DOMContentLoaded', async function() {
         // Add smooth scroll behavior to anchor links
         addSmoothScrolling();
 
-        // Add copy link functionality to headings
-        addCopyLinkToHeadings();
+        // Apply subtle reveal animation
+        document.querySelector('.container').classList.add('reveal');
 
     } catch (error) {
         console.error('Error loading privacy policy:', error);
@@ -97,69 +95,6 @@ function addSmoothScrolling() {
             }
         });
     });
-}
-
-function addCopyLinkToHeadings() {
-    // Add copy link functionality to headings
-    document.querySelectorAll('h1[id], h2[id], h3[id], h4[id], h5[id], h6[id]').forEach(heading => {
-        heading.style.position = 'relative';
-        heading.style.cursor = 'pointer';
-
-        heading.addEventListener('click', function() {
-            const url = window.location.origin + window.location.pathname + '#' + this.id;
-
-            // Modern clipboard API
-            if (navigator.clipboard) {
-                navigator.clipboard.writeText(url).then(() => {
-                    showCopyNotification(this);
-                }).catch(err => {
-                    console.error('Failed to copy URL:', err);
-                    fallbackCopyTextToClipboard(url);
-                });
-            } else {
-                fallbackCopyTextToClipboard(url);
-            }
-        });
-    });
-}
-
-function showCopyNotification(element) {
-    // Create temporary notification
-    const notification = document.createElement('span');
-    notification.textContent = ' (Link copied!)';
-    notification.style.color = 'var(--secondary-color)';
-    notification.style.fontSize = '0.8em';
-    notification.style.fontWeight = 'normal';
-
-    element.appendChild(notification);
-
-    setTimeout(() => {
-        if (notification.parentNode) {
-            notification.parentNode.removeChild(notification);
-        }
-    }, 2000);
-}
-
-function fallbackCopyTextToClipboard(text) {
-    const textArea = document.createElement('textarea');
-    textArea.value = text;
-
-    // Avoid scrolling to bottom
-    textArea.style.top = '0';
-    textArea.style.left = '0';
-    textArea.style.position = 'fixed';
-
-    document.body.appendChild(textArea);
-    textArea.focus();
-    textArea.select();
-
-    try {
-        document.execCommand('copy');
-    } catch (err) {
-        console.error('Fallback: Could not copy text:', err);
-    }
-
-    document.body.removeChild(textArea);
 }
 
 // Add CSS for error styling
@@ -218,105 +153,6 @@ function initScrollToTop() {
     });
 }
 
-function initExpressiveAnimations() {
-    // Intersection Observer for fade-in animations
-    const observerOptions = {
-        threshold: 0.1,
-        rootMargin: '0px 0px -50px 0px'
-    };
-
-    const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                entry.target.style.opacity = '1';
-                entry.target.style.transform = 'translateY(0)';
-            }
-        });
-    }, observerOptions);
-
-    // Add staggered fade-in animations
-    setTimeout(() => {
-        const animatedElements = document.querySelectorAll('h1, h2, h3, p, ul, ol');
-        animatedElements.forEach((el, index) => {
-            el.style.opacity = '0';
-            el.style.transform = 'translateY(20px)';
-            el.style.transition = `opacity 0.6s cubic-bezier(0.2, 0.0, 0, 1.0) ${index * 0.1}s, transform 0.6s cubic-bezier(0.2, 0.0, 0, 1.0) ${index * 0.1}s`;
-            observer.observe(el);
-        });
-    }, 500);
-
-    // Add hover effects to links
-    document.addEventListener('mouseover', (e) => {
-        if (e.target.tagName === 'A') {
-            e.target.style.transform = 'scale(1.02)';
-        }
-    });
-
-    document.addEventListener('mouseout', (e) => {
-        if (e.target.tagName === 'A') {
-            e.target.style.transform = 'scale(1)';
-        }
-    });
-
-    // Add ripple effect to clickable elements
-    document.addEventListener('click', createRipple);
-}
-
-function createRipple(event) {
-    const element = event.target;
-
-    if (!element.matches('a, button, .fab')) return;
-
-    const circle = document.createElement('span');
-    const diameter = Math.max(element.clientWidth, element.clientHeight);
-    const radius = diameter / 2;
-
-    circle.style.width = circle.style.height = `${diameter}px`;
-    circle.style.left = `${event.clientX - element.offsetLeft - radius}px`;
-    circle.style.top = `${event.clientY - element.offsetTop - radius}px`;
-    circle.classList.add('ripple');
-
-    const ripple = element.getElementsByClassName('ripple')[0];
-    if (ripple) {
-        ripple.remove();
-    }
-
-    element.appendChild(circle);
-
-    // Remove ripple after animation
-    setTimeout(() => {
-        circle.remove();
-    }, 600);
-}
-
-// Add ripple styles dynamically
-const rippleStyles = `
-.ripple {
-    position: absolute;
-    border-radius: 50%;
-    transform: scale(0);
-    animation: ripple 600ms linear;
-    background-color: rgba(255, 255, 255, 0.6);
-    pointer-events: none;
-}
-
-@keyframes ripple {
-    to {
-        transform: scale(4);
-        opacity: 0;
-    }
-}
-
-/* Ensure elements can contain ripples */
-a, button, .fab {
-    position: relative;
-    overflow: hidden;
-}
-`;
-
-const rippleStyleElement = document.createElement('style');
-rippleStyleElement.textContent = rippleStyles;
-document.head.appendChild(rippleStyleElement);
 
 // Theme System - Auto-detect and toggle between light/dark mode
 function initThemeSystem() {
@@ -332,11 +168,11 @@ function initThemeSystem() {
         if (prefersDarkScheme.matches) {
             // Dark mode is default (no class needed)
             body.classList.remove('light');
-            themeIcon.textContent = '🌙';
+            themeIcon.textContent = 'dark_mode';
         } else {
             // Light mode
             body.classList.add('light');
-            themeIcon.textContent = '☀️';
+            themeIcon.textContent = 'light_mode';
         }
     }
 
@@ -348,9 +184,9 @@ function initThemeSystem() {
         body.classList.toggle('light');
 
         if (body.classList.contains('light')) {
-            themeIcon.textContent = '☀️';
+            themeIcon.textContent = 'light_mode';
         } else {
-            themeIcon.textContent = '🌙';
+            themeIcon.textContent = 'dark_mode';
         }
     });
 
