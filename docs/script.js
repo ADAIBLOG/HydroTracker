@@ -1,11 +1,15 @@
 // Privacy Policy Markdown Renderer with Material 3 Expressive behaviors
 document.addEventListener('DOMContentLoaded', async function() {
+    // Initialize theme system (must be first)
+    initThemeSystem();
+
     // Initialize scroll-to-top button
     initScrollToTop();
 
     // Initialize expressive animations
     initExpressiveAnimations();
     const contentElement = document.getElementById('privacy-content');
+    const dateElement = document.querySelector('.date');
 
     try {
         // Fetch the privacy policy markdown file
@@ -15,7 +19,37 @@ document.addEventListener('DOMContentLoaded', async function() {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
 
-        const markdownText = await response.text();
+        let markdownText = await response.text();
+
+        // Extract only the dates section (keep the title)
+        const datesRegex = /\*\*Effective Date:\*\*[^\n]*\n\s*\*\*Last Updated:\*\*[^\n]*/m;
+        const datesMatch = markdownText.match(datesRegex);
+
+        if (datesMatch && dateElement) {
+            // Extract dates info
+            const effectiveDateMatch = markdownText.match(/\*\*Effective Date:\*\*\s*(.+)/);
+            const lastUpdatedMatch = markdownText.match(/\*\*Last Updated:\*\*\s*(.+)/);
+
+            const effectiveDate = effectiveDateMatch ? effectiveDateMatch[1].trim() : '';
+            const lastUpdated = lastUpdatedMatch ? lastUpdatedMatch[1].trim() : '';
+
+            // Create date content HTML
+            dateElement.innerHTML = `
+                <div class="date-content">
+                    <div class="date-item">
+                        <span class="date-label">Effective Date:</span>
+                        <span class="date-value">${effectiveDate}</span>
+                    </div>
+                    <div class="date-item">
+                        <span class="date-label">Last Updated:</span>
+                        <span class="date-value">${lastUpdated}</span>
+                    </div>
+                </div>
+            `;
+
+            // Remove only the dates section from markdown (keep the title)
+            markdownText = markdownText.replace(datesRegex, '').trim();
+        }
 
         // Configure marked options
         marked.setOptions({
@@ -283,3 +317,47 @@ a, button, .fab {
 const rippleStyleElement = document.createElement('style');
 rippleStyleElement.textContent = rippleStyles;
 document.head.appendChild(rippleStyleElement);
+
+// Theme System - Auto-detect and toggle between light/dark mode
+function initThemeSystem() {
+    const themeToggle = document.getElementById('themeToggle');
+    const themeIcon = document.getElementById('themeIcon');
+    const body = document.body;
+
+    // Detect system theme preference
+    const prefersDarkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+
+    // Apply theme based on system preference (no memory)
+    function applySystemTheme() {
+        if (prefersDarkScheme.matches) {
+            // Dark mode is default (no class needed)
+            body.classList.remove('light');
+            themeIcon.textContent = '🌙';
+        } else {
+            // Light mode
+            body.classList.add('light');
+            themeIcon.textContent = '☀️';
+        }
+    }
+
+    // Apply initial theme
+    applySystemTheme();
+
+    // Toggle theme manually
+    themeToggle.addEventListener('click', () => {
+        body.classList.toggle('light');
+
+        if (body.classList.contains('light')) {
+            themeIcon.textContent = '☀️';
+        } else {
+            themeIcon.textContent = '🌙';
+        }
+    });
+
+    // Listen for system theme changes and auto-update
+    prefersDarkScheme.addEventListener('change', (e) => {
+        // Only auto-update if user hasn't manually overridden
+        // Since we don't save state, always respect system changes
+        applySystemTheme();
+    });
+}
