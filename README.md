@@ -276,7 +276,7 @@ This project is licensed under the **GNU General Public License v3.0** - see the
   </a>
   &nbsp;&nbsp;
   <a href="https://buymeacoffee.com/thegadgetgeek">
-    <img src="https://img.buymeacoffee.com/button-api/?text=Buy me a coffee&emoji=&slug=thegadgetgeek&button_colour=FFDD00&font_colour=000000&font_family=Cookie&outline_colour=000000&coffee_colour=ffffff" alt="Buy Me A Coffee" height="50">
+    <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" height="50">
   </a>
 </p>
 
