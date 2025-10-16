@@ -270,12 +270,13 @@ This project is licensed under the **GNU General Public License v3.0** - see the
 
 ### Support Development
 
-<p align="center" style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+<p align="center">
   <a href="https://www.paypal.com/donate/?hosted_button_id=CQUZLNRM79CAU">
-    <img src="screenshots/paypal-banner.png" alt="Donate with PayPal" height="50" style="vertical-align: middle;">
+    <img src="screenshots/paypal-banner.png" alt="Donate with PayPal" height="50">
   </a>
+  &nbsp;&nbsp;
   <a href="https://buymeacoffee.com/thegadgetgeek">
-    <img src="https://img.buymeacoffee.com/button-api/?text=Buy me a coffee&emoji=&slug=thegadgetgeek&button_colour=FFDD00&font_colour=000000&font_family=Cookie&outline_colour=000000&coffee_colour=ffffff" alt="Buy Me A Coffee" height="50" style="vertical-align: middle;">
+    <img src="https://img.buymeacoffee.com/button-api/?text=Buy me a coffee&emoji=&slug=thegadgetgeek&button_colour=FFDD00&font_colour=000000&font_family=Cookie&outline_colour=000000&coffee_colour=ffffff" alt="Buy Me A Coffee" height="50">
   </a>
 </p>
 
