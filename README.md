@@ -111,9 +111,7 @@
   <a href="https://play.google.com/store/apps/details?id=com.cemcakmak.hydrotracker">
     <img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" alt="Get it on Google Play" height="80">
   </a>
-  <span style="opacity: 0.5">
-    <img src="https://fdroid.gitlab.io/artwork/badge/get-it-on.png" alt="Get it on F-Droid" height="80">
-  </span>
+  <img src="https://fdroid.gitlab.io/artwork/badge/get-it-on.png" alt="Get it on F-Droid" height="80" style="opacity: 0.4; filter: grayscale(100%);">
 </p>
 
 <p align="center">
