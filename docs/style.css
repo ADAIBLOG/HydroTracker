@@ -394,3 +394,223 @@ body {
 .reveal {
     animation: subtleReveal 1s ease-in-out forwards;
 }
+
+/* Responsive Design */
+
+/* Tablets and smaller laptops */
+@media (max-width: 1024px) {
+    .container {
+        max-width: 85vw;
+    }
+}
+
+/* Tablets portrait and small screens */
+@media (max-width: 768px) {
+    .container {
+        max-width: 90vw;
+    }
+
+    .header {
+        padding: 2rem 1.5rem;
+        border-radius: 0 0 2rem 2rem;
+    }
+
+    .logo {
+        gap: 1rem;
+    }
+
+    .app-icon {
+        width: 3.5rem;
+        height: 3.5rem;
+    }
+
+    .logo h1 {
+        font-size: 20pt;
+        line-height: 28pt;
+    }
+
+    .logo p {
+        font-size: 12pt;
+        line-height: 18pt;
+    }
+
+    .date {
+        border-radius: 2rem;
+        padding: 1.25rem 1.5rem;
+    }
+
+    .date-content {
+        gap: 3rem;
+    }
+
+    .main-content {
+        border-radius: 2rem;
+    }
+
+    .markdown-content {
+        padding: 1.5rem;
+    }
+
+    .markdown-content h1 {
+        font-size: 20pt;
+        line-height: 28pt;
+    }
+
+    .markdown-content h2 {
+        font-size: 16pt;
+        line-height: 22pt;
+        margin: 2rem 0 1rem 0;
+    }
+
+    .markdown-content h3 {
+        font-size: 13pt;
+        line-height: 18pt;
+    }
+
+    .markdown-content h4 {
+        font-size: 12pt;
+        line-height: 17pt;
+    }
+
+    .markdown-content p,
+    .markdown-content a,
+    .markdown-content strong {
+        font-size: 11pt;
+        line-height: 15pt;
+    }
+
+    .theme-toggle,
+    .fab {
+        width: 3.5rem;
+        height: 3.5rem;
+        font-size: 18px;
+    }
+
+    .theme-toggle {
+        top: 1.5rem;
+        right: 1.5rem;
+    }
+
+    .fab {
+        bottom: 1.5rem;
+        right: 1.5rem;
+    }
+}
+
+/* Mobile phones */
+@media (max-width: 480px) {
+    .container {
+        max-width: 95vw;
+    }
+
+    .header {
+        padding: 1.5rem 1rem;
+        border-radius: 0 0 1.5rem 1.5rem;
+    }
+
+    .logo {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .logo-text {
+        text-align: center;
+    }
+
+    .app-icon {
+        width: 3rem;
+        height: 3rem;
+    }
+
+    .logo h1 {
+        font-size: 18pt;
+        line-height: 24pt;
+    }
+
+    .logo p {
+        font-size: 11pt;
+        line-height: 16pt;
+    }
+
+    .date {
+        border-radius: 1.5rem;
+        padding: 1rem 1rem;
+    }
+
+    .date-content {
+        gap: 2rem;
+        flex-direction: column;
+    }
+
+    .date-label {
+        font-size: 9px;
+    }
+
+    .date-value {
+        font-size: 13px;
+    }
+
+    .main-content {
+        border-radius: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .markdown-content {
+        padding: 1.25rem;
+    }
+
+    .markdown-content h1 {
+        font-size: 18pt;
+        line-height: 24pt;
+    }
+
+    .markdown-content h2 {
+        font-size: 14pt;
+        line-height: 20pt;
+        margin: 1.5rem 0 1rem 0;
+    }
+
+    .markdown-content h3 {
+        font-size: 12pt;
+        line-height: 16pt;
+    }
+
+    .markdown-content h4 {
+        font-size: 11pt;
+        line-height: 16pt;
+    }
+
+    .markdown-content p,
+    .markdown-content a,
+    .markdown-content strong {
+        font-size: 10pt;
+        line-height: 14pt;
+    }
+
+    .markdown-content ul, .markdown-content ol {
+        margin-left: 1rem;
+    }
+
+    .footer {
+        font-size: 9pt;
+        line-height: 13pt;
+    }
+
+    .theme-toggle,
+    .fab {
+        width: 3rem;
+        height: 3rem;
+        font-size: 16px;
+        border-radius: 15px;
+    }
+
+    .theme-toggle {
+        top: 1rem;
+        right: 1rem;
+    }
+
+    .fab {
+        bottom: 1rem;
+        right: 1rem;
+    }
+}
