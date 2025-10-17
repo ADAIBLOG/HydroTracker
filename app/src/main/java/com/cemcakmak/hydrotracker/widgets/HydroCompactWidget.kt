@@ -17,10 +17,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.first
 import java.text.SimpleDateFormat
 import java.util.*
-import android.os.Build
 
 /**
- * HydroTracker Compact Widget (2x1)
+ * HydroTracker Compact Widget (1x1)
  * Shows progress in a compact circular format
  */
 class HydroCompactWidget : AppWidgetProvider() {
@@ -39,16 +38,12 @@ class HydroCompactWidget : AppWidgetProvider() {
 
     override fun onEnabled(context: Context) {
         super.onEnabled(context)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            WidgetUpdateService.scheduleUpdates(context)
-        }
+        WidgetUpdateService.scheduleUpdates(context)
     }
 
     override fun onDisabled(context: Context) {
         super.onDisabled(context)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            WidgetUpdateService.cancelUpdates(context)
-        }
+        WidgetUpdateService.cancelUpdates(context)
     }
 
     private fun updateWidget(
@@ -91,13 +86,18 @@ class HydroCompactWidget : AppWidgetProvider() {
                     PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
                 )
                 views.setOnClickPendingIntent(R.id.widget_container, pendingIntent)
-                
-                // Apply theme
-                applyTheme(context, views, userRepository)
-                
+
+                // Apply Material 3 theme
+                WidgetTheme.applyTheme(
+                    context = context,
+                    views = views,
+                    textViewIds = listOf(R.id.widget_progress_text, R.id.widget_last_updated),
+                    accentTextViewIds = listOf(R.id.widget_progress_percent)
+                )
+
                 appWidgetManager.updateAppWidget(appWidgetId, views)
-                
-            } catch (e: Exception) {
+
+            } catch (_: Exception) {
                 updateWidgetWithDefaults(context, appWidgetManager, appWidgetId)
             }
         }
@@ -127,72 +127,9 @@ class HydroCompactWidget : AppWidgetProvider() {
     
     private fun formatCompact(amount: Double): String {
         return when {
-            amount >= 1000 -> String.format("%.1fL", amount / 1000)
+            amount >= 1000 -> String.format(Locale.getDefault(), "%.1fL", amount / 1000)
             else -> "${amount.toInt()}ml"
         }
     }
     
-    private fun applyTheme(context: Context, views: RemoteViews, userRepository: UserRepository) {
-        try {
-            val isDarkMode = context.resources.configuration.uiMode and 
-                android.content.res.Configuration.UI_MODE_NIGHT_MASK == 
-                android.content.res.Configuration.UI_MODE_NIGHT_YES
-            
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                try {
-                    val primaryColor = if (isDarkMode) {
-                        context.getColor(android.R.color.system_accent1_200)
-                    } else {
-                        context.getColor(android.R.color.system_accent1_600)
-                    }
-                    val onSurfaceColor = if (isDarkMode) {
-                        0xFFE6E1E5.toInt()
-                    } else {
-                        0xFF1D1B20.toInt()
-                    }
-                    val onSurfaceVariantColor = if (isDarkMode) {
-                        0xFFCAC4D0.toInt()
-                    } else {
-                        0xFF49454F.toInt()
-                    }
-                    
-                    views.setTextColor(R.id.widget_progress_text, onSurfaceColor)
-                    views.setTextColor(R.id.widget_progress_percent, primaryColor)
-                    views.setTextColor(R.id.widget_last_updated, onSurfaceVariantColor)
-                    
-                } catch (e: Exception) {
-                    applyFallbackColors(views, isDarkMode)
-                }
-            } else {
-                applyFallbackColors(views, isDarkMode)
-            }
-            
-        } catch (e: Exception) {
-            views.setTextColor(R.id.widget_progress_text, 0xFF000000.toInt())
-            views.setTextColor(R.id.widget_progress_percent, 0xFF0077BE.toInt())
-            views.setTextColor(R.id.widget_last_updated, 0xBB000000.toInt())
-        }
-    }
-    
-    private fun applyFallbackColors(views: RemoteViews, isDarkMode: Boolean) {
-        val onSurfaceColor = if (isDarkMode) {
-            0xFFE6E1E5.toInt()
-        } else {
-            0xFF1D1B20.toInt()
-        }
-        val primaryColor = if (isDarkMode) {
-            0xFF64C0F8.toInt()
-        } else {
-            0xFF0077BE.toInt()
-        }
-        val mutedTextColor = if (isDarkMode) {
-            0xBBE6E1E5.toInt()
-        } else {
-            0xBB1D1B20.toInt()
-        }
-        
-        views.setTextColor(R.id.widget_progress_text, onSurfaceColor)
-        views.setTextColor(R.id.widget_progress_percent, primaryColor)
-        views.setTextColor(R.id.widget_last_updated, mutedTextColor)
-    }
 }

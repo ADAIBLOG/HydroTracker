@@ -91,17 +91,47 @@
             </intent-filter>
         </receiver>
 
-        <!-- HydroTracker Progress Widget -->
+        <!-- HydroTracker Compact Widget (1x1) -->
+        <receiver
+            android:name=".widgets.HydroCompactWidget"
+            android:enabled="true"
+            android:exported="true"
+            android:label="HydroTracker Compact">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/hydro_compact_widget_info" />
+        </receiver>
+
+        <!-- HydroTracker Progress Widget (4x1) -->
         <receiver
             android:name=".widgets.HydroProgressWidget"
             android:enabled="true"
-            android:exported="true">
+            android:exported="true"
+            android:label="HydroTracker Progress">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/hydro_progress_widget_info" />
+        </receiver>
+
+        <!-- HydroTracker Large Widget (4x4) -->
+        <receiver
+            android:name=".widgets.HydroLargeWidget"
+            android:enabled="true"
+            android:exported="true"
+            android:label="HydroTracker Large">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.cemcakmak.hydrotracker.QUICK_ADD" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/hydro_large_widget_info" />
         </receiver>
 
         <!-- Widget Update Service -->

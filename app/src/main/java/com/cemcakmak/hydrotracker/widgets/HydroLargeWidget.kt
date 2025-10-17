@@ -18,7 +18,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.first
 import java.text.SimpleDateFormat
 import java.util.*
-import android.os.Build
 
 /**
  * HydroTracker Large Widget (4x2)
@@ -46,16 +45,19 @@ class HydroLargeWidget : AppWidgetProvider() {
 
     override fun onReceive(context: Context, intent: Intent) {
         super.onReceive(context, intent)
-        
+
         if (intent.action == ACTION_QUICK_ADD) {
             val amount = intent.getDoubleExtra(EXTRA_AMOUNT, 0.0)
             val container = intent.getStringExtra(EXTRA_CONTAINER) ?: "Glass"
-            
+
+            // Use goAsync() to keep the BroadcastReceiver alive during async operations
+            val pendingResult = goAsync()
+
             widgetScope.launch {
                 try {
                     val userRepository = UserRepository(context)
                     val waterRepository = DatabaseInitializer.getWaterIntakeRepository(context, userRepository)
-                    
+
                     // Quick add water
                     waterRepository.addWaterIntake(
                         amount = amount,
@@ -64,12 +66,15 @@ class HydroLargeWidget : AppWidgetProvider() {
                             volume = amount
                         )
                     )
-                    
+
                     // Update all widgets
                     WidgetUpdateHelper.updateAllWidgets(context)
-                    
-                } catch (e: Exception) {
+
+                } catch (_: Exception) {
                     // Handle error silently for widgets
+                } finally {
+                    // Finish the async operation
+                    pendingResult.finish()
                 }
             }
         }
@@ -77,16 +82,12 @@ class HydroLargeWidget : AppWidgetProvider() {
 
     override fun onEnabled(context: Context) {
         super.onEnabled(context)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            WidgetUpdateService.scheduleUpdates(context)
-        }
+        WidgetUpdateService.scheduleUpdates(context)
     }
 
     override fun onDisabled(context: Context) {
         super.onDisabled(context)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            WidgetUpdateService.cancelUpdates(context)
-        }
+        WidgetUpdateService.cancelUpdates(context)
     }
 
     private fun updateWidget(
@@ -124,7 +125,7 @@ class HydroLargeWidget : AppWidgetProvider() {
                 views.setProgressBar(R.id.widget_progress_bar, 100, progressPercent, false)
                 
                 // Set up quick add buttons
-                setupQuickAddButtons(context, views, appWidgetId)
+                setupQuickAddButtons(context, views)
                 
                 // Set main click intent
                 val intent = Intent(context, MainActivity::class.java)
@@ -133,54 +134,78 @@ class HydroLargeWidget : AppWidgetProvider() {
                     PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
                 )
                 views.setOnClickPendingIntent(R.id.widget_container, pendingIntent)
-                
-                // Apply theme
-                applyTheme(context, views, userRepository)
-                
+
+                // Apply Material 3 theme
+                WidgetTheme.applyTheme(
+                    context = context,
+                    views = views,
+                    textViewIds = listOf(R.id.widget_progress_text),
+                    accentTextViewIds = listOf(R.id.widget_progress_percent),
+                    variantTextViewIds = listOf(R.id.widget_last_updated),
+                    buttonTextViewIds = listOf(
+                        R.id.widget_btn_250_text,
+                        R.id.widget_btn_300_text,
+                        R.id.widget_btn_500_text,
+                        R.id.widget_btn_1l_text
+                    )
+                )
+
                 appWidgetManager.updateAppWidget(appWidgetId, views)
                 
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 updateWidgetWithDefaults(context, appWidgetManager, appWidgetId)
             }
         }
     }
     
-    private fun setupQuickAddButtons(context: Context, views: RemoteViews, appWidgetId: Int) {
-        // Glass button (250ml)
-        val glassIntent = Intent(context, HydroLargeWidget::class.java).apply {
+    private fun setupQuickAddButtons(context: Context, views: RemoteViews) {
+        // 250ml button
+        val btn250Intent = Intent(context, HydroLargeWidget::class.java).apply {
             action = ACTION_QUICK_ADD
             putExtra(EXTRA_AMOUNT, 250.0)
             putExtra(EXTRA_CONTAINER, "Glass")
         }
-        val glassPendingIntent = PendingIntent.getBroadcast(
-            context, 1001, glassIntent,
+        val btn250PendingIntent = PendingIntent.getBroadcast(
+            context, 1001, btn250Intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-        views.setOnClickPendingIntent(R.id.widget_btn_glass, glassPendingIntent)
-        
-        // Bottle button (500ml)
-        val bottleIntent = Intent(context, HydroLargeWidget::class.java).apply {
+        views.setOnClickPendingIntent(R.id.widget_btn_250, btn250PendingIntent)
+
+        // 300ml button
+        val btn300Intent = Intent(context, HydroLargeWidget::class.java).apply {
+            action = ACTION_QUICK_ADD
+            putExtra(EXTRA_AMOUNT, 300.0)
+            putExtra(EXTRA_CONTAINER, "Glass")
+        }
+        val btn300PendingIntent = PendingIntent.getBroadcast(
+            context, 1002, btn300Intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        views.setOnClickPendingIntent(R.id.widget_btn_300, btn300PendingIntent)
+
+        // 500ml button
+        val btn500Intent = Intent(context, HydroLargeWidget::class.java).apply {
             action = ACTION_QUICK_ADD
             putExtra(EXTRA_AMOUNT, 500.0)
             putExtra(EXTRA_CONTAINER, "Bottle")
         }
-        val bottlePendingIntent = PendingIntent.getBroadcast(
-            context, 1002, bottleIntent,
+        val btn500PendingIntent = PendingIntent.getBroadcast(
+            context, 1003, btn500Intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-        views.setOnClickPendingIntent(R.id.widget_btn_bottle, bottlePendingIntent)
-        
-        // Cup button (200ml)
-        val cupIntent = Intent(context, HydroLargeWidget::class.java).apply {
+        views.setOnClickPendingIntent(R.id.widget_btn_500, btn500PendingIntent)
+
+        // 1L button
+        val btn1lIntent = Intent(context, HydroLargeWidget::class.java).apply {
             action = ACTION_QUICK_ADD
-            putExtra(EXTRA_AMOUNT, 200.0)
-            putExtra(EXTRA_CONTAINER, "Cup")
+            putExtra(EXTRA_AMOUNT, 1000.0)
+            putExtra(EXTRA_CONTAINER, "Large Bottle")
         }
-        val cupPendingIntent = PendingIntent.getBroadcast(
-            context, 1003, cupIntent,
+        val btn1lPendingIntent = PendingIntent.getBroadcast(
+            context, 1004, btn1lIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-        views.setOnClickPendingIntent(R.id.widget_btn_cup, cupPendingIntent)
+        views.setOnClickPendingIntent(R.id.widget_btn_1l, btn1lPendingIntent)
     }
     
     private fun updateWidgetWithDefaults(
@@ -201,73 +226,9 @@ class HydroLargeWidget : AppWidgetProvider() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         views.setOnClickPendingIntent(R.id.widget_container, pendingIntent)
-        
-        setupQuickAddButtons(context, views, appWidgetId)
-        
+
+        setupQuickAddButtons(context, views)
+
         appWidgetManager.updateAppWidget(appWidgetId, views)
-    }
-    
-    private fun applyTheme(context: Context, views: RemoteViews, userRepository: UserRepository) {
-        try {
-            val isDarkMode = context.resources.configuration.uiMode and 
-                android.content.res.Configuration.UI_MODE_NIGHT_MASK == 
-                android.content.res.Configuration.UI_MODE_NIGHT_YES
-            
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                try {
-                    val primaryColor = if (isDarkMode) {
-                        context.getColor(android.R.color.system_accent1_200)
-                    } else {
-                        context.getColor(android.R.color.system_accent1_600)
-                    }
-                    val onSurfaceColor = if (isDarkMode) {
-                        0xFFE6E1E5.toInt()
-                    } else {
-                        0xFF1D1B20.toInt()
-                    }
-                    val onSurfaceVariantColor = if (isDarkMode) {
-                        0xFFCAC4D0.toInt()
-                    } else {
-                        0xFF49454F.toInt()
-                    }
-                    
-                    views.setTextColor(R.id.widget_progress_text, onSurfaceColor)
-                    views.setTextColor(R.id.widget_progress_percent, primaryColor)
-                    views.setTextColor(R.id.widget_last_updated, onSurfaceVariantColor)
-                    
-                } catch (e: Exception) {
-                    applyFallbackColors(views, isDarkMode)
-                }
-            } else {
-                applyFallbackColors(views, isDarkMode)
-            }
-            
-        } catch (e: Exception) {
-            views.setTextColor(R.id.widget_progress_text, 0xFF000000.toInt())
-            views.setTextColor(R.id.widget_progress_percent, 0xFF0077BE.toInt())
-            views.setTextColor(R.id.widget_last_updated, 0xBB000000.toInt())
-        }
-    }
-    
-    private fun applyFallbackColors(views: RemoteViews, isDarkMode: Boolean) {
-        val onSurfaceColor = if (isDarkMode) {
-            0xFFE6E1E5.toInt()
-        } else {
-            0xFF1D1B20.toInt()
-        }
-        val primaryColor = if (isDarkMode) {
-            0xFF64C0F8.toInt()
-        } else {
-            0xFF0077BE.toInt()
-        }
-        val mutedTextColor = if (isDarkMode) {
-            0xBBE6E1E5.toInt()
-        } else {
-            0xBB1D1B20.toInt()
-        }
-        
-        views.setTextColor(R.id.widget_progress_text, onSurfaceColor)
-        views.setTextColor(R.id.widget_progress_percent, primaryColor)
-        views.setTextColor(R.id.widget_last_updated, mutedTextColor)
     }
 }

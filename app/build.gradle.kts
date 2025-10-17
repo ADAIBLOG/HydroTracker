@@ -13,8 +13,8 @@ android {
         applicationId = "com.cemcakmak.hydrotracker"
         minSdk = 26
         targetSdk = 36
-        versionCode = 19
-        versionName = "1.0.1-internal"
+        versionCode = 21
+        versionName = "1.0.3-internal"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

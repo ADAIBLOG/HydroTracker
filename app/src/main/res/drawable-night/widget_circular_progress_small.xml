@@ -8,7 +8,7 @@
             android:innerRadiusRatio="3"
             android:thicknessRatio="12"
             android:useLevel="false">
-            <solid android:color="@color/widget_progress_track_light" />
+            <solid android:color="@color/widget_progress_track_dark" />
         </shape>
     </item>
 
@@ -24,7 +24,7 @@
                 android:innerRadiusRatio="3"
                 android:thicknessRatio="12"
                 android:useLevel="true">
-                <solid android:color="@color/widget_primary_light" />
+                <solid android:color="@color/widget_primary_dark" />
                 <corners android:radius="2dp" />
             </shape>
         </rotate>

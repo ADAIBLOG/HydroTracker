@@ -2,6 +2,10 @@
 
 All notable changes to HydroTracker will be documented in this file.
 
+## [1.0.3] - 2025.10.17
+### Added
+- Add widgets
+
 ## [1.0.1] - 2025.10.17
 ### Added
 - Add support for Medium and High Color Contrast added with Android 16.1
