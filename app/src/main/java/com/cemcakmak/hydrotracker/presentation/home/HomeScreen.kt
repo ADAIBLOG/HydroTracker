@@ -863,6 +863,22 @@ private fun EditWaterDialog(
     var selectedBeverageType by remember { mutableStateOf(entry.getBeverageType()) }
     var isError by remember { mutableStateOf(false) }
 
+    // Time picker state
+    var showTimePicker by remember { mutableStateOf(false) }
+    val calendar = remember {
+        java.util.Calendar.getInstance().apply {
+            timeInMillis = entry.timestamp
+        }
+    }
+    var selectedHour by remember { mutableIntStateOf(calendar.get(java.util.Calendar.HOUR_OF_DAY)) }
+    var selectedMinute by remember { mutableIntStateOf(calendar.get(java.util.Calendar.MINUTE)) }
+
+    val timePickerState = rememberTimePickerState(
+        initialHour = selectedHour,
+        initialMinute = selectedMinute,
+        is24Hour = true
+    )
+
     val presets = remember { ContainerPreset.getDefaultPresets() }
     val isExternalEntry = entry.isExternalEntry()
 
@@ -1036,6 +1052,35 @@ private fun EditWaterDialog(
                     }
                 }
 
+                // Time picker field (disabled for external entries)
+                Box(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    OutlinedTextField(
+                        value = String.format(java.util.Locale.getDefault(), "%02d:%02d", selectedHour, selectedMinute),
+                        onValueChange = { },
+                        readOnly = true,
+                        enabled = !isExternalEntry,
+                        label = { Text("Time") },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.Schedule,
+                                contentDescription = null
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    // Invisible clickable overlay to capture clicks
+                    if (!isExternalEntry) {
+                        Box(
+                            modifier = Modifier
+                                .matchParentSize()
+                                .clickable { showTimePicker = true }
+                        )
+                    }
+                }
+
                 // Amount field (disabled for external entries)
                 OutlinedTextField(
                     value = amountText,
@@ -1071,10 +1116,20 @@ private fun EditWaterDialog(
                             onClick = {
                                 val amount = amountText.toDoubleOrNull()
                                 if (amount != null && amount > 0 && amount <= 5000) {
+                                    // Calculate new timestamp with selected time
+                                    val newCalendar = java.util.Calendar.getInstance().apply {
+                                        timeInMillis = entry.timestamp
+                                        set(java.util.Calendar.HOUR_OF_DAY, selectedHour)
+                                        set(java.util.Calendar.MINUTE, selectedMinute)
+                                        set(java.util.Calendar.SECOND, 0)
+                                        set(java.util.Calendar.MILLISECOND, 0)
+                                    }
+
                                     val updatedEntry = entry.copy(
                                         amount = amount,
                                         containerType = containerType,
-                                        beverageType = selectedBeverageType.name
+                                        beverageType = selectedBeverageType.name,
+                                        timestamp = newCalendar.timeInMillis
                                     )
                                     onConfirm(updatedEntry)
                                 } else {
@@ -1083,6 +1138,58 @@ private fun EditWaterDialog(
                             }
                         ) {
                             Text("Update")
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Time Picker Dialog
+    if (showTimePicker) {
+        Dialog(onDismissRequest = { showTimePicker = false }) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.extraLargeIncreased,
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                )
+            ) {
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Text(
+                        text = "Select Time",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    TimePicker(
+                        state = timePickerState,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        TextButton(onClick = { showTimePicker = false }) {
+                            Text("Cancel")
+                        }
+
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        Button(
+                            shapes = ButtonDefaults.shapes(),
+                            onClick = {
+                                selectedHour = timePickerState.hour
+                                selectedMinute = timePickerState.minute
+                                showTimePicker = false
+                            }
+                        ) {
+                            Text("OK")
                         }
                     }
                 }

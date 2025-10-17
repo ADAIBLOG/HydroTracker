@@ -2,7 +2,19 @@
 
 All notable changes to HydroTracker will be documented in this file.
 
-## [0.9.11] - 2025.09.27
+## [1.0.1] - 2025.10.17
+### Added
+- Add support for Medium and High Color Contrast added with Android 16.1
+- Add ability to change entry times
+
+### Updated
+- Update Sources
+- Update Privacy Policy
+
+### Fixed
+- Fix dynamic color problems
+
+## [1.0.0] - 2025.09.27
 ### Added
 - Add different beverage types
 
