@@ -17,11 +17,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 
-/**
- * Material 3 Expressive Layout for onboarding steps
- * Following Material Design 3 Layout Guidelines
- * https://m3.material.io/foundations/layout/understanding-layout/overview
- */
 @Composable
 fun OnboardingStepLayout(
     title: String,
@@ -35,8 +30,6 @@ fun OnboardingStepLayout(
             .padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(32.dp)
     ) {
-        // Header following Material Design 3 Typography scale
-        // https://m3.material.io/styles/typography/applying-type
         Column(
             modifier = Modifier.fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -66,12 +59,6 @@ fun OnboardingStepLayout(
     }
 }
 
-/**
- * Material 3 Expressive Selection Card Component
- * Following Material Design 3 Card Guidelines
- * https://m3.material.io/components/cards/overview
- * https://m3.material.io/components/cards/guidelines
- */
 @Composable
 fun SelectionCard(
     title: String,
@@ -91,8 +78,6 @@ fun SelectionCard(
         label = "selection_card_scale"
     )
 
-    // Material 3 Card with proper selection handling
-    // https://m3.material.io/foundations/interaction/selection
     Card(
         modifier = modifier
             .fillMaxWidth()
@@ -111,9 +96,9 @@ fun SelectionCard(
             }
             ),
         border = if (isSelected) {
-            BorderStroke(2.dp, MaterialTheme.colorScheme.outlineVariant) // Visible border when selected
+            BorderStroke(2.dp, MaterialTheme.colorScheme.outlineVariant)
         } else {
-            BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant) // Subtle border when not selected
+            BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
         },
         elevation = CardDefaults.cardElevation(
             defaultElevation = if (isSelected) 6.dp else 0.dp
@@ -160,13 +145,13 @@ fun SelectionCard(
                 Text(
                     text = title,
                     style = MaterialTheme.typography.titleMediumEmphasized,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                    color = MaterialTheme.colorScheme.onSurface
                 )
 
                 Text(
                     text = description,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 

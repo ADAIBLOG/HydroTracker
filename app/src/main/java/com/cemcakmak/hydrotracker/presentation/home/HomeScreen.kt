@@ -432,7 +432,7 @@ fun HomeScreen(
                             text = getMotivationalMessage(todayProgress.progress, userProfile, todayProgress.isGoalAchieved),
                             style = MaterialTheme.typography.bodyLarge,
                             textAlign = TextAlign.Center,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
 
                         // Additional stats row
@@ -666,6 +666,7 @@ fun CarouselWaterCard(
             Text(
                 text = preset.name,
                 style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
                 textAlign = TextAlign.Center,
                 maxLines = 2
             )
@@ -673,7 +674,7 @@ fun CarouselWaterCard(
             Text(
                 text = preset.getFormattedVolume(),
                 style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onPrimaryContainer
             )
         }
     }

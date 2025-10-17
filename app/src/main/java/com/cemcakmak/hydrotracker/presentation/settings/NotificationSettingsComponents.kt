@@ -192,9 +192,9 @@ private fun NotificationPermissionCard(
                     imageVector = if (allPermissionsGranted) Icons.Default.CheckCircle else Icons.Default.Warning,
                     contentDescription = null,
                     tint = if (allPermissionsGranted) {
-                        MaterialTheme.colorScheme.primary
+                        MaterialTheme.colorScheme.onPrimaryContainer
                     } else {
-                        MaterialTheme.colorScheme.error
+                        MaterialTheme.colorScheme.onErrorContainer
                     },
                     modifier = Modifier.size(24.dp)
                 )
@@ -213,8 +213,7 @@ private fun NotificationPermissionCard(
                         } else {
                             "Grant permissions to enable notifications"
                         },
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        style = MaterialTheme.typography.bodySmall
                     )
                 }
             }

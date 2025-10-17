@@ -694,14 +694,14 @@ private fun SupportSection(
                         text = "Support Development",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                 }
 
                 Text(
                     text = "If you like to support my work, you can donate me :)",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center
                 )
 
@@ -1232,8 +1232,7 @@ private fun AboutSection(
                             )
                             Text(
                                 text = "View scientific sources and research",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                style = MaterialTheme.typography.bodySmall
                             )
                         }
 
@@ -1276,8 +1275,7 @@ private fun AboutSection(
                             )
                             Text(
                                 text = "View our privacy policy",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                style = MaterialTheme.typography.bodySmall
                             )
                         }
 
@@ -1320,8 +1318,7 @@ private fun AboutSection(
                             )
                             Text(
                                 text = "View the software license",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                style = MaterialTheme.typography.bodySmall
                             )
                         }
 
@@ -1942,7 +1939,7 @@ private fun HealthConnectSection(
                             Text(
                                 text = "View and manage Health Connect data",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
                             )
                         }
 

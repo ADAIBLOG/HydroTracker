@@ -142,15 +142,12 @@ The hydration effectiveness multipliers are based on the systematic review "Hydr
 - Herbal teas (caffeine-free)
 - Decaffeinated coffee
 - Caffeine-free sodas
-
-**Mildly Reduced Effectiveness (0.95x)**
 - Coffee (regular)
 - Caffeinated teas (black, green, oolong)
 - Regular and diet sodas with caffeine
 - Diet sodas
-
-**Significantly Reduced Effectiveness (0.90x)**
 - Energy drinks (high caffeine content)
+
 
 **Enhanced Hydration (1.05-1.10x)**
 - Sports drinks (electrolytes enhance retention)
@@ -239,5 +236,4 @@ For questions about our calculation methodology, to suggest additional peer-revi
 
 **Research Contributions Welcome:** We actively seek collaboration with hydration researchers, sports scientists, and clinical practitioners to improve our algorithms.
 
-*Last Updated: January 2025*
-*Evidence Base: Current through December 2024*
+*Last Updated: October 2025*
