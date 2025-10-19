@@ -2,44 +2,40 @@ name: Build HydroTracker
 
 on:
   push:
-    branches: [ main ]  # 推送至 main 分支时触发
+    branches: [ main ]
   pull_request:
-    branches: [ main ]  # 提交 PR 到 main 分支时触发
+    branches: [ main ]
 
 jobs:
   build:
-    runs-on: ubuntu-latest  # 使用 Ubuntu 环境
+    runs-on: ubuntu-latest
 
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
 
-      - name: 设置 JDK 11
+      - name: 设置 JDK 21  # 注意：根据 .idea/misc.xml 中 JDK_21 调整版本
         uses: actions/setup-java@v4
         with:
-          java-version: '11'
+          java-version: '21'  # 原配置用了 JDK 11，与项目实际 JDK 21 不符
           distribution: 'temurin'
-          cache: gradle  # 缓存 Gradle 依赖，加速构建
+          cache: gradle
 
       - name: 配置 Android SDK
         uses: android-actions/setup-android@v3
         with:
-          # 根据项目要求配置 SDK 版本（min SDK 26，target 36）
           android-sdk-license: ${{ secrets.ANDROID_SDK_LICENSE }}
           android-sdk-build-tools-version: 36.0.0
           android-sdk-platforms-version: 36
-          ndk-version: 25.1.8937393  # 可选，若项目需要 NDK
+          ndk-version: 25.1.8937393
 
       - name: 授予 Gradle 执行权限
         run: chmod +x ./gradlew
 
       - name: 下载依赖并构建 Debug 版本
         run: ./gradlew assembleDebug
-        env:
-          # 若需要签名，添加环境变量（可选，Debug 版本可跳过）
-          # KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-          # KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-          # KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        # 移除可能导致空值的 env 块（Debug 版本无需签名）
+        # 若需添加环境变量，确保格式正确（无空行、注释后无多余字符）
 
       - name: 上传 Debug APK 产物
         uses: actions/upload-artifact@v4
