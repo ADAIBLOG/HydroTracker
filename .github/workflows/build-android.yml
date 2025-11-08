@@ -1,0 +1,58 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+    # 允许手动触发构建
+
+# 注意：在GitHub仓库的Settings > Secrets and variables > Actions中添加以下密钥：
+# KEYSTORE_PASSWORD: example_keystore_password_123
+# KEY_ALIAS: hydrotracker_key
+# KEY_PASSWORD: example_key_password_456
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v3
+        
+      - name: 设置JDK 11
+        uses: actions/setup-java@v3
+        with:
+          java-version: '11'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: 设置Gradle权限
+        run: chmod +x ./gradlew
+
+      - name: 下载依赖
+        run: ./gradlew dependencies
+
+      - name: 构建Debug版本APK
+        run: ./gradlew assembleDebug
+
+      - name: 构建Release版本APK
+        run: ./gradlew assembleRelease
+        env:
+          # 从GitHub Secrets获取签名密钥信息
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+
+      - name: 上传Debug APK
+        uses: actions/upload-artifact@v3
+        with:
+          name: app-debug
+          path: app/build/outputs/apk/debug/app-debug.apk
+          
+      - name: 上传Release APK
+        uses: actions/upload-artifact@v3
+        with:
+          name: app-release
+          path: app/build/outputs/apk/release/app-release.apk
