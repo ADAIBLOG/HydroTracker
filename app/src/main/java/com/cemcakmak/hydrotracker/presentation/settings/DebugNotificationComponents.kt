@@ -18,6 +18,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
+import com.cemcakmak.hydrotracker.R
 import com.cemcakmak.hydrotracker.data.models.UserProfile
 import com.cemcakmak.hydrotracker.data.models.Gender
 import com.cemcakmak.hydrotracker.data.models.AgeGroup
@@ -82,23 +84,23 @@ fun DebugNotificationSection(
                         tint = MaterialTheme.colorScheme.error
                     )
                     Text(
-                        text = "Notification Debug Tools",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onErrorContainer
-                    )
+                    text = stringResource(R.string.settings_notification_debug_tools),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onErrorContainer
+                )
                 }
 
                 Text(
-                    text = "Test and debug the notification system. These tools help verify that notifications are working correctly.",
+                    text = stringResource(R.string.settings_notification_debug_description),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.8f)
                 )
 
                 // Test Notification Button
                 DebugActionButton(
-                    title = "Send Test Notification",
-                    description = "Show a real hydration reminder with random content",
+                    title = stringResource(R.string.settings_send_test_notification),
+                    description = stringResource(R.string.settings_show_hydration_reminder),
                     icon = Icons.Default.NotificationImportant,
                     snackbarHostState = snackbarHostState,
                     onClick = {
@@ -145,19 +147,19 @@ fun DebugNotificationSection(
                             notificationService.showTestNotification(fallbackProfile, fallbackProgress)
                         }
                     },
-                    confirmationMessage = "Test notification sent successfully!"
+                    confirmationMessage = stringResource(R.string.settings_test_notification_sent)
                 )
 
                 // Permission Status Button
                 DebugInfoButton(
-                    title = "Check Notification Permission",
-                    description = "Display current notification permission status",
+                    title = stringResource(R.string.settings_check_notification_permission),
+                    description = stringResource(R.string.settings_display_permission_status),
                     icon = Icons.Default.Security,
                     onClick = {
                         coroutineScope.launch {
                             val hasPermission = NotificationPermissionManager.hasNotificationPermission(context)
                             snackbarHostState.showSnackbar(
-                                message = "Notification Permission: ${if (hasPermission) "GRANTED" else "DENIED"}",
+                                message = stringResource(R.string.settings_notification_permission_status, if (hasPermission) stringResource(R.string.settings_granted) else stringResource(R.string.settings_denied))
                                 duration = SnackbarDuration.Long
                             )
                         }
@@ -167,28 +169,28 @@ fun DebugNotificationSection(
                 // Restart Notifications Button
                 if (userProfile != null) {
                     DebugActionButton(
-                        title = "Restart Notification Schedule",
-                        description = "Cancel and reschedule all notifications",
+                        title = stringResource(R.string.settings_restart_notification_schedule),
+                        description = stringResource(R.string.settings_cancel_reschedule_notifications),
                         icon = Icons.Default.RestartAlt,
                         snackbarHostState = snackbarHostState,
                         onClick = {
                             HydroNotificationScheduler.rescheduleNotifications(context, userProfile)
                         },
-                        confirmationMessage = "Notifications rescheduled successfully!"
+                        confirmationMessage = stringResource(R.string.settings_notifications_rescheduled)
                     )
 
                     // Next Notification Info
                     DebugInfoButton(
-                        title = "Next Scheduled Notification",
-                        description = "Show when the next notification is scheduled",
+                        title = stringResource(R.string.settings_next_scheduled_notification),
+                        description = stringResource(R.string.settings_show_next_notification_time),
                         icon = Icons.Default.Schedule,
                         onClick = {
                             coroutineScope.launch {
                                 val nextTime = HydroNotificationScheduler.getNextScheduledTime(context, userProfile)
                                 val message = if (nextTime != null) {
-                                    "Next notification: $nextTime"
+                                    stringResource(R.string.settings_next_notification_time, nextTime)
                                 } else {
-                                    "No notification scheduled (may be outside waking hours or goal achieved)"
+                                    stringResource(R.string.settings_no_notification_scheduled)
                                 }
                                 snackbarHostState.showSnackbar(
                                     message = message,
@@ -200,8 +202,8 @@ fun DebugNotificationSection(
 
                     // Debug System Info Button
                     DebugInfoButton(
-                        title = "System Alarm Info",
-                        description = "Check if exact alarm scheduling is available",
+                        title = stringResource(R.string.settings_system_alarm_info),
+                        description = stringResource(R.string.settings_check_exact_alarm_scheduling),
                         icon = Icons.Default.AlarmOn,
                         onClick = {
                             val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
@@ -213,14 +215,14 @@ fun DebugNotificationSection(
                             
                             coroutineScope.launch {
                                 val message = buildString {
-                                    append("Can schedule exact alarms: $canSchedule\n")
-                                    append("Android version: ${android.os.Build.VERSION.SDK_INT}\n")
+                                    append(stringResource(R.string.settings_can_schedule_exact_alarms, canSchedule) + "\n")
+                                    append(stringResource(R.string.settings_android_version, android.os.Build.VERSION.SDK_INT) + "\n")
                                     if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
                                         val nextAlarm = alarmManager.nextAlarmClock
                                         if (nextAlarm != null) {
-                                            append("Next system alarm: ${java.util.Date(nextAlarm.triggerTime)}")
+                                            append(stringResource(R.string.settings_next_system_alarm, java.util.Date(nextAlarm.triggerTime)))
                                         } else {
-                                            append("No system alarms scheduled")
+                                            append(stringResource(R.string.settings_no_system_alarms))
                                         }
                                     }
                                 }
@@ -236,44 +238,44 @@ fun DebugNotificationSection(
                 // 1-Minute Debug Interval Button
                 if (userProfile != null) {
                     DebugActionButton(
-                        title = "Enable 1-Minute Test Interval",
-                        description = "Temporarily set notification interval to 1 minute for testing",
+                        title = stringResource(R.string.settings_enable_1minute_interval),
+                        description = stringResource(R.string.settings_set_notification_interval_1minute),
                         icon = Icons.Default.Timer,
                         snackbarHostState = snackbarHostState,
                         onClick = {
                             val testProfile = userProfile.copy(reminderInterval = 1)
                             HydroNotificationScheduler.rescheduleNotifications(context, testProfile)
                         },
-                        confirmationMessage = "Notifications set to 1-minute intervals! Remember to reset when done testing."
+                        confirmationMessage = stringResource(R.string.settings_notifications_set_to_1minute)
                     )
                 }
 
                 // Stop All Notifications Button
                 DebugActionButton(
-                    title = "Stop All Notifications",
-                    description = "Cancel all scheduled notifications and clear notification tray",
+                    title = stringResource(R.string.settings_stop_all_notifications),
+                    description = stringResource(R.string.settings_cancel_clear_notifications),
                     icon = Icons.Default.NotificationsOff,
                     snackbarHostState = snackbarHostState,
                     onClick = {
                         HydroNotificationScheduler.stopNotifications(context)
                     },
-                    confirmationMessage = "All notifications stopped successfully!"
+                    confirmationMessage = stringResource(R.string.settings_all_notifications_stopped)
                 )
 
                 // Test Stacking Snackbars Button
                 DebugActionButton(
-                    title = "Test Stacking Snackbars",
-                    description = "Show multiple snackbars quickly to test stacking",
+                    title = stringResource(R.string.settings_test_stacking_snackbars),
+                    description = stringResource(R.string.settings_show_multiple_snackbars),
                     icon = Icons.Default.Layers,
                     snackbarHostState = snackbarHostState,
                     onClick = {
                         // Show multiple stacked snackbars
-                        showStackedSuccessSnackbar("First success message!")
-                        showStackedInfoSnackbar("Second info message!")
-                        showStackedWarningSnackbar("Third warning message!")
-                        showStackedErrorSnackbar("Fourth error message!")
+                        showStackedSuccessSnackbar(stringResource(R.string.settings_first_success_message))
+                        showStackedInfoSnackbar(stringResource(R.string.settings_second_info_message))
+                        showStackedWarningSnackbar(stringResource(R.string.settings_third_warning_message))
+                        showStackedErrorSnackbar(stringResource(R.string.settings_fourth_error_message))
                     },
-                    confirmationMessage = "Stacked snackbars shown!"
+                    confirmationMessage = stringResource(R.string.settings_stacked_snackbars_shown)
                 )
 
                 // Current Status Card
@@ -430,33 +432,33 @@ private fun NotificationStatusCard(userProfile: UserProfile) {
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             Text(
-                text = "Current Notification Status",
+                text = stringResource(R.string.settings_current_notification_status),
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.SemiBold
             )
 
             Text(
-                text = "Permission: ${if (hasPermission) "Granted" else "Denied"}",
+                text = stringResource(R.string.settings_permission_status, if (hasPermission) stringResource(R.string.settings_granted) else stringResource(R.string.settings_denied)),
                 style = MaterialTheme.typography.bodySmall
             )
 
             Text(
-                text = "Should Enable: ${if (shouldEnable) "Yes" else "No"}",
+                text = stringResource(R.string.settings_should_enable, if (shouldEnable) stringResource(R.string.settings_yes) else stringResource(R.string.settings_no)),
                 style = MaterialTheme.typography.bodySmall
             )
 
             Text(
-                text = "Reminder Interval: ${userProfile.reminderInterval} minutes",
+                text = stringResource(R.string.settings_reminder_interval, userProfile.reminderInterval),
                 style = MaterialTheme.typography.bodySmall
             )
 
             Text(
-                text = "Reminder Style: ${userProfile.reminderStyle.getDisplayName()}",
+                text = stringResource(R.string.settings_reminder_style, userProfile.reminderStyle.getDisplayName()),
                 style = MaterialTheme.typography.bodySmall
             )
 
             Text(
-                text = "Active Hours: ${userProfile.wakeUpTime} - ${userProfile.sleepTime}",
+                text = stringResource(R.string.settings_active_hours, userProfile.wakeUpTime, userProfile.sleepTime),
                 style = MaterialTheme.typography.bodySmall
             )
         }
