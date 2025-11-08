@@ -290,7 +290,7 @@ fun HomeScreen(
                             horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             Text(
-                                text = "HydroTracker",
+                                text = stringResource(R.string.app_name),
                                 style = MaterialTheme.typography.headlineLargeEmphasized,
                                 color = MaterialTheme.colorScheme.onSurface,
                             )
@@ -310,7 +310,7 @@ fun HomeScreen(
                         IconButton(onClick = onNavigateToSettings) {
                             Icon(
                                 imageVector = Icons.Default.Settings,
-                                contentDescription = "Settings",
+                                contentDescription = stringResource(R.string.nav_settings),
                                 tint = MaterialTheme.colorScheme.onSurface,
                             )
                         }
@@ -321,22 +321,22 @@ fun HomeScreen(
         bottomBar = {
             NavigationBar {
                 NavigationBarItem(
-                    icon = { Icon(Icons.Default.Home, contentDescription = "Home") },
-                    label = { Text("Home") },
+                    icon = { Icon(Icons.Default.Home, contentDescription = stringResource(R.string.nav_home)) },
+                    label = { Text(stringResource(R.string.nav_home)) },
                     selected = true,
                     alwaysShowLabel = true,
                     onClick = { }
                 )
                 NavigationBarItem(
-                    icon = { Icon(Icons.Default.Analytics, contentDescription = "History") },
-                    label = { Text("History") },
+                    icon = { Icon(Icons.Default.Analytics, contentDescription = stringResource(R.string.nav_history)) },
+                    label = { Text(stringResource(R.string.nav_history)) },
                     selected = false,
                     alwaysShowLabel = true,
                     onClick = onNavigateToHistory
                 )
                 NavigationBarItem(
-                    icon = { Icon(Icons.Default.Person, contentDescription = "Profile") },
-                    label = { Text("Profile") },
+                    icon = { Icon(Icons.Default.Person, contentDescription = "个人资料") },
+                    label = { Text("个人资料") },
                     selected = false,
                     alwaysShowLabel = true,
                     onClick = onNavigateToProfile
@@ -351,12 +351,12 @@ fun HomeScreen(
                 icon = {
                     Icon(
                         imageVector = Icons.Default.Edit,
-                        contentDescription = "Add Custom Amount"
+                        contentDescription = "添加自定义量"
                     )
                 },
                 text = {
                     Text(
-                        text = "Add Custom",
+                        text = stringResource(R.string.home_add_custom),
                         style = MaterialTheme.typography.labelLargeEmphasized
                     )
                 }
@@ -402,7 +402,7 @@ fun HomeScreen(
                         verticalArrangement = Arrangement.spacedBy(20.dp)
                     ) {
                         Text(
-                            text = "Daily Progress",
+                            text = stringResource(R.string.home_daily_progress),
                             style = MaterialTheme.typography.headlineLargeEmphasized,
                             color = MaterialTheme.colorScheme.onSurface
                         )
@@ -461,7 +461,7 @@ fun HomeScreen(
                         }
                     }
                 }
-            }
+            )
 
             Card (
                 modifier = Modifier
@@ -493,7 +493,7 @@ fun HomeScreen(
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         Text(
-                            text = "Quick Select",
+                            text = stringResource(R.string.home_quick_select),
                             style = MaterialTheme.typography.titleLargeEmphasized,
                             color = MaterialTheme.colorScheme.onSurface,
                         )
@@ -552,7 +552,7 @@ fun HomeScreen(
                                 verticalArrangement = Arrangement.spacedBy(16.dp)
                             ) {
                                 Text(
-                                    text = "Recent Entries",
+                                    text = stringResource(R.string.home_recent_entries),
                                     style = MaterialTheme.typography.titleLargeEmphasized,
                                     color = MaterialTheme.colorScheme.onSurface,
                                 )
@@ -576,7 +576,7 @@ fun HomeScreen(
                         }
                     }
                 }
-            }
+            )
 
             // Bottom spacing for FAB
             Spacer(modifier = Modifier.height(20.dp))
@@ -788,7 +788,7 @@ private fun CustomWaterDialog(
                             verticalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             Text(
-                                text = "Selected: ${selectedBeverageType.displayName}",
+                                text = stringResource(R.string.home_selected) + " ${selectedBeverageType.displayName}",
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Medium
                             )
@@ -798,7 +798,7 @@ private fun CustomWaterDialog(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Text(
-                                text = "Hydration effectiveness: ${(selectedBeverageType.hydrationMultiplier * 100).toInt()}%",
+                                text = stringResource(R.string.home_hydration_effectiveness) + " ${(selectedBeverageType.hydrationMultiplier * 100).toInt()}%",
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.primary,
                                 fontWeight = FontWeight.Medium
@@ -813,11 +813,11 @@ private fun CustomWaterDialog(
                         amountText = it
                         isError = false
                     },
-                    label = { Text("Amount (ml)") },
+                    label = { Text(stringResource(R.string.home_amount_ml)) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     isError = isError,
                     supportingText = if (isError) {
-                        { Text("Please enter a valid amount (1-5000 ml)") }
+                        { Text(stringResource(R.string.home_valid_amount)) }
                     } else null,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -827,7 +827,7 @@ private fun CustomWaterDialog(
                     horizontalArrangement = Arrangement.End
                 ) {
                     TextButton(onClick = onDismiss) {
-                        Text("Cancel")
+                        Text(stringResource(R.string.home_cancel))
                     }
 
                     Spacer(modifier = Modifier.width(8.dp))
@@ -843,7 +843,7 @@ private fun CustomWaterDialog(
                             }
                         }
                     ) {
-                        Text("Add")
+                        Text(stringResource(R.string.home_add))
                     }
                 }
             }
@@ -1095,7 +1095,7 @@ private fun EditWaterDialog(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     isError = isError && !isExternalEntry,
                     supportingText = if (isError && !isExternalEntry) {
-                        { Text("Please enter a valid amount (1-5000 ml)") }
+                        { Text(stringResource(R.string.home_valid_amount)) }
                     } else null,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -1105,7 +1105,7 @@ private fun EditWaterDialog(
                     horizontalArrangement = Arrangement.End
                 ) {
                     TextButton(onClick = onDismiss) {
-                        Text(if (isExternalEntry) "Close" else "Cancel")
+                        Text(if (isExternalEntry) "关闭" else "取消")
                     }
 
                     if (!isExternalEntry) {
@@ -1137,7 +1137,7 @@ private fun EditWaterDialog(
                                 }
                             }
                         ) {
-                            Text("Update")
+                            Text("更新")
                         }
                     }
                 }
@@ -1150,50 +1150,40 @@ private fun EditWaterDialog(
         Dialog(onDismissRequest = { showTimePicker = false }) {
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                shape = MaterialTheme.shapes.extraLargeIncreased,
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                )
+                shape = MaterialTheme.shapes.extraLargeIncreased
             ) {
                 Column(
                     modifier = Modifier.padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     Text(
-                        text = "Select Time",
+                        text = stringResource(R.string.home_select_time),
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold
                     )
-
                     TimePicker(
                         state = timePickerState,
                         modifier = Modifier.fillMaxWidth()
                     )
-
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.End
                     ) {
                         TextButton(onClick = { showTimePicker = false }) {
-                            Text("Cancel")
+                            Text(stringResource(R.string.home_cancel))
                         }
-
-                        Spacer(modifier = Modifier.width(8.dp))
-
                         Button(
-                            shapes = ButtonDefaults.shapes(),
                             onClick = {
                                 selectedHour = timePickerState.hour
                                 selectedMinute = timePickerState.minute
                                 showTimePicker = false
                             }
                         ) {
-                            Text("OK")
+                            Text(stringResource(R.string.home_ok))
                         }
                     }
                 }
-            }
+            )
         }
     }
 }
@@ -1375,7 +1365,7 @@ private fun RecentEntryItem(
                                         painter = painterResource(preset.iconRes),
                                         contentDescription = preset.name,
                                         tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                                        modifier = Modifier.size(24.dp)
+                                        modifier = Modifier.size(32.dp)
                                     )
                                 }
                                 preset?.icon != null -> {
@@ -1383,15 +1373,15 @@ private fun RecentEntryItem(
                                         imageVector = preset.icon,
                                         contentDescription = preset.name,
                                         tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                                        modifier = Modifier.size(24.dp)
+                                        modifier = Modifier.size(32.dp)
                                     )
                                 }
                                 else -> {
                                     Icon(
                                         imageVector = Icons.Default.WaterDrop,
-                                        contentDescription = entry.containerType,
+                                        contentDescription = preset.name,
                                         tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                                        modifier = Modifier.size(24.dp)
+                                        modifier = Modifier.size(32.dp)
                                     )
                                 }
                             }
@@ -1485,12 +1475,12 @@ private fun DeleteConfirmationDialog(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Delete,
-                        contentDescription = "Delete",
+                        contentDescription = stringResource(R.string.home_delete),
                         tint = MaterialTheme.colorScheme.error,
                         modifier = Modifier.size(24.dp)
                     )
                     Text(
-                        text = "Delete Entry",
+                        text = stringResource(R.string.home_delete_entry),
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
@@ -1498,13 +1488,13 @@ private fun DeleteConfirmationDialog(
                 }
 
                 Text(
-                    text = "Are you sure you want to delete this ${entry.getFormattedAmount()} ${entry.containerType} entry?",
+                    text = stringResource(R.string.home_delete_confirm) + " ${entry.getFormattedAmount()} ${entry.containerType}",
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
                 Text(
-                    text = "This action cannot be undone.",
+                    text = stringResource(R.string.home_delete_warning),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                 )
@@ -1514,7 +1504,7 @@ private fun DeleteConfirmationDialog(
                     horizontalArrangement = Arrangement.End
                 ) {
                     TextButton(onClick = onDismiss) {
-                        Text("Cancel")
+                        Text(stringResource(R.string.home_cancel))
                     }
 
                     Spacer(modifier = Modifier.width(8.dp))
@@ -1527,7 +1517,7 @@ private fun DeleteConfirmationDialog(
                         shapes = ButtonDefaults.shapes()
                     ) {
                         Text(
-                            text = "Delete",
+                            text = stringResource(R.string.home_delete),
                             color = MaterialTheme.colorScheme.onError
                         )
                     }
