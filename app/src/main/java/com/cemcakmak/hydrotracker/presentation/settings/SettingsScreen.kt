@@ -40,6 +40,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import android.content.Intent
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import com.cemcakmak.hydrotracker.R
 import androidx.compose.ui.graphics.Color
 import androidx.core.net.toUri
@@ -93,7 +94,7 @@ fun SettingsScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "Settings",
+                        text = stringResource(R.string.settings_title),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -102,7 +103,7 @@ fun SettingsScreen(
                     IconButton(onClick = onNavigateBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = stringResource(R.string.nav_back)
                         )
                     }
                 }
@@ -286,7 +287,7 @@ fun SettingsScreen(
 
                         coroutineScope.launch {
                             snackbarHostState.showSnackbar(
-                                message = "Developer options activated",
+                                message = stringResource(R.string.settings_developer_options_activated),
                                 duration = SnackbarDuration.Short
                             )
                         }
@@ -333,7 +334,7 @@ private fun ThemeSection(
                         tint = MaterialTheme.colorScheme.primary
                     )
                     Text(
-                        text = "Theme Settings",
+                        text = stringResource(R.string.settings_theme_settings),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -371,10 +372,10 @@ private fun ThemeSection(
                                 )
                                 Text(
                                     text = when (preference) {
-                                        DarkModePreference.SYSTEM -> "System"
-                                        DarkModePreference.LIGHT -> "Light"
-                                        DarkModePreference.DARK -> "Dark"
-                                    },
+                                            DarkModePreference.SYSTEM -> stringResource(R.string.settings_theme_system)
+                                            DarkModePreference.LIGHT -> stringResource(R.string.settings_theme_light)
+                                            DarkModePreference.DARK -> stringResource(R.string.settings_theme_dark)
+                                        },
                                     style = MaterialTheme.typography.labelLarge
                                 )
                             }
@@ -403,7 +404,7 @@ private fun ThemeSection(
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
-                                text = "Colors from your wallpaper",
+                                text = stringResource(R.string.settings_colors_from_wallpaper),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -501,7 +502,7 @@ private fun DisplaySection(
                     tint = MaterialTheme.colorScheme.primary
                 )
                 Text(
-                    text = "Week Start",
+                    text = stringResource(R.string.settings_week_start),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -538,8 +539,8 @@ private fun DisplaySection(
                             )
                             Text(
                                 text = when (weekStartDay) {
-                                    WeekStartDay.SUNDAY -> "Sunday"
-                                    WeekStartDay.MONDAY -> "Monday"
+                                    WeekStartDay.SUNDAY -> stringResource(R.string.settings_sunday)
+                                    WeekStartDay.MONDAY -> stringResource(R.string.settings_monday)
                                 },
                                 style = MaterialTheme.typography.labelLarge
                             )
@@ -691,7 +692,7 @@ private fun SupportSection(
                         modifier = Modifier.size(24.dp)
                     )
                     Text(
-                        text = "Support Development",
+                        text = stringResource(R.string.settings_support_development),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurface
@@ -699,7 +700,7 @@ private fun SupportSection(
                 }
 
                 Text(
-                    text = "If you like to support my work, you can donate me :)",
+                    text = stringResource(R.string.settings_support_description),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center
@@ -731,7 +732,7 @@ private fun SupportSection(
                                 tint = if (isDarkTheme) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.inverseOnSurface
                             )
                             Text(
-                                text = "PayPal",
+                                text = stringResource(R.string.settings_paypal),
                                 style = MaterialTheme.typography.labelLarge,
                                 color = if (isDarkTheme) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.inverseOnSurface
                             )
@@ -760,7 +761,7 @@ private fun SupportSection(
                                 tint = if (isDarkTheme) MaterialTheme.colorScheme.inverseOnSurface else MaterialTheme.colorScheme.onSurface
                             )
                             Text(
-                                text = "Buy Me Coffee",
+                                text = stringResource(R.string.settings_buy_me_coffee),
                                 style = MaterialTheme.typography.labelLarge,
                                 color = if (isDarkTheme) MaterialTheme.colorScheme.inverseOnSurface else MaterialTheme.colorScheme.onSurface
                             )
@@ -801,7 +802,7 @@ private fun FooterSection(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(
-                    text = "HydroTracker",
+                    text = stringResource(R.string.app_name),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -809,18 +810,18 @@ private fun FooterSection(
                 )
                 
                 Text(
-                    text = "Version ${BuildConfig.VERSION_NAME}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.clickable { onVersionTap() }
+                    text = stringResource(R.string.settings_version, BuildConfig.VERSION_NAME),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.primary,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.clickable { onVersionTap() }
                 )
                 
                 Text(
-                    text = "Developed by Ali Cem Çakmak",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                    textAlign = TextAlign.Center
+                    text = stringResource(R.string.settings_developed_by),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                textAlign = TextAlign.Center
                 )
             }
         }
@@ -857,15 +858,15 @@ private fun DeveloperOptionsSection(
                     tint = MaterialTheme.colorScheme.error
                 )
                 Text(
-                    text = "Developer Options",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onErrorContainer
+                    text = stringResource(R.string.settings_developer_options),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onErrorContainer
                 )
             }
 
             Text(
-                text = "These options are for development and testing purposes only.",
+                text = stringResource(R.string.settings_developer_options_warning),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.8f)
             )
@@ -892,14 +893,14 @@ private fun DeveloperOptionsSection(
                     )
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "Disable Developer Options",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Medium
+                            text = stringResource(R.string.settings_disable_developer_options),
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Medium
                         )
                         Text(
-                            text = "Hide developer options from settings",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            text = stringResource(R.string.settings_hide_developer_options),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
@@ -920,26 +921,26 @@ private fun DeveloperOptionsSection(
 
             // Clear All Data Button
             AsyncDebugActionButton(
-                title = "Clear All Data",
-                description = "Remove all stored user preferences and water data",
+                title = stringResource(R.string.settings_clear_all_data),
+                description = stringResource(R.string.settings_clear_all_data_desc),
                 icon = Icons.Default.DeleteForever,
                 snackbarHostState = snackbarHostState,
                 onClick = {
                     userRepository.clearUserProfile()
                     waterIntakeRepository.clearAllData()
                 },
-                confirmationMessage = "All data cleared!"
+                confirmationMessage = stringResource(R.string.settings_clear_all_data_confirm)
             )
 
             AsyncDebugActionButton(
-                title = "Inject 30-Day Data",
-                description = "Add realistic water intake data for past 30 days",
+                title = stringResource(R.string.settings_inject_30day_data),
+                description = stringResource(R.string.settings_inject_30day_data_desc),
                 icon = Icons.Default.DataObject,
                 snackbarHostState = snackbarHostState,
                 onClick = {
                     waterIntakeRepository.injectDebugData()
                 },
-                confirmationMessage = "30 days of realistic data injected! Check History screen."
+                confirmationMessage = stringResource(R.string.settings_inject_30day_data_confirm)
             )
 
             // Health Connect Debug Section - only show if Health Connect is supported and enabled
@@ -947,7 +948,7 @@ private fun DeveloperOptionsSection(
                 val context = LocalContext.current // Capture context in Composable scope
 
                 Text(
-                    text = "Health Connect Testing",
+                    text = stringResource(R.string.settings_health_connect_testing),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.padding(vertical = 16.dp)
@@ -955,8 +956,8 @@ private fun DeveloperOptionsSection(
 
                 // Test Health Connect Write
                 AsyncDebugActionButton(
-                    title = "Test Health Connect Write",
-                    description = "Write a 250ml test entry to Health Connect",
+                    title = stringResource(R.string.settings_test_hc_write),
+                    description = stringResource(R.string.settings_test_hc_write_desc),
                     icon = Icons.Default.CloudUpload,
                     snackbarHostState = snackbarHostState,
                     onClick = {
@@ -976,13 +977,13 @@ private fun DeveloperOptionsSection(
                             Log.e("HealthConnectDebug", "Test write failed", e)
                         }
                     },
-                    confirmationMessage = "Test entry sent to Health Connect! Check logs for results."
+                    confirmationMessage = stringResource(R.string.settings_test_hc_write_confirm)
                 )
 
                 // Test Health Connect Read
                 AsyncDebugActionButton(
-                    title = "Test Health Connect Read",
-                    description = "Read recent hydration records from Health Connect",
+                    title = stringResource(R.string.settings_test_hc_read),
+                    description = stringResource(R.string.settings_test_hc_read_desc),
                     icon = Icons.Default.CloudDownload,
                     snackbarHostState = snackbarHostState,
                     onClick = {
@@ -998,13 +999,13 @@ private fun DeveloperOptionsSection(
                             Log.e("HealthConnectDebug", "Test read failed", e)
                         }
                     },
-                    confirmationMessage = "Health Connect read test completed! Check logs for results."
+                    confirmationMessage = stringResource(R.string.settings_test_hc_read_confirm)
                 )
 
                 // Test Health Connect Import (External Data)
                 AsyncDebugActionButton(
-                    title = "Test Health Connect Import",
-                    description = "Import external hydration data from Health Connect",
+                    title = stringResource(R.string.settings_test_hc_import),
+                    description = stringResource(R.string.settings_test_hc_import_desc),
                     icon = Icons.Default.Download,
                     snackbarHostState = snackbarHostState,
                     onClick = {
@@ -1019,13 +1020,13 @@ private fun DeveloperOptionsSection(
                             Log.e("HealthConnectDebug", "Import test failed", e)
                         }
                     },
-                    confirmationMessage = "Health Connect import test started! Check logs for detailed results."
+                    confirmationMessage = stringResource(R.string.settings_test_hc_import_confirm)
                 )
 
                 // Health Connect Status Check
                 AsyncDebugActionButton(
-                    title = "Check Health Connect Status",
-                    description = "Verify Health Connect availability and permissions",
+                    title = stringResource(R.string.settings_check_hc_status),
+                    description = stringResource(R.string.settings_check_hc_status_desc),
                     icon = Icons.Default.HealthAndSafety,
                     snackbarHostState = snackbarHostState,
                     onClick = {
@@ -1041,11 +1042,11 @@ private fun DeveloperOptionsSection(
                             Log.e("HealthConnectDebug", "Status check failed", e)
                         }
                     },
-                    confirmationMessage = "Health Connect status logged! Check: adb logcat | grep HealthConnectDebug"
+                    confirmationMessage = stringResource(R.string.settings_check_hc_status_confirm)
                 )
 
                 Text(
-                    text = "💡 View logs with: adb logcat | grep -E \"(HealthConnect|HealthConnectDebug|HealthConnectTest)\"",
+                    text = stringResource(R.string.settings_view_logs_tip),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(vertical = 8.dp)
@@ -1145,12 +1146,12 @@ private fun ResetOnboardingButton(
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "Reset Onboarding",
+                    text = stringResource(R.string.settings_reset_onboarding),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Medium
                 )
                 Text(
-                    text = "Clear user data and restart onboarding",
+                    text = stringResource(R.string.settings_clear_user_data),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -1162,8 +1163,8 @@ private fun ResetOnboardingButton(
     LaunchedEffect(isPressed) {
         if (isPressed) {
             snackbarHostState.showSnackbar(
-                message = "Onboarding reset! Redirecting...",
-                duration = SnackbarDuration.Short
+                message = stringResource(R.string.settings_onboarding_reset),
+                 duration = SnackbarDuration.Short
             )
             kotlinx.coroutines.delay(150)
             isPressed = false
@@ -1226,12 +1227,12 @@ private fun AboutSection(
 
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "Sources & Research",
+                                text = stringResource(R.string.settings_sources_research),
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Medium
                             )
                             Text(
-                                text = "View scientific sources and research",
+                                text = stringResource(R.string.settings_view_scientific_sources),
                                 style = MaterialTheme.typography.bodySmall
                             )
                         }
@@ -1269,12 +1270,12 @@ private fun AboutSection(
 
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "Privacy Policy",
+                                text = stringResource(R.string.settings_privacy_policy),
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Medium
                             )
                             Text(
-                                text = "View our privacy policy",
+                                text = stringResource(R.string.settings_view_privacy_policy),
                                 style = MaterialTheme.typography.bodySmall
                             )
                         }
@@ -1312,12 +1313,12 @@ private fun AboutSection(
 
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "Open Source License",
+                                text = stringResource(R.string.settings_open_source_license),
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Medium
                             )
                             Text(
-                                text = "View the software license",
+                                text = stringResource(R.string.settings_view_software_license),
                                 style = MaterialTheme.typography.bodySmall
                             )
                         }
@@ -1691,7 +1692,7 @@ private fun HydrationSection(
                     tint = MaterialTheme.colorScheme.primary
                 )
                 Text(
-                    text = "Calculation Standard",
+                    text = stringResource(R.string.settings_calculation_standard),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -1724,8 +1725,8 @@ private fun HydrationSection(
                             )
                             Text(
                                 text = when (standard) {
-                                    HydrationStandard.EFSA -> "Conservative"
-                                    HydrationStandard.IOM -> "Higher intake"
+                                    HydrationStandard.EFSA -> stringResource(R.string.settings_conservative)
+                                    HydrationStandard.IOM -> stringResource(R.string.settings_higher_intake)
                                 },
                                 style = MaterialTheme.typography.labelSmall,
                                 color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
@@ -1747,7 +1748,7 @@ private fun HydrationSection(
                         verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         Text(
-                            text = "Current Standards:",
+                            text = stringResource(R.string.settings_current_standards),
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.SemiBold
                         )
@@ -1756,7 +1757,7 @@ private fun HydrationSection(
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text(
-                                text = "Male baseline:",
+                                text = stringResource(R.string.settings_male_baseline),
                                 style = MaterialTheme.typography.bodySmall
                             )
                             Text(
@@ -1770,7 +1771,7 @@ private fun HydrationSection(
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text(
-                                text = "Female baseline:",
+                                text = stringResource(R.string.settings_female_baseline),
                                 style = MaterialTheme.typography.bodySmall
                             )
                             Text(
@@ -1864,7 +1865,7 @@ private fun HealthConnectSection(
                     tint = MaterialTheme.colorScheme.primary
                 )
                 Text(
-                    text = "Health Connect",
+                    text = stringResource(R.string.settings_health_connect),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -1879,12 +1880,12 @@ private fun HealthConnectSection(
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "Sync with Health Connect",
+                            text = stringResource(R.string.settings_sync_with_health_connect),
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Medium
                         )
                         Text(
-                            text = "Share hydration data with other health apps",
+                            text = stringResource(R.string.settings_share_hydration_data),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -1932,12 +1933,12 @@ private fun HealthConnectSection(
 
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "Health Connect Data",
+                                text = stringResource(R.string.settings_health_connect_data),
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Medium
                             )
                             Text(
-                                text = "View and manage Health Connect data",
+                                text = stringResource(R.string.settings_view_manage_health_data),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer
                             )
@@ -1977,7 +1978,7 @@ private fun HealthConnectSection(
                         },
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text(if (healthConnectStatus.contains("Missing")) "Try Again" else "Grant Permissions")
+                        Text(if (healthConnectStatus.contains("Missing")) stringResource(R.string.settings_try_again) else stringResource(R.string.settings_grant_permissions))
                     }
 
                 }
